@@ -1,6 +1,5 @@
 config MT7601_STA
         tristate "MT7601_util STA support"
-        default m
-		select WIRELESS_EXT
-		select WEXT_PRIV
+	select WIRELESS_EXT
+	select WEXT_PRIV
 #       depends on NET_RADIO
