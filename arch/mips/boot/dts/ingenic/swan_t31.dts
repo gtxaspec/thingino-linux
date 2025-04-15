@@ -97,7 +97,7 @@
 	pinctrl-0 = <&mac0_rmii_p0_normal>, <&mac0_rmii_p1_normal>;
 	pinctrl-1 = <&mac0_rmii_p0_rst>, <&mac0_rmii_p1_normal>;
 	status = "okay";
-	ingenic,rst-gpio = <&gpc 7 GPIO_ACTIVE_LOW INGENIC_GPIO_NOBIAS>;
+	/* ingenic,rst-gpio = <&gpc 7 GPIO_ACTIVE_LOW INGENIC_GPIO_NOBIAS>; */
 	ingenic,rst-ms = <10>;
 	ingenic,mac-mode = <RMII>;
 	ingenic,mode-reg = <0xb00000e8>;
