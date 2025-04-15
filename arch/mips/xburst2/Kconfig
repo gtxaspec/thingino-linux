@@ -59,7 +59,7 @@ endchoice
 config DT_T40_MODULE_BASE_DTS_FILE
 	string "dts file for T40 module driver"
 	depends on DT_T40_MODULE_BASE
-	default swan.dts
+	default shark.dts
 	help
 		the dts file location is arch/mips/boot/dts/ingenic/
 
