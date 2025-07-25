@@ -7,10 +7,15 @@
 #undef NULL
 #define NULL ((void *)0)
 
+/* Handle C23 bool/false/true keywords */
+#ifndef __cplusplus
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L
 enum {
 	false	= 0,
 	true	= 1
 };
+#endif
+#endif
 
 #undef offsetof
 #ifdef __compiler_offsetof
