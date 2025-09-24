@@ -103,7 +103,7 @@ config JZ_SPI
 config JZ_SPI0
     bool "Ingenic SoC SSI controller 0 for SPI Host driver"
 	depends on JZ_SPI
-	select JZ_SPI0_PC
+	select JZ_SPI0_PB
 
 config JZ_SPI0_PB
     bool "JZ SSI0 controller function pins select PB"
@@ -197,6 +197,10 @@ config JZ_SPI_SPISLV_LOOPTEST
 	bool "Ingenic SoC SSI and SSI SLAVE loop test"
 	depends on JZ_SPI_SLAVE
 
+config JZ_SPI0_TMI8152
+	bool "SPI adapter TMI8152 chip"
+	depends on JZ_SPI0
+	default n
 
 ##################################################
 

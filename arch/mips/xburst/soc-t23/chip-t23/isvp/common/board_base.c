@@ -208,6 +208,9 @@ static int __init board_base_init(void)
 						 platform_devices_array[i].pdata, platform_devices_array[i].size);
 		platform_device_register(platform_devices_array[i].pdevices);
 	}
+#if (defined(CONFIG_JZ_SPI0) && defined(CONFIG_JZ_SPI0_TMI8152))
+	spi_register_board_info(jz_spi0_board_info_tmi8152, 1);
+#endif
 
 #if (defined(CONFIG_SOFT_I2C0_GPIO_V12_JZ) || defined(CONFIG_I2C0_V12_JZ))
 	i2c_register_board_info(0, jz_i2c0_devs, jz_i2c0_devs_size);

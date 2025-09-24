@@ -99,6 +99,9 @@ extern struct platform_device jz_tcu_device;
 
 #ifdef CONFIG_JZ_SPI0
 extern struct jz_spi_info spi0_info_cfg;
+#ifdef CONFIG_JZ_SPI0_TMI8152
+extern struct spi_board_info jz_spi0_board_info_tmi8152[];
+#endif
 #endif
 
 #ifdef CONFIG_JZ_SPI1

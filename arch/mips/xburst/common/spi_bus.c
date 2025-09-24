@@ -55,6 +55,17 @@ static struct spi_board_info jz_spi1_board_info[] = {
 #endif
 #endif
 
+#if (defined(CONFIG_JZ_SPI0) && defined(CONFIG_JZ_SPI0_TMI8152))
+struct spi_board_info jz_spi0_board_info_tmi8152[] = {
+	[0] = {
+		.modalias       = "tmi8150b",
+		.bus_num        = 0,
+		.chip_select    = 0,
+		.max_speed_hz   = 4000000,
+	},
+};
+#endif
+
 struct spi_nor_block_info flash_block_info[] = {
 	{
 		.blocksize = SIZE_64KB,
