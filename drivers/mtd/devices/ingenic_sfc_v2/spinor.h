@@ -1485,6 +1485,42 @@ static struct spi_nor_info spi_nor_info_table[] = {
 			.bit_shift = 1,
 		},
 	},
+	{
+		.name = "W25Q128JV",
+		.id = 0xef6018,
+	#ifdef CONFIG_SPI_STANDARD_MODE
+		.quad_ops_mode = 0,
+	#else
+		.quad_ops_mode = 1,
+	#endif
+		/* addr_ops_mode: en4byte or addr_len > 3, set 1 */
+		.addr_ops_mode = 0,
+		.tCHSH = 5,
+		.tSLCH = 5,
+		.tSHSL_RD = 20,
+		.tSHSL_WR = 20,
+		.chip_size = 16 * 1024 * 1024,
+		.page_size = 256,
+		.erase_size = 32 * 1024,
+		.addr_len = 3,
+		.chip_erase_cmd = SPINOR_OP_CHIP_ERASE,
+		.quad_set = {
+			.cmd = SPINOR_OP_WRSR_1,
+			.bit_shift = 1,
+		},
+		.quad_get = {
+			.cmd = SPINOR_OP_RDSR_1,
+			.bit_shift = 1,
+		},
+		.busy = {
+			.cmd = SPINOR_OP_RDSR,
+			.bit_shift = 0,
+			.mask = 1,
+			.val = 0,
+			.len = 1,
+			.dummy = 0,
+		},
+	},
 };
 
 #endif
