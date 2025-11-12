@@ -256,6 +256,7 @@ static int l2cap_sock_getname(struct socket *sock, struct sockaddr *addr,
 	struct sockaddr_l2 *la = (struct sockaddr_l2 *) addr;
 	struct sock *sk = sock->sk;
 	struct l2cap_chan *chan = l2cap_pi(sk)->chan;
+	struct hci_conn *hcon;
 
 	BT_DBG("sock %p, sk %p", sock, sk);
 
@@ -267,6 +268,15 @@ static int l2cap_sock_getname(struct socket *sock, struct sockaddr *addr,
 		la->l2_psm = chan->psm;
 		bacpy(&la->l2_bdaddr, &bt_sk(sk)->dst);
 		la->l2_cid = cpu_to_le16(chan->dcid);
+
+		/* Set address type from connection info */
+		hcon = chan->conn ? chan->conn->hcon : NULL;
+		if (hcon) {
+			if (hcon->type == LE_LINK)
+				la->l2_bdaddr_type = hcon->dst_type;
+			else
+				la->l2_bdaddr_type = BDADDR_BREDR;
+		}
 	} else {
 		la->l2_psm = chan->sport;
 		bacpy(&la->l2_bdaddr, &bt_sk(sk)->src);
