@@ -631,6 +631,27 @@ struct spi_nor_platform_data spi_nor_pdata[] = {
 #endif
 	},
 	{
+		.name = "PY25Q256HB",
+		.pagesize = SIZE_256B,
+		.sectorsize = SIZE_4KB,
+		.chipsize = SIZE_32MB,
+		.erasesize = SIZE_32KB,
+		.id = 0x852019,
+
+		.block_info = flash_block_info,
+		.num_block_info = ARRAY_SIZE(flash_block_info),
+
+		.addrsize = 4,
+		.pp_maxbusy = 3,            /* 4ms */
+		.se_maxbusy = TIME_400MS,
+		.ce_maxbusy = TIME_80S,
+
+		.st_regnum = 3,
+#ifdef CONFIG_SPI_QUAD
+		.quad_mode = &flash_quad_mode[0],
+#endif
+	},
+	{
 		.name = "P25Q64H",
 		.pagesize = SIZE_256B,
 		.sectorsize = SIZE_4KB,
