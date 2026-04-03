@@ -43,9 +43,12 @@ struct channel_node {
 
 	unsigned int		n_flag; /*ncu start flag*/
 	void *				ncu_addr; /* ncu config addr, virtual*/
-#ifdef CONFIG_SOC_T23
-	unsigned int        frame_type;
-#endif
+	unsigned int		frame_type;
+	unsigned int		overflow_cnt;
+	unsigned int		ivdc_mem_line;
+	unsigned int		data_threshold;
+	unsigned int		max_bs_act;
+	uint64_t			time;
 };
 
 #if 0
@@ -107,5 +110,7 @@ struct reg_info {
 #define IOCTL_CHANNEL_VPU_SUSPEND	_IOWR(SOC_VPU_MAGIC, 8, struct channel_node)
 #define IOCTL_CHANNEL_VPU_RESUME	_IOWR(SOC_VPU_MAGIC, 9, struct channel_node)
 #define IOCTL_CHANNEL_PRIVATE_TLB	_IOWR(SOC_VPU_MAGIC, 10, struct channel_node)
+#define IOCTL_CHANNEL_WAIT_BSFULL_COMPLETE	_IOWR(SOC_VPU_MAGIC, 11, struct channel_node)
+#define IOCTL_CHANNEL_SET_BSFULL_PADDR	_IOWR(SOC_VPU_MAGIC, 12, struct channel_node)
 
 #endif	//__CHANNEL_VPU_H__

@@ -60,6 +60,7 @@
 # define SCH_GLBC_TLBINV     (0x1<<29)
 #endif
 #define SCH_INTE_RESERR      (0x1<<29)
+#define SCH_INTE_BSF         (0x1<<28)
 #define SCH_INTE_ACFGERR     (0x1<<20)
 #define SCH_INTE_TLBERR      (0x1<<18)
 #define SCH_INTE_BSERR       (0x1<<17)
@@ -94,6 +95,7 @@
 #define SCH_STAT_JPGEND      (0x1<<4)
 #define SCH_STAT_ACFGERR     (0x1<<2)
 #define SCH_STAT_ENDFLAG     (0x1<<0)
+#define SCH_STAT_BSFULL      (0x1<<20)
 
 #define REG_SCH_SLDE0        0x00040
 #define REG_SCH_SLDE1        0x00044
@@ -189,6 +191,10 @@
 /********************************************
   EFE (Encoder Front End)
 *********************************************/
+#define REG_EMC_BS_ADDR      0x30004
+#define REG_EMC_BS_SIZE      0x30040
+#define REG_EMC_BS_STAT      0x30044
+
 #define REG_EFE_CTRL         0x40000
 #define EFE_TSE(en)          (((en) & 0x1)<<31)
 #define EFE_FMVP(en)         (((en) & 0x1)<<30)
@@ -774,9 +780,8 @@
 #define REG_JPGC_P2C         0xE0038
 #define REG_JPGC_P3C         0xE003C
 #define REG_JPGC_MCUS        0xE0064
-#ifdef CONFIG_SOC_T23
 #define REG_JPGC_MAX_BS      0xE0068
-#endif
+#define REG_JPGC_ACT_BS      0xE006C
 #define REG_JPGC_ZIGM0       0xE1000
 #define REG_JPGC_ZIGM1       0xE1100
 #define REG_JPGC_HUFB        0xE1200

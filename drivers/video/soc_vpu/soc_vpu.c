@@ -670,6 +670,8 @@ static long soc_vpu_start(struct soc_channel *sc, struct channel_node *cnode)
 		if (ret < 0) {
 			dev_err(sc->mdev.this_device, "[fun:%s,line:%d] set vpu param failed\n", __func__, __LINE__);
 			goto err_start_vpu;
+		} else if (ret == 0x2) {
+			goto err_start_vpu;
 		}
 		spin_lock_irqsave(&vlist->slock, vlflag);
 		vlist->phase = RUN_VPU;
@@ -709,7 +711,11 @@ static long soc_vpu_start_on(struct soc_channel *sc, struct channel_node *cnode)
 			spin_unlock_irqrestore(&vlist->slock, vlflag);
 			dev_err(sc->mdev.this_device, "[fun:%s,line:%d] set vpu param failed\n", __func__, __LINE__);
 			goto err_start_vpu;
+		} else if (0x2 == ret) {
+			spin_unlock_irqrestore(&vlist->slock, vlflag);
+			goto err_start_vpu;
 		}
+
 		vlist->phase = RUN_VPU;
 		spin_unlock_irqrestore(&vlist->slock, vlflag);
 	} else {
@@ -777,8 +783,11 @@ static long soc_channel_run(struct soc_channel *sc, long usr_arg)
 	}
 
 	soc_channel_flush_cache_all(sc, &cnode);
-	if ((ret = soc_vpu_start(sc, &cnode)) < 0) {
+	ret = soc_vpu_start(sc, &cnode);
+	if (ret < 0) {
 		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] start vpu failed\n", __func__, __LINE__);
+		goto err_vpu_start_vpu;
+	} else if (0x2 == ret) {
 		goto err_vpu_start_vpu;
 	}
 
@@ -828,8 +837,11 @@ static long soc_channel_start(struct soc_channel *sc, long usr_arg)
 	}
 
 	soc_channel_flush_cache_all(sc, &cnode);
-	if ((ret = soc_vpu_start_on(sc, &cnode)) < 0) {
+	ret = soc_vpu_start_on(sc, &cnode);
+	if (ret < 0) {
 		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] start vpu on failed\n", __func__, __LINE__);
+		goto err_vpu_start_vpu_on;
+	} else if (ret == 0x2) {
 		goto err_vpu_start_vpu_on;
 	}
 
@@ -842,6 +854,7 @@ static long soc_channel_start(struct soc_channel *sc, long usr_arg)
 	return 0;
 
 err_copy_to_user:
+err_vpu_release_vpu:
 	copy_to_user((void *)usr_arg, &cnode, sizeof(struct channel_node));
 err_vpu_start_vpu_on:
 err_vpu_reset:
@@ -1094,6 +1107,127 @@ static long soc_channel_private_tlb(struct soc_channel *sc, long usr_arg)
 	return 0;
 }
 
+static long soc_vpu_wait_bs_complete(struct soc_channel *sc, struct channel_node *cnode)
+{
+	long ret = 0;
+	struct vpu_list *vlist = list_entry(cnode->vlist, struct vpu_list, list);
+	struct vpu *vpu = list_entry(vlist->vlist, struct vpu, vlist);
+
+	if (vpu->dev && vpu->ops && vpu->ops->wait_bs_complete) {
+		ret = vpu->ops->wait_bs_complete(vpu->dev, cnode);
+		if (ret < 0) {
+			ret = -EIO;
+			dev_err(sc->mdev.this_device, "[fun:%s,line:%d] wait bs timeout\n", __func__, __LINE__);
+			goto err_wait_bs_complete;
+		}
+		vlist->phase = COMPLETE_VPU;
+	} else {
+		ret = -ENODEV;
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] no vpu device failed\n", __func__, __LINE__);
+	}
+
+err_wait_bs_complete:
+	return ret;
+}
+
+static long soc_channel_wait_bsfull_complete(struct soc_channel *sc, long usr_arg)
+{
+	struct channel_node cnode;
+	long ret = 0;
+
+	if (copy_from_user(&cnode, (void *)usr_arg, sizeof(struct channel_node))) {
+		ret = -EINVAL;
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] copy_from_user failed\n", __func__, __LINE__);
+		goto err_copy_from_user;
+	}
+
+	if ((ret = soc_vpu_wait_bs_complete(sc, &cnode)) < 0) {
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] wait bs complete failed\n", __func__, __LINE__);
+		goto err_vpu_wait_complete;
+	}
+
+	if (0x3 == ret) {
+		if ((soc_vpu_release(sc, &cnode)) < 0) {
+			dev_err(sc->mdev.this_device, "[fun:%s,line:%d] release vpu failed\n", __func__, __LINE__);
+			goto err_vpu_release_vpu;
+		}
+	}
+
+	if (copy_to_user((void *)usr_arg, &cnode, sizeof(struct channel_node))) {
+		ret = -EINVAL;
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] copy_to_user failed\n", __func__, __LINE__);
+		goto err_copy_to_user;
+	}
+
+	return ret;
+
+err_copy_to_user:
+err_vpu_release_vpu:
+	copy_to_user((void *)usr_arg, &cnode, sizeof(struct channel_node));
+err_vpu_wait_complete:
+	soc_vpu_release(sc, &cnode);
+err_copy_from_user:
+	return ret;
+}
+
+static long soc_vpu_set_bsfull_paddr(struct soc_channel *sc, struct channel_node *cnode)
+{
+	long ret = 0;
+
+	struct vpu_list *vlist = list_entry(cnode->vlist, struct vpu_list, list);
+	struct vpu *vpu = list_entry(vlist->vlist, struct vpu, vlist);
+
+	if (vpu->dev && vpu->ops && vpu->ops->set_bsfull_paddr) {
+		ret = vpu->ops->set_bsfull_paddr(vpu->dev, cnode);
+		if (ret < 0) {
+			ret = -EIO;
+			dev_err(sc->mdev.this_device, "[fun:%s,line:%d] set bsfull paddr failed\n", __func__, __LINE__);
+			goto err_wait_bs_complete;
+		}
+		vlist->phase = COMPLETE_VPU;
+	} else {
+		ret = -ENODEV;
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] no vpu device failed\n", __func__, __LINE__);
+	}
+
+err_wait_bs_complete:
+	return ret;
+}
+
+static long soc_channel_set_bsfull_paddr(struct soc_channel *sc, long usr_arg)
+{
+	struct channel_node cnode;
+	long ret = 0;
+
+	if (copy_from_user(&cnode, (void *)usr_arg, sizeof(struct channel_node))) {
+		ret = -EINVAL;
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] copy_from_user failed\n", __func__, __LINE__);
+		goto err_copy_from_user;
+	}
+
+	soc_channel_flush_cache_all(sc, &cnode);
+
+	if ((ret = soc_vpu_set_bsfull_paddr(sc, &cnode)) < 0) {
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] set bsfull paddr failed\n", __func__, __LINE__);
+		goto err_vpu_wait_complete;
+	}
+
+	if (copy_to_user((void *)usr_arg, &cnode, sizeof(struct channel_node))) {
+		ret = -EINVAL;
+		dev_err(sc->mdev.this_device, "[fun:%s,line:%d] copy_to_user failed\n", __func__, __LINE__);
+		goto err_copy_to_user;
+	}
+
+	return ret;
+
+err_copy_to_user:
+	copy_to_user((void *)usr_arg, &cnode, sizeof(struct channel_node));
+err_vpu_wait_complete:
+	soc_vpu_release(sc, &cnode);
+err_copy_from_user:
+	return ret;
+}
+
 static int soc_channel_open(struct inode *inode, struct file *file)
 {
 	int ret = 0;
@@ -1224,6 +1358,12 @@ static long soc_channel_ioctl(struct file *file, unsigned int cmd, unsigned long
 		break;
 	case IOCTL_CHANNEL_PRIVATE_TLB:
 		ret = soc_channel_private_tlb(sc, arg);
+		break;
+	case IOCTL_CHANNEL_WAIT_BSFULL_COMPLETE:
+		ret = soc_channel_wait_bsfull_complete(sc, arg);
+		break;
+	case IOCTL_CHANNEL_SET_BSFULL_PADDR:
+		ret = soc_channel_set_bsfull_paddr(sc, arg);
 		break;
 	default:
 		ret = -1;

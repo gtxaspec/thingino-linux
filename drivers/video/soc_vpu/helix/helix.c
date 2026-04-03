@@ -7,21 +7,25 @@
 #include <soc/base.h>
 #include <soc/cpm.h>
 #include <asm/delay.h>
-//#include <mach/jzcpm_pwc.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+#include <jz_proc.h>
 
 #include "../soc_vpu.h"
 #include "helix.h"
-//#include "helix_x264_enc.h"
 
 //#define DUMP_HELIX_REG
 
+static int timeoffset = 50;
+static int data_threshold = 500;
 struct jz_vpu_helix {
 	struct vpu          vpu;
 	char                name[16];
 	int                 irq;
 	void __iomem        *iomem;
+	void __iomem        *iomem_ivdc;
 	struct clk          *clk;
 	struct clk          *clk_gate;
 	struct clk          *ahb1_gate;
@@ -165,8 +169,12 @@ void helix_show_internal_state(struct jz_vpu_helix *vpu)
 
 static long vpu_start(struct device *dev, const struct channel_node * const cnode)
 {
+	unsigned int isp_y_ddr_line_cnt = 0;
+	unsigned int v0_ddr_y_grp_line = 0;
+	unsigned int valid_data_line = 0;
+	unsigned int overflow_cnt = 0;
 	struct jz_vpu_helix *vpu = dev_get_drvdata(dev);
-	//struct channel_list *clist = list_entry(cnode->clist, struct channel_list, list);
+
 
 #ifdef DUMP_HELIX_REG
 	dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state start------\n", __func__, __LINE__);
@@ -174,17 +182,48 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
 	dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state end------\n", __func__, __LINE__);
 #endif
 
-    vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR
-            | SCH_INTE_BSERR | SCH_INTE_ENDF);
+	unsigned long slock_flag = 0;
+	spin_lock_irqsave(&vpu->slock, slock_flag);
+	vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR
+			| SCH_INTE_BSERR | SCH_INTE_ENDF | SCH_INTE_BSF);
 
-#ifdef CONFIG_SOC_T23
 	if (cnode->frame_type == FRAME_TYPE_IVDC) {
-		void *ivdc_iomap = ioremap(IVDC_BASE_ADDR, 0x1000);
-		writel(1, ivdc_iomap+0x78);
-		writel(1, ivdc_iomap+0x70);
-		iounmap(ivdc_iomap);
+		overflow_cnt = readl(vpu->iomem_ivdc+0x2c);
+		if (overflow_cnt > 0) {
+			if (overflow_cnt > cnode->overflow_cnt) {
+				spin_unlock_irqrestore(&vpu->slock, slock_flag);
+				printk("overflow_cnt = %d, cnode_overflow_cnt = %d\n",overflow_cnt,cnode->overflow_cnt);
+				goto enc_cancel;
+			}
+		}
+
+		struct timespec ts;
+		getrawmonotonic(&ts);
+		uint64_t time =  ts.tv_sec*1000 + ts.tv_nsec / 1000 / 1000;
+		if (cnode->time > 0) {
+			if ((time - cnode->time) > timeoffset) {
+				spin_unlock_irqrestore(&vpu->slock, slock_flag);
+				printk("time = %lld, timeoffset = %d\n",time - cnode->time, timeoffset);
+				goto enc_cancel;
+			}
+		}
+
+		isp_y_ddr_line_cnt = readl(vpu->iomem_ivdc+0x208);
+		v0_ddr_y_grp_line = readl(vpu->iomem_ivdc+0x3a8);
+		if (((isp_y_ddr_line_cnt >> 16) & (1 << 15)) == (v0_ddr_y_grp_line & (1 << 15))) {
+			valid_data_line = ((isp_y_ddr_line_cnt >> 16)&0x7fff) - (v0_ddr_y_grp_line & 0x7fff);
+		} else {
+			valid_data_line = ((isp_y_ddr_line_cnt >> 16)&0x7fff) + cnode->ivdc_mem_line - (v0_ddr_y_grp_line & 0x7fff);
+		}
+		if (valid_data_line > data_threshold) {
+			spin_unlock_irqrestore(&vpu->slock, slock_flag);
+			printk("valid_data_line = %d,data_threshold = %d\n",valid_data_line, data_threshold);
+			goto enc_cancel;
+		}
+
+		writel(1, vpu->iomem_ivdc+0x78);
+		writel(1, vpu->iomem_ivdc+0x70);
 	}
-#endif
 
 #if defined(CONFIG_SOC_T21) || defined(CONFIG_SOC_T23)
 	vpu_writel(vpu, REG_VDMA_TASKRG_T21, VDMA_ACFG_DHA(cnode->dma_addr)
@@ -193,9 +232,13 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
 	vpu_writel(vpu, REG_VDMA_TASKRG, VDMA_ACFG_DHA(cnode->dma_addr)
 			| VDMA_ACFG_RUN);
 #endif
+
+	spin_unlock_irqrestore(&vpu->slock, slock_flag);
 	dev_dbg(vpu->vpu.dev, "[%d:%d] start vpu\n", current->tgid, current->pid);
 
 	return 0;
+enc_cancel:
+	return 0x2;
 }
 
 static long vpu_wait_complete(struct device *dev, struct channel_node * const cnode)
@@ -249,8 +292,148 @@ hard_vpu_wait_restart:
 	cnode->output_len = vpu->bslen;
 	cnode->status = vpu->status;
 	cnode->cmpx = vpu->cmpx;
+	cnode->max_bs_act = 0;
+	if (cnode->codecdir == HWJPEGENC) {
+		if ((vpu_readl(vpu, REG_JPGC_MAX_BS)) & (1 << 31)) {
+				cnode->max_bs_act = vpu_readl(vpu, REG_JPGC_ACT_BS);
+		}
+	}
 
 	//dev_info(dev, "[file:%s,fun:%s,line:%d] ret = %ld, status = %x, bslen = %d, cnode->cmpx=%d\n", __FILE__, __func__, __LINE__, ret, cnode->status, cnode->output_len, cnode->cmpx);
+
+	return ret;
+}
+
+static long vpu_set_bsfull_paddr(struct device *dev, struct channel_node *cnode)
+{
+	unsigned int paddr;
+	struct jz_vpu_helix *vpu = dev_get_drvdata(dev);
+
+	paddr = vpu_readl(vpu, REG_EMC_BS_ADDR);
+	vpu_writel(vpu, REG_EMC_BS_ADDR, paddr);
+	vpu_writel(vpu, REG_EMC_BS_STAT, 1);
+	vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR | SCH_INTE_BSERR | SCH_INTE_ENDF | SCH_INTE_BSF);
+
+	return 0;
+}
+
+static int bs_cnt = 0;
+static long vpu_wait_bs_complete(struct device *dev, struct channel_node *cnode)
+{
+	int ret = 0, bsreadcnt = 3, bslen_bs = 0;
+	unsigned int vpu_stat;
+	unsigned int bs_paddr;
+	struct jz_vpu_helix *vpu = dev_get_drvdata(dev);
+
+hard_vpu_wait_bs_restart:
+	ret = wait_for_completion_interruptible_timeout(&vpu->done, msecs_to_jiffies(cnode->mdelay));
+	vpu_stat = vpu->status;
+	bs_paddr = vpu_readl(vpu, REG_EMC_BS_ADDR);
+
+	if (vpu_stat & SCH_STAT_ENDFLAG) {
+		bs_cnt = 0;
+		if ((ret > 0) && (cnode->codecdir == HWJPEGDEC)) {
+			vpu->bslen = vpu_readl(vpu, REG_JPGC_MCUS);
+			vpu->cmpx = 0;
+		}
+		while ((bsreadcnt-- > 0) && (ret > 0) && (vpu->bslen == 0)) {
+			if (cnode->codecdir == HWJPEGDEC) {
+				vpu->bslen = vpu_readl(vpu, REG_JPGC_MCUS);
+				vpu->cmpx = 0;
+			} else if (cnode->codecdir == HWJPEGENC) {
+				vpu->bslen = vpu_readl(vpu, REG_JPGC_STAT) & 0xffffff;
+				vpu->cmpx = 0;
+			} else if (cnode->codecdir == HWH264ENC) {
+				vpu->bslen = vpu_readl(vpu, REG_SDE_CFG9);
+				vpu->cmpx = vpu_readl(vpu, REG_EFE_SSAD);
+			}
+			if (vpu->bslen == 0) {
+				msleep(2);
+				continue;
+			}
+		}
+		if ((ret > 0) && vpu->bslen) {
+			ret = 0;
+			dev_dbg(vpu->vpu.dev, "[%d:%d] wait complete finish\n", current->tgid, current->pid);
+		} else if (ret == -ERESTARTSYS) {
+			dev_dbg(vpu->vpu.dev, "[%d:%d]:fun:%s,line:%d vpu is interrupt\n", current->tgid, current->pid, __func__, __LINE__);
+		} else {
+			dev_warn(dev, "[%d:%d] wait_for_completion timeout\n", current->tgid, current->pid);
+			dev_warn(dev, "vpu_stat = %x\n", vpu_readl(vpu,REG_SCH_STAT));
+			dev_warn(dev, "vdma_task = %x\n", vpu_readl(vpu,REG_VDMA_TASKST));
+			dev_warn(dev, "ret = %d\n", ret);
+#ifdef DUMP_HELIX_REG
+			dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state start------\n", __func__, __LINE__);
+			helix_show_internal_state(vpu);
+			dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state end------\n", __func__, __LINE__);
+#endif
+			if (vpu_reset(dev) < 0) {
+				dev_warn(dev, "vpu reset failed\n");
+			}
+			goto hard_vpu_wait_bs_restart;
+		}
+		cnode->output_len = vpu->bslen;
+		cnode->status = vpu->status;
+		cnode->cmpx = vpu->cmpx;
+		ret = 0x3;
+	} else if (vpu_stat & SCH_STAT_BSFULL) {
+
+		if (vpu_stat & (1 << 9)) {
+			vpu->bslen = vpu_readl(vpu, REG_SDE_CFG9);
+			bslen_bs = vpu_readl(vpu, REG_EMC_BS_SIZE);
+
+			if ((vpu->bslen - (bslen_bs*1024*bs_cnt)) <= (bslen_bs*1024)) {
+				cnode->output_len = vpu->bslen;
+				ret = 0x3;
+				bs_cnt = 0;
+				return ret;
+			}
+		}
+
+		bs_cnt++;
+		vpu->bslen = vpu_readl(vpu, REG_EMC_BS_SIZE);
+		if ((ret > 0) && (cnode->codecdir == HWJPEGDEC)) {
+			vpu->bslen = vpu_readl(vpu, REG_EMC_BS_SIZE);
+			vpu->cmpx = 0;
+		}
+		while ((bsreadcnt-- > 0) && (ret > 0) && (vpu->bslen == 0)) {
+			if (cnode->codecdir == HWJPEGDEC) {
+				vpu->bslen = vpu_readl(vpu, REG_EMC_BS_SIZE);
+				vpu->cmpx = 0;
+			} else if (cnode->codecdir == HWJPEGENC) {
+				vpu->bslen = vpu_readl(vpu, REG_EMC_BS_SIZE) & 0xffffff;
+				vpu->cmpx = 0;
+			} else if (cnode->codecdir == HWH264ENC) {
+				vpu->bslen = vpu_readl(vpu, REG_EMC_BS_SIZE);
+				vpu->cmpx = vpu_readl(vpu, REG_EFE_SSAD);
+			}
+			if (vpu->bslen == 0) {
+				msleep(2);
+				continue;
+			}
+		}
+		if ((ret > 0) && vpu->bslen) {
+			ret = 0;
+			dev_dbg(vpu->vpu.dev, "[%d:%d] wait bs_complete finish\n", current->tgid, current->pid);
+		} else if (ret == -ERESTARTSYS) {
+			dev_dbg(vpu->vpu.dev, "[%d:%d]:fun:%s,line:%d vpu is interrupt\n", current->tgid, current->pid, __func__, __LINE__);
+		} else {
+			dev_warn(dev, "[%d:%d] wait_for_bs_completion timeout\n", current->tgid, current->pid);
+#ifdef DUMP_HELIX_REG
+			dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state start------\n", __func__, __LINE__);
+			helix_show_internal_state(vpu);
+			dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state end------\n", __func__, __LINE__);
+#endif
+			if (vpu_reset(dev) < 0) {
+				dev_warn(dev, "vpu reset failed\n");
+			}
+			goto hard_vpu_wait_bs_restart;
+		}
+		cnode->output_len = vpu->bslen;
+		cnode->status = vpu->status;
+		cnode->cmpx = vpu->cmpx;
+		ret = 0x4;
+	}
 
 	return ret;
 }
@@ -271,6 +454,8 @@ static struct vpu_ops vpu_ops = {
 	.release	= vpu_release,
 	.start_vpu	= vpu_start,
 	.wait_complete	= vpu_wait_complete,
+	.wait_bs_complete = vpu_wait_bs_complete,
+	.set_bsfull_paddr = vpu_set_bsfull_paddr,
 	.reset		= vpu_reset,
 	.suspend	= vpu_suspend,
 	.resume		= vpu_resume,
@@ -300,8 +485,19 @@ static irqreturn_t vpu_interrupt(int irq, void *dev)
 				CLEAR_VPU_BIT(vpu,REG_SDE_STAT,SDE_STAT_BSEND);
 				CLEAR_VPU_BIT(vpu,REG_DBLK_GSTA,DBLK_STAT_DOEND);
 			}
+			if (vpu_stat & SCH_STAT_BSFULL) {
+				vpu_writel(vpu, REG_EMC_BS_STAT, 0x2);
+				vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR | SCH_INTE_BSERR | SCH_INTE_ENDF | SCH_INTE_BSF);
+			}
+
 			vpu->status = vpu_stat;
 			complete(&vpu->done);
+		} else if (vpu_stat & SCH_STAT_BSFULL) {
+
+			vpu_writel(vpu, REG_EMC_BS_STAT, 0x2);
+			vpu->status = vpu_stat;
+			complete(&vpu->done);
+
 		} else {
 			check_vpu_status(SCH_STAT_ORESERR, "out fo resolution error!\n");
 			check_vpu_status(SCH_STAT_BSERR, "BS error!\n");
@@ -316,6 +512,58 @@ static irqreturn_t vpu_interrupt(int irq, void *dev)
 
 	return IRQ_HANDLED;
 }
+
+static ssize_t vpu_cmd_set(struct file *file, const char __user *buffer, size_t count, loff_t *f_pos)
+{
+	int cmd_time = 0;
+	int cmd_data_shreshold = 0;
+	char *t = 0;
+
+	char *buf = kzalloc((count+1), GFP_KERNEL);
+	if(!buf) {
+		return -ENOMEM;
+	}
+
+	if(copy_from_user(buf, buffer, count))
+	{
+		kfree(buf);
+		return EFAULT;
+	}
+	cmd_time = simple_strtoull(buf, &t, 0);
+	if (cmd_time > 0) {
+		timeoffset = cmd_time;
+	}
+
+	cmd_data_shreshold = simple_strtoull(t + 1, NULL, 0);
+	if (cmd_data_shreshold > 0) {
+		data_threshold = cmd_data_shreshold;
+	}
+
+	printk("timeoffset = %d, data_threshold = %d\n", timeoffset, data_threshold);
+
+	kfree(buf);
+	return count;
+}
+
+static int vpu_cmd_show(struct seq_file *m, void *v)
+{
+	int len = 0;
+	len += seq_printf(m ,"timeoffset = %d, data_threshold = %d\n", timeoffset, data_threshold);
+	return len;
+}
+
+static int vpu_cmd_open(struct inode *inode, struct file *file)
+{
+	return single_open_size(file, vpu_cmd_show, PDE_DATA(inode),8192);
+}
+
+static const struct file_operations vpu_cmd_fops ={
+	.read = seq_read,
+	.open = vpu_cmd_open,
+	.llseek = seq_lseek,
+	.release = single_release,
+	.write = vpu_cmd_set,
+};
 
 static int vpu_probe(struct platform_device *pdev)
 {
@@ -353,6 +601,13 @@ static int vpu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "ioremap failed\n");
 		ret = -ENXIO;
 		goto err_get_vpu_iomem;
+	}
+
+	vpu->iomem_ivdc = ioremap(IVDC_BASE_ADDR, 0x1000);
+	if (!vpu->iomem_ivdc) {
+		dev_err(&pdev->dev, "ioremap_ivdc failed\n");
+		ret = -ENXIO;
+		goto err_get_vpu_iomem_ivdc;
 	}
 
 #ifndef CONFIG_SOC_T23
@@ -417,6 +672,15 @@ static int vpu_probe(struct platform_device *pdev)
 	}
 	platform_set_drvdata(pdev, vpu);
 
+	{
+		struct proc_dir_entry *proc;
+		proc = jz_proc_mkdir("helix");
+		if (!proc) {
+			printk("create helix_cmd info failed!\n");
+		}
+		proc_create_data("param", S_IRUGO, proc, &vpu_cmd_fops, NULL);
+	}
+
 	return 0;
 
 err_vpu_register:
@@ -432,6 +696,8 @@ err_get_vpu_clk_cgu:
 err_get_vpu_clk_gate:
 	clk_put(vpu->ahb1_gate);
 err_get_ahb1_clk_gate:
+	iounmap(vpu->iomem_ivdc);
+err_get_vpu_iomem_ivdc:
 	iounmap(vpu->iomem);
 err_get_vpu_iomem:
 err_get_vpu_resource:
@@ -452,6 +718,7 @@ static int vpu_remove(struct platform_device *dev)
 	clk_put(vpu->clk_gate);
 	clk_put(vpu->ahb1_gate);
 	iounmap(vpu->iomem);
+	iounmap(vpu->iomem_ivdc);
 	kfree(vpu);
 
 	return 0;

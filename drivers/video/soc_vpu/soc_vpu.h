@@ -5,16 +5,11 @@
 #include <linux/completion.h>
 #include <linux/spinlock.h>
 #include <linux/miscdevice.h>
+#include "channel_vpu.h"
 
-#ifdef CONFIG_SOC_T23
 #define SOC_VPU_VERSION     "1.0.0-03203fd46d"
 #define FRAME_TYPE_IVDC     (3)
 #define IVDC_BASE_ADDR      (0x13200000)
-#else
-#define SOC_VPU_VERSION		"1.0.0-03203fd46d"
-#endif
-
-#include "channel_vpu.h"
 
 extern int vpu_register(struct list_head *vlist);
 extern int vpu_unregister(struct list_head *vlist);
@@ -101,6 +96,8 @@ struct vpu_ops {
 	long (*release)(struct device *dev);
 	long (*start_vpu)(struct device *dev, const struct channel_node * const cnode);
 	long (*wait_complete)(struct device *dev, struct channel_node * const cnode);
+	long (*wait_bs_complete)(struct device *dev, struct channel_node * const cnode);
+	long (*set_bsfull_paddr)(struct device *dev, struct channel_node * const cnode);
 	long (*reset)(struct device *dev);
 	long (*suspend)(struct device *dev);
 	long (*resume)(struct device *dev);
