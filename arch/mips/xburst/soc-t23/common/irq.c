@@ -195,7 +195,9 @@ static void intc_irq_dispatch(void)
 	ipr[1] &= ~0x1c0f0000;
 
 	if (ipr[0]) {
-		if(ipr[0] & (1<<29)) {
+		if(ipr[0] & (1<<30)) {
+			do_IRQ(30 +IRQ_INTC_BASE); /* VIC — prioritize for dual-sensor MIPI switching */
+		} else if(ipr[0] & (1<<29)) {
 			do_IRQ(29 +IRQ_INTC_BASE);
 		} else {
 			do_IRQ(ffs(ipr[0]) -1 +IRQ_INTC_BASE);

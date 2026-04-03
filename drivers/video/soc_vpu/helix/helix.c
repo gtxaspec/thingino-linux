@@ -74,7 +74,6 @@ static long vpu_open(struct device *dev)
 	clk_enable(vpu->clk);
 	clk_enable(vpu->ahb1_gate);
 	clk_enable(vpu->clk_gate);
-	//cpm_pwc_enable(vpu->cpm_pwc);
 
 	__asm__ __volatile__ (
 			"mfc0  $2, $16,  7   \n\t"
@@ -115,7 +114,6 @@ static long vpu_release(struct device *dev)
 	clk_disable(vpu->clk_gate);
 	clk_disable(vpu->ahb1_gate);
 #endif
-	//cpm_pwc_disable(vpu->cpm_pwc);
 	/* Clear completion use_count here to avoid a unhandled irq after vpu off */
 	vpu->done.done = 0;
 	vpu->vpu_status = VPU_STATUS_CLOSE;
@@ -639,7 +637,6 @@ static int vpu_probe(struct platform_device *pdev)
 #ifdef CONFIG_SOC_T23
     clk_set_rate(vpu->clk,450000000);
 	clk_enable(vpu->clk);
-	//clk_enable(vpu->ahb1_gate);
 	clk_enable(vpu->clk_gate);
 #else
     clk_set_rate(vpu->clk,350000000);
@@ -712,7 +709,6 @@ static int vpu_remove(struct platform_device *dev)
 	struct jz_vpu_helix *vpu = platform_get_drvdata(dev);
 
 	vpu_unregister(&vpu->vpu.vlist);
-	//cpm_pwc_put(vpu->cpm_pwc);
 	free_irq(vpu->irq, vpu);
     clk_put(vpu->clk);
 	clk_put(vpu->clk_gate);
