@@ -17,6 +17,7 @@
 #include <linux/usb/video.h>
 
 #include "f_uvc.h"
+#include "f_uac_mic.h"
 
 /*
  * Kbuild is not very cooperative with respect to linking separately
@@ -29,6 +30,7 @@
 #include "uvc_video.c"
 #include "uvc_v4l2.c"
 #include "f_uvc.c"
+#include "f_uac_mic.c"
 
 USB_GADGET_COMPOSITE_OPTIONS();
 
@@ -440,9 +442,19 @@ static const struct uvc_descriptor_header * const uvc_ss_streaming_cls[] = {
 static int __init
 webcam_config_bind(struct usb_configuration *c)
 {
-	return uvc_bind_config(c, uvc_fs_control_cls, uvc_ss_control_cls,
+	int ret;
+
+	ret = uvc_bind_config(c, uvc_fs_control_cls, uvc_ss_control_cls,
 		uvc_fs_streaming_cls, uvc_hs_streaming_cls,
 		uvc_ss_streaming_cls);
+	if (ret < 0)
+		return ret;
+
+	ret = uac_mic_bind_config(c);
+	if (ret < 0)
+		pr_warn("g_webcam: UAC mic bind failed: %d\n", ret);
+
+	return 0;
 }
 
 static struct usb_configuration webcam_config_driver = {

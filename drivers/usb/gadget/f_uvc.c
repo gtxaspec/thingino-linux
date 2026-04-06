@@ -323,7 +323,8 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 		/* For bulk, enable the endpoint but don't fire STREAMON —
 		 * userspace will start streaming after COMMIT negotiation.
 		 */
-		if (uvc->state == UVC_STATE_CONNECTED && uvc->video.ep) {
+		if (uvc->state == UVC_STATE_CONNECTED && uvc->video.ep &&
+		    !uvc->video.max_payload_size) {
 			ret = config_ep_by_speed(f->config->cdev->gadget,
 					&(uvc->func), uvc->video.ep);
 			if (ret)
