@@ -164,6 +164,7 @@ struct uvc_device
 	void *control_buf;
 
 	unsigned int streaming_intf;
+	unsigned int bulk_streaming : 1;
 
 	/* Events */
 	unsigned int event_length;
