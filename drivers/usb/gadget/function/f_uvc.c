@@ -329,14 +329,22 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 
 		if (uvc->state == UVC_STATE_CONNECTED && uvc->video.ep &&
 		    !uvc->video.max_payload_size) {
-			ret = config_ep_by_speed(f->config->cdev->gadget,
-					&(uvc->func), uvc->video.ep);
+			/* Disable first in case autoconfig already enabled it */
+			usb_ep_disable(uvc->video.ep);
+
+			/* Force HS bulk descriptor — usb_ep_autoconfig caps
+			 * bulk to 64 bytes (FS assumption). DWC2 ep_enable
+			 * writes correct MPS to hardware but doesn't update
+			 * ep->maxpacket, so we fix it after enable. */
+			uvc->video.ep->desc = &uvc_hs_streaming_ep;
+			ret = usb_ep_enable(uvc->video.ep);
 			if (ret)
 				return ret;
-			usb_ep_enable(uvc->video.ep);
 
-			uvc->video.max_payload_size =
-				uvc->video.ep->maxpacket * 32;
+			uvc->video.ep->maxpacket = 512;
+			uvc->video.max_payload_size = 512 * 32;
+			INFO(f->config->cdev, "bulk EP: maxpacket=%u max_payload=%u\n",
+			     uvc->video.ep->maxpacket, uvc->video.max_payload_size);
 		}
 		return 0;
 	}
@@ -648,9 +656,13 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		cpu_to_le16(min(opts->streaming_maxpacket, 1023U));
 	uvc_fs_streaming_ep.bInterval = opts->streaming_interval;
 
-	uvc_hs_streaming_ep.wMaxPacketSize =
-		cpu_to_le16(max_packet_size | ((max_packet_mult - 1) << 11));
-	uvc_hs_streaming_ep.bInterval = opts->streaming_interval;
+	/* Only override HS endpoint params for isochronous mode.
+	 * Bulk endpoint has fixed wMaxPacketSize=512 set at declaration. */
+	if (!usb_endpoint_xfer_bulk(&uvc_hs_streaming_ep)) {
+		uvc_hs_streaming_ep.wMaxPacketSize =
+			cpu_to_le16(max_packet_size | ((max_packet_mult - 1) << 11));
+		uvc_hs_streaming_ep.bInterval = opts->streaming_interval;
+	}
 
 	uvc_ss_streaming_ep.wMaxPacketSize = cpu_to_le16(max_packet_size);
 	uvc_ss_streaming_ep.bInterval = opts->streaming_interval;
@@ -668,12 +680,22 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	}
 	uvc->control_ep = ep;
 
+	INFO(cdev, "gadget speeds: ss=%d dual=%d, hs_ep: type=%02x maxpkt=%u\n",
+	     gadget_is_superspeed(c->cdev->gadget),
+	     gadget_is_dualspeed(cdev->gadget),
+	     uvc_hs_streaming_ep.bmAttributes,
+	     le16_to_cpu(uvc_hs_streaming_ep.wMaxPacketSize));
+
 	if (gadget_is_superspeed(c->cdev->gadget))
 		ep = usb_ep_autoconfig_ss(cdev->gadget, &uvc_ss_streaming_ep,
 					  &uvc_ss_streaming_comp);
-	else if (gadget_is_dualspeed(cdev->gadget))
+	else if (gadget_is_dualspeed(cdev->gadget)) {
 		ep = usb_ep_autoconfig(cdev->gadget, &uvc_hs_streaming_ep);
-	else
+		/* usb_ep_autoconfig caps bulk to 64 bytes (FS assumption).
+		 * Restore the correct HS maxpacket for bulk endpoints. */
+		if (ep && usb_endpoint_xfer_bulk(&uvc_hs_streaming_ep))
+			uvc_hs_streaming_ep.wMaxPacketSize = cpu_to_le16(512);
+	} else
 		ep = usb_ep_autoconfig(cdev->gadget, &uvc_fs_streaming_ep);
 
 	if (!ep) {

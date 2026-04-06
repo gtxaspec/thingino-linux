@@ -446,9 +446,12 @@ webcam_config_bind(struct usb_configuration *c)
 		return status;
 	}
 
-	status = uac_mic_bind_config(c);
+	/* UAC mic disabled on T41 for now — DWC2 ISO endpoint causes IRQ issues.
+	 * TODO: investigate T41 DWC2 isochronous support.
+	 */
+	/* status = uac_mic_bind_config(c);
 	if (status < 0)
-		pr_warn("g_webcam: UAC mic bind failed: %d\n", status);
+		pr_warn("g_webcam: UAC mic bind failed: %d\n", status); */
 
 	return 0;
 }

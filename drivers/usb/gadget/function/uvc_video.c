@@ -243,7 +243,7 @@ uvc_video_alloc_requests(struct uvc_video *video)
 
 	req_size = video->ep->maxpacket
 		 * max_t(unsigned int, video->ep->maxburst, 1)
-		 * (video->ep->mult);
+		 * max_t(unsigned int, video->ep->mult, 1);
 
 	for (i = 0; i < UVC_NUM_REQUESTS; ++i) {
 		video->req_buffer[i] = kmalloc(req_size, GFP_KERNEL);
@@ -364,14 +364,23 @@ int uvcg_video_enable(struct uvc_video *video, int enable)
 	if ((ret = uvcg_queue_enable(&video->queue, 1)) < 0)
 		return ret;
 
+	/* Ensure HS bulk maxpacket after any resets */
+	if (video->max_payload_size && video->ep->maxpacket < 512)
+		video->ep->maxpacket = 512;
+
 	if ((ret = uvc_video_alloc_requests(video)) < 0)
 		return ret;
 
 	if (video->max_payload_size) {
 		video->encode = uvc_video_encode_bulk;
 		video->payload_size = 0;
-	} else
+		printk(KERN_INFO "uvc: bulk mode, max_payload=%u req_size=%u maxpacket=%u\n",
+		       video->max_payload_size, video->req_size,
+		       video->ep->maxpacket);
+	} else {
 		video->encode = uvc_video_encode_isoc;
+		printk(KERN_INFO "uvc: isoc mode (max_payload_size=0)\n");
+	}
 
 	return uvcg_video_pump(video);
 }
