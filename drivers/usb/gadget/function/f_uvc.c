@@ -656,8 +656,6 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		cpu_to_le16(min(opts->streaming_maxpacket, 1023U));
 	uvc_fs_streaming_ep.bInterval = opts->streaming_interval;
 
-	/* Only override HS endpoint params for isochronous mode.
-	 * Bulk endpoint has fixed wMaxPacketSize=512 set at declaration. */
 	if (!usb_endpoint_xfer_bulk(&uvc_hs_streaming_ep)) {
 		uvc_hs_streaming_ep.wMaxPacketSize =
 			cpu_to_le16(max_packet_size | ((max_packet_mult - 1) << 11));
@@ -691,8 +689,6 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 					  &uvc_ss_streaming_comp);
 	else if (gadget_is_dualspeed(cdev->gadget)) {
 		ep = usb_ep_autoconfig(cdev->gadget, &uvc_hs_streaming_ep);
-		/* usb_ep_autoconfig caps bulk to 64 bytes (FS assumption).
-		 * Restore the correct HS maxpacket for bulk endpoints. */
 		if (ep && usb_endpoint_xfer_bulk(&uvc_hs_streaming_ep))
 			uvc_hs_streaming_ep.wMaxPacketSize = cpu_to_le16(512);
 	} else
