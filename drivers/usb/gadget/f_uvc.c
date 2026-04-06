@@ -679,9 +679,14 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	if (gadget_is_superspeed(c->cdev->gadget))
 		ep = usb_ep_autoconfig_ss(cdev->gadget, &uvc_ss_streaming_ep,
 					  &uvc_ss_streaming_comp);
-	else if (gadget_is_dualspeed(cdev->gadget))
+	else if (gadget_is_dualspeed(cdev->gadget)) {
 		ep = usb_ep_autoconfig(cdev->gadget, &uvc_hs_streaming_ep);
-	else
+		/* usb_ep_autoconfig caps bulk to 64 bytes (FS assumption).
+		 * Restore HS bulk maxpacket — required by USB 2.0 spec and
+		 * enforced by Linux 6.x host kernels. */
+		if (ep && usb_endpoint_xfer_bulk(&uvc_hs_streaming_ep))
+			uvc_hs_streaming_ep.wMaxPacketSize = cpu_to_le16(512);
+	} else
 		ep = usb_ep_autoconfig(cdev->gadget, &uvc_fs_streaming_ep);
 
 	if (!ep) {
