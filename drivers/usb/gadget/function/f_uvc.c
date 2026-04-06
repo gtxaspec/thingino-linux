@@ -152,11 +152,9 @@ static struct usb_endpoint_descriptor uvc_hs_streaming_ep = {
 	.bLength		= USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType	= USB_DT_ENDPOINT,
 	.bEndpointAddress	= USB_DIR_IN,
-	.bmAttributes		= USB_ENDPOINT_SYNC_ASYNC
-				| USB_ENDPOINT_XFER_ISOC,
-	/* The wMaxPacketSize and bInterval values will be initialized from
-	 * module parameters.
-	 */
+	.bmAttributes		= USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize		= cpu_to_le16(512),
+	.bInterval		= 0,
 };
 
 static struct usb_endpoint_descriptor uvc_ss_streaming_ep = {
@@ -322,10 +320,26 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 	if (interface != uvc->streaming_intf)
 		return -EINVAL;
 
-	/* TODO
-	if (usb_endpoint_xfer_bulk(&uvc->desc.vs_ep))
-		return alt ? -EINVAL : 0;
-	*/
+	/* Bulk endpoints use alt-setting 0 only — enable EP and let
+	 * userspace start streaming after COMMIT negotiation.
+	 */
+	if (uvc->bulk_streaming) {
+		if (alt)
+			return -EINVAL;
+
+		if (uvc->state == UVC_STATE_CONNECTED && uvc->video.ep &&
+		    !uvc->video.max_payload_size) {
+			ret = config_ep_by_speed(f->config->cdev->gadget,
+					&(uvc->func), uvc->video.ep);
+			if (ret)
+				return ret;
+			usb_ep_enable(uvc->video.ep);
+
+			uvc->video.max_payload_size =
+				uvc->video.ep->maxpacket * 32;
+		}
+		return 0;
+	}
 
 	switch (alt) {
 	case 0:
@@ -530,9 +544,19 @@ uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 		bytes += (*src)->bLength;
 		n_desc++;
 	}
-	for (src = uvc_streaming_std; *src; ++src) {
-		bytes += (*src)->bLength;
+	if (uvc->bulk_streaming) {
+		if (speed == USB_SPEED_SUPER)
+			bytes += uvc_ss_streaming_ep.bLength;
+		else if (speed == USB_SPEED_HIGH)
+			bytes += uvc_hs_streaming_ep.bLength;
+		else
+			bytes += uvc_fs_streaming_ep.bLength;
 		n_desc++;
+	} else {
+		for (src = uvc_streaming_std; *src; ++src) {
+			bytes += (*src)->bLength;
+			n_desc++;
+		}
 	}
 
 	mem = kmalloc((n_desc + 1) * sizeof(*src) + bytes, GFP_KERNEL);
@@ -567,7 +591,16 @@ uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 	uvc_streaming_header->wTotalLength = cpu_to_le16(streaming_size);
 	uvc_streaming_header->bEndpointAddress = uvc->video.ep->address;
 
-	UVC_COPY_DESCRIPTORS(mem, dst, uvc_streaming_std);
+	if (uvc->bulk_streaming) {
+		/* Bulk: endpoint is part of alt-setting 0, no alt-setting 1 */
+		UVC_COPY_DESCRIPTOR(mem, dst,
+			(speed == USB_SPEED_SUPER) ? &uvc_ss_streaming_ep :
+			(speed == USB_SPEED_HIGH) ? &uvc_hs_streaming_ep :
+			&uvc_fs_streaming_ep);
+	} else {
+		/* Isochronous: alt-setting 1 with endpoint */
+		UVC_COPY_DESCRIPTORS(mem, dst, uvc_streaming_std);
+	}
 
 	*dst = NULL;
 	return hdr;
@@ -648,6 +681,11 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		goto error;
 	}
 	uvc->video.ep = ep;
+	uvc->bulk_streaming = usb_endpoint_xfer_bulk(&uvc_hs_streaming_ep);
+
+	/* For bulk mode, alt-setting 0 includes the endpoint */
+	if (uvc->bulk_streaming)
+		uvc_streaming_intf_alt0.bNumEndpoints = 1;
 
 	uvc_fs_streaming_ep.bEndpointAddress = uvc->video.ep->address;
 	uvc_hs_streaming_ep.bEndpointAddress = uvc->video.ep->address;
