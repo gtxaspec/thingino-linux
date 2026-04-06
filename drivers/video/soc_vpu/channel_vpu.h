@@ -43,12 +43,14 @@ struct channel_node {
 
 	unsigned int		n_flag; /*ncu start flag*/
 	void *				ncu_addr; /* ncu config addr, virtual*/
+#ifdef CONFIG_SOC_T23
 	unsigned int		frame_type;
 	unsigned int		overflow_cnt;
 	unsigned int		ivdc_mem_line;
 	unsigned int		data_threshold;
 	unsigned int		max_bs_act;
 	uint64_t			time;
+#endif
 };
 
 #if 0

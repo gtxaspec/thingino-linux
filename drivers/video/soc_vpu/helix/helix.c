@@ -183,9 +183,14 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
 	unsigned long slock_flag = 0;
 	spin_lock_irqsave(&vpu->slock, slock_flag);
 	vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR
-			| SCH_INTE_BSERR | SCH_INTE_ENDF | SCH_INTE_BSF);
+			| SCH_INTE_BSERR | SCH_INTE_ENDF
+#ifdef CONFIG_SOC_T23
+			| SCH_INTE_BSF
+#endif
+			);
 
-	if (cnode->frame_type == FRAME_TYPE_IVDC) {
+#ifdef CONFIG_SOC_T23
+	if (cnode->frame_type == FRAME_TYPE_IVDC && vpu->iomem_ivdc) {
 		overflow_cnt = readl(vpu->iomem_ivdc+0x2c);
 		if (overflow_cnt > 0) {
 			if (overflow_cnt > cnode->overflow_cnt) {
@@ -222,6 +227,7 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
 		writel(1, vpu->iomem_ivdc+0x78);
 		writel(1, vpu->iomem_ivdc+0x70);
 	}
+#endif /* CONFIG_SOC_T23 */
 
 #if defined(CONFIG_SOC_T21) || defined(CONFIG_SOC_T23)
 	vpu_writel(vpu, REG_VDMA_TASKRG_T21, VDMA_ACFG_DHA(cnode->dma_addr)
@@ -235,8 +241,10 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
 	dev_dbg(vpu->vpu.dev, "[%d:%d] start vpu\n", current->tgid, current->pid);
 
 	return 0;
+#ifdef CONFIG_SOC_T23
 enc_cancel:
 	return 0x2;
+#endif
 }
 
 static long vpu_wait_complete(struct device *dev, struct channel_node * const cnode)
@@ -290,12 +298,14 @@ hard_vpu_wait_restart:
 	cnode->output_len = vpu->bslen;
 	cnode->status = vpu->status;
 	cnode->cmpx = vpu->cmpx;
+#ifdef CONFIG_SOC_T23
 	cnode->max_bs_act = 0;
 	if (cnode->codecdir == HWJPEGENC) {
 		if ((vpu_readl(vpu, REG_JPGC_MAX_BS)) & (1 << 31)) {
 				cnode->max_bs_act = vpu_readl(vpu, REG_JPGC_ACT_BS);
 		}
 	}
+#endif
 
 	//dev_info(dev, "[file:%s,fun:%s,line:%d] ret = %ld, status = %x, bslen = %d, cnode->cmpx=%d\n", __FILE__, __func__, __LINE__, ret, cnode->status, cnode->output_len, cnode->cmpx);
 
@@ -601,12 +611,14 @@ static int vpu_probe(struct platform_device *pdev)
 		goto err_get_vpu_iomem;
 	}
 
+#ifdef CONFIG_SOC_T23
 	vpu->iomem_ivdc = ioremap(IVDC_BASE_ADDR, 0x1000);
 	if (!vpu->iomem_ivdc) {
 		dev_err(&pdev->dev, "ioremap_ivdc failed\n");
 		ret = -ENXIO;
 		goto err_get_vpu_iomem_ivdc;
 	}
+#endif
 
 #ifndef CONFIG_SOC_T23
 	vpu->ahb1_gate = clk_get(&pdev->dev, "ahb1");
@@ -693,7 +705,8 @@ err_get_vpu_clk_cgu:
 err_get_vpu_clk_gate:
 	clk_put(vpu->ahb1_gate);
 err_get_ahb1_clk_gate:
-	iounmap(vpu->iomem_ivdc);
+	if (vpu->iomem_ivdc)
+		iounmap(vpu->iomem_ivdc);
 err_get_vpu_iomem_ivdc:
 	iounmap(vpu->iomem);
 err_get_vpu_iomem:
@@ -714,7 +727,8 @@ static int vpu_remove(struct platform_device *dev)
 	clk_put(vpu->clk_gate);
 	clk_put(vpu->ahb1_gate);
 	iounmap(vpu->iomem);
-	iounmap(vpu->iomem_ivdc);
+	if (vpu->iomem_ivdc)
+		iounmap(vpu->iomem_ivdc);
 	kfree(vpu);
 
 	return 0;
