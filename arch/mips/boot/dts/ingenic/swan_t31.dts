@@ -1,0 +1,55 @@
+/dts-v1/;
+
+#include "PRJ007.dtsi"
+
+/ {
+	compatible = "ingenic,swan", "ingenic,t31";
+
+	chosen {
+		bootargs = "mem=64M@0x0 console=ttyS1,115200n8 earlyprintk panic=10 init=/init root=/dev/nfs rootfstype=nfs ip=10.25.1.155:10.25.1.162:10.25.1.1:255.255.255.0:teacup:eth0:off:10.25.50.2 nfsroot=10.25.1.162:/mnt/backup/tftp/linuxdev/rootfs,v3,nolock rw";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x4000000>;
+	};
+};
+
+&uart1 {
+	compatible = "ns16550a";
+	clock-frequency = <24000000>;
+	current-speed = <115200>;
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pb>;
+};
+
+/* Disable T32/T33-specific nodes that reference missing T31 pinctrl */
+&sfc1 { status = "disabled"; /delete-property/ pinctrl-0; /delete-property/ pinctrl-names; };
+&mmc0 { status = "disabled"; /delete-property/ pinctrl-0; /delete-property/ pinctrl-names; };
+&mmc1 { status = "disabled"; /delete-property/ pinctrl-0; /delete-property/ pinctrl-names; };
+
+&mac0 {
+	pinctrl-names = "default", "reset";
+	pinctrl-0 = <&mac0_rmii_p0_normal>, <&mac0_rmii_p1_normal>;
+	pinctrl-1 = <&mac0_rmii_p0_rst>, <&mac0_rmii_p1_normal>;
+	status = "okay";
+	ingenic,rst-ms = <10>;
+	ingenic,mac-mode = <RMII>;
+
+	phy-handle = <&ethphy>;
+	phy-mode = "rmii";
+	macphy-rate = <50000000>;
+	max-speed = <100>;
+
+	mdio {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethphy: ethernet-phy@0 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <0>;
+		};
+	};
+};
