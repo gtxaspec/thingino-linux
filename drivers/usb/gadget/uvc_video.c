@@ -357,6 +357,12 @@ uvc_video_enable(struct uvc_video *video, int enable)
 		return 0;
 	}
 
+	/* Reset bulk endpoint to clear halt/stale state from previous session */
+	if (video->max_payload_size && video->ep) {
+		usb_ep_disable(video->ep);
+		usb_ep_enable(video->ep);
+	}
+
 	if ((ret = uvc_queue_enable(&video->queue, 1)) < 0)
 		return ret;
 
