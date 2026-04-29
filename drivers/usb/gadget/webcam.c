@@ -395,6 +395,11 @@ static const struct uvc_descriptor_header * const uvc_ss_streaming_cls[] = {
  * USB configuration
  */
 
+static struct usb_function_instance *fi_acm;
+static struct usb_function *f_acm;
+static struct usb_function_instance *fi_ncm;
+static struct usb_function *f_ncm;
+
 static int __init
 webcam_config_bind(struct usb_configuration *c)
 {
@@ -410,6 +415,32 @@ webcam_config_bind(struct usb_configuration *c)
 	if (ret < 0)
 		pr_warn("g_webcam: UAC mic bind failed: %d\n", ret);
 
+	if (fi_acm) {
+		f_acm = usb_get_function(fi_acm);
+		if (IS_ERR(f_acm)) {
+			pr_warn("g_webcam: ACM get_function failed: %ld\n",
+				PTR_ERR(f_acm));
+			f_acm = NULL;
+		} else {
+			ret = usb_add_function(c, f_acm);
+			if (ret < 0)
+				pr_warn("g_webcam: ACM add_function failed: %d\n", ret);
+		}
+	}
+
+	if (fi_ncm) {
+		f_ncm = usb_get_function(fi_ncm);
+		if (IS_ERR(f_ncm)) {
+			pr_warn("g_webcam: NCM get_function failed: %ld\n",
+				PTR_ERR(f_ncm));
+			f_ncm = NULL;
+		} else {
+			ret = usb_add_function(c, f_ncm);
+			if (ret < 0)
+				pr_warn("g_webcam: NCM add_function failed: %d\n", ret);
+		}
+	}
+
 	return 0;
 }
 
@@ -424,6 +455,14 @@ static struct usb_configuration webcam_config_driver = {
 static int /* __init_or_exit */
 webcam_unbind(struct usb_composite_dev *cdev)
 {
+	if (f_ncm)
+		usb_put_function(f_ncm);
+	if (fi_ncm)
+		usb_put_function_instance(fi_ncm);
+	if (f_acm)
+		usb_put_function(f_acm);
+	if (fi_acm)
+		usb_put_function_instance(fi_acm);
 	return 0;
 }
 
@@ -441,6 +480,22 @@ webcam_bind(struct usb_composite_dev *cdev)
 		webcam_strings[USB_GADGET_PRODUCT_IDX].id;
 	webcam_config_driver.iConfiguration =
 		webcam_strings[STRING_DESCRIPTION_IDX].id;
+
+	/* ACM serial: get function instance from f_acm module */
+	fi_acm = usb_get_function_instance("acm");
+	if (IS_ERR(fi_acm)) {
+		pr_warn("g_webcam: ACM function not available: %ld\n",
+			PTR_ERR(fi_acm));
+		fi_acm = NULL;
+	}
+
+	/* NCM ethernet: get function instance from f_ncm module */
+	fi_ncm = usb_get_function_instance("ncm");
+	if (IS_ERR(fi_ncm)) {
+		pr_warn("g_webcam: NCM function not available: %ld\n",
+			PTR_ERR(fi_ncm));
+		fi_ncm = NULL;
+	}
 
 	if ((ret = usb_add_config(cdev, &webcam_config_driver,
 					webcam_config_bind)) < 0)
