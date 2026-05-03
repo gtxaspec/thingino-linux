@@ -49,7 +49,7 @@ static int stmmac_mdio_wait(void __iomem *reg, u32 mask)
 {
 	u32 v;
 
-	if (readl_poll_timeout(reg, v, !(v & mask), 100, 10000))
+	if (readl_poll_timeout_atomic(reg, v, !(v & mask), 100, 10000))
 		return -EBUSY;
 
 	return 0;

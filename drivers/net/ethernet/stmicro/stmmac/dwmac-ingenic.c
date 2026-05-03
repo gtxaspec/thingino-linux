@@ -7,6 +7,8 @@
 
 #include <linux/bitfield.h>
 #include <linux/clk.h>
+#include <linux/io.h>
+#include <linux/iopoll.h>
 #include <linux/kernel.h>
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
@@ -18,6 +20,8 @@
 #include <linux/slab.h>
 #include <linux/stmmac.h>
 
+#include "stmmac.h"
+#include "dwmac_dma.h"
 #include "stmmac_platform.h"
 
 #define MACPHYC_TXCLK_SEL_MASK		GENMASK(31, 31)
@@ -134,23 +138,6 @@ static int x2000_mac_set_mode(struct ingenic_mac *mac, u8 phy_intf_sel)
 	return regmap_update_bits(mac->regmap, 0, mac->soc_info->mask, val);
 }
 
-static int ingenic_set_phy_intf_sel(void *bsp_priv, u8 phy_intf_sel)
-{
-	struct ingenic_mac *mac = bsp_priv;
-
-	if (!mac->soc_info->set_mode)
-		return 0;
-
-	if (phy_intf_sel >= BITS_PER_BYTE ||
-	    ~mac->soc_info->valid_phy_intf_sel & BIT(phy_intf_sel))
-		return -EINVAL;
-
-	dev_dbg(mac->dev, "MAC PHY control register: interface %s\n",
-		phy_modes(mac->plat_dat->phy_interface));
-
-	return mac->soc_info->set_mode(mac, phy_intf_sel);
-}
-
 static int ingenic_mac_probe(struct platform_device *pdev)
 {
 	struct plat_stmmacenet_data *plat_dat;
@@ -210,7 +197,42 @@ static int ingenic_mac_probe(struct platform_device *pdev)
 	mac->plat_dat = plat_dat;
 
 	plat_dat->bsp_priv = mac;
-	plat_dat->set_phy_intf_sel = ingenic_set_phy_intf_sel;
+
+	/*
+	 * Configure MACPHYC in probe context rather than through the
+	 * set_phy_intf_sel callback. On T-series Ingenic SoCs writing
+	 * the CPM MACPHYC register from within the STMMAC probe call
+	 * chain deadlocks the GMAC AHB interface.
+	 */
+	if (mac->soc_info->set_mode) {
+		int phy_intf_sel = stmmac_get_phy_intf_sel(plat_dat->phy_interface);
+
+		if (phy_intf_sel >= 0) {
+			ret = mac->soc_info->set_mode(mac, phy_intf_sel);
+			if (ret)
+				return dev_err_probe(&pdev->dev, ret,
+						     "Failed to set MAC mode\n");
+		}
+	}
+
+	/*
+	 * Software-reset the DMA so MDIO starts from a known state.
+	 * The standard dwmac_dma_reset() helper uses readl_poll_timeout()
+	 * which sleeps via usleep_range(); on T31 this is reached before
+	 * the scheduler is ready and causes a hang. Open-code with the
+	 * atomic variant.
+	 */
+	writel(readl(stmmac_res.addr + DMA_BUS_MODE) | DMA_BUS_MODE_SFT_RESET,
+	       stmmac_res.addr + DMA_BUS_MODE);
+	{
+		u32 val;
+
+		ret = readl_poll_timeout_atomic(stmmac_res.addr + DMA_BUS_MODE,
+						val, !(val & DMA_BUS_MODE_SFT_RESET),
+						100, 20000);
+		if (ret)
+			dev_warn(&pdev->dev, "DMA soft reset timeout\n");
+	}
 
 	return devm_stmmac_pltfr_probe(pdev, plat_dat, &stmmac_res);
 }
@@ -264,6 +286,7 @@ static const struct of_device_id ingenic_mac_of_matches[] = {
 	{ .compatible = "ingenic,x1000-mac", .data = &x1000_soc_info },
 	{ .compatible = "ingenic,x1600-mac", .data = &x1600_soc_info },
 	{ .compatible = "ingenic,x1830-mac", .data = &x1830_soc_info },
+	{ .compatible = "ingenic,t31-mac", .data = &x1830_soc_info },
 	{ .compatible = "ingenic,x2000-mac", .data = &x2000_soc_info },
 	{ }
 };
