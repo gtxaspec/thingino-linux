@@ -947,11 +947,11 @@ static void jz4740_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	switch (ios->power_mode) {
 	case MMC_POWER_UP:
+		clk_prepare_enable(host->clk);
 		jz4740_mmc_reset(host);
 		if (!IS_ERR(mmc->supply.vmmc))
 			mmc_regulator_set_ocr(mmc, mmc->supply.vmmc, ios->vdd);
 		host->cmdat |= JZ_MMC_CMDAT_INIT;
-		clk_prepare_enable(host->clk);
 		break;
 	case MMC_POWER_ON:
 		if (!IS_ERR(mmc->supply.vqmmc) && !host->vqmmc_enabled) {
