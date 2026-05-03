@@ -1,0 +1,165 @@
+// SPDX-License-Identifier: GPL-2.0
+/dts-v1/;
+
+#include "t31.dtsi"
+
+/ {
+	compatible = "thingino,t31", "ingenic,t31";
+	model = "Thingino T31 Generic Board";
+
+	aliases {
+		serial1 = &uart1;
+	};
+
+	chosen {
+		stdout-path = "serial1:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x8000000>;
+	};
+};
+
+&exclk {
+	clock-frequency = <24000000>;
+};
+
+&uart1 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart1>;
+};
+
+&sfc {
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <25000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "boot";
+				reg = <0x0 0x40000>;
+				read-only;
+			};
+
+			partition@40000 {
+				label = "env";
+				reg = <0x40000 0x10000>;
+			};
+
+			partition@50000 {
+				label = "kernel";
+				reg = <0x50000 0x200000>;
+			};
+
+			partition@250000 {
+				label = "rootfs";
+				reg = <0x250000 0x500000>;
+			};
+
+			partition@750000 {
+				label = "rootfs_data";
+				reg = <0x750000 0xb0000>;
+			};
+
+			partition@0_all {
+				label = "all";
+				reg = <0x0 0x1000000>;
+			};
+		};
+	};
+};
+
+&msc0 {
+	status = "okay";
+	bus-width = <4>;
+	max-frequency = <24000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_mmc0>;
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <100000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_i2c0>;
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <100000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_i2c1>;
+};
+
+&dtrng {
+	status = "okay";
+};
+
+&efuse {
+	status = "okay";
+};
+
+&otg_phy {
+	status = "okay";
+};
+
+&otg {
+	status = "okay";
+	disable-over-current;
+};
+
+&mac {
+	status = "okay";
+
+	phy-mode = "rmii";
+	phy-handle = <&eth_phy>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_mac>;
+};
+
+&mdio {
+	eth_phy: ethernet-phy@0 {
+		reg = <0>;
+	};
+};
+
+&pinctrl {
+	pins_uart1: uart1 {
+		function = "uart1";
+		groups = "uart1-data-b";
+	};
+
+	pins_mac: mac {
+		function = "mac";
+		groups = "mac-rmii";
+	};
+
+	pins_mmc0: mmc0 {
+		function = "mmc0";
+		groups = "mmc0-1bit", "mmc0-4bit";
+	};
+
+	pins_i2c0: i2c0 {
+		function = "i2c0";
+		groups = "i2c0-data";
+	};
+
+	pins_i2c1: i2c1 {
+		function = "i2c1";
+		groups = "i2c1-data-b";
+	};
+};
