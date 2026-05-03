@@ -85,6 +85,7 @@
 
 struct ingenic_soc_info {
 	void (*usb_phy_init)(struct phy *phy);
+	bool handles_por;
 };
 
 struct ingenic_usb_phy {
@@ -101,6 +102,15 @@ static int ingenic_usb_phy_init(struct phy *phy)
 	struct ingenic_usb_phy *priv = phy_get_drvdata(phy);
 	int err;
 	u32 reg;
+
+	/*
+	 * On T-series SoCs the PHY is fully initialised from the probe
+	 * context (see ingenic_usb_phy_probe) because writing CPM
+	 * registers from inside the DWC2 probe call chain deadlocks the
+	 * DWC2 AHB. Nothing left to do here.
+	 */
+	if (priv->soc_info->handles_por)
+		return 0;
 
 	err = clk_prepare_enable(priv->clk);
 	if (err) {
@@ -277,6 +287,24 @@ static void x1830_usb_phy_init(struct phy *phy)
 	writel(reg, priv->base + REG_USBPCR_OFFSET);
 }
 
+/*
+ * T-series (T10/T20/T21/T23/T30/T31) USB PHY.
+ *
+ * On T-series SoCs, writing to CPM USB registers (USBPCR, OPCR) from
+ * within the DWC2 probe call chain deadlocks the DWC2 AHB interface.
+ * The PHY must be configured during the PHY driver's own probe, which
+ * runs as a separate device probe before DWC2.  The phy_init callback
+ * is therefore a no-op.
+ */
+static void t_series_usb_phy_init(struct phy *phy)
+{
+}
+
+static const struct ingenic_soc_info t_series_soc_info = {
+	.usb_phy_init = t_series_usb_phy_init,
+	.handles_por = true,
+};
+
 static void x2000_usb_phy_init(struct phy *phy)
 {
 	struct ingenic_usb_phy *priv = phy_get_drvdata(phy);
@@ -354,6 +382,81 @@ static int ingenic_usb_phy_probe(struct platform_device *pdev)
 
 	phy_set_drvdata(priv->phy, priv);
 
+	/*
+	 * T-series: configure PHY during probe rather than phy_init.
+	 * Writing CPM USB registers from within the DWC2 probe call
+	 * chain deadlocks the DWC2 AHB interface.  Doing it here
+	 * (separate probe context) gives the bus time to settle.
+	 */
+	if (priv->soc_info->handles_por) {
+		void __iomem *reg_opcr = priv->base - 0x18;
+		void __iomem *reg_srbc = priv->base - 0x08;
+		u32 reg;
+
+		err = clk_prepare_enable(priv->clk);
+		if (err) {
+			dev_err(dev, "Failed to enable PHY clock: %d\n", err);
+			return err;
+		}
+
+		/*
+		 * Full BSP PHY init using __raw_writel (no barriers).
+		 * The MIPS sync instruction in mainline writel deadlocks
+		 * the DWC2 AHB on T-series Ingenic SoCs.
+		 */
+		__raw_writel(__raw_readl(priv->base - 0x1c) & ~BIT(3),
+			     priv->base - 0x1c);
+
+		reg = __raw_readl(priv->base + REG_USBPCR1_OFFSET);
+		reg |= BIT(8) | BIT(9) | BIT(28) | BIT(29) | BIT(30);
+		reg &= ~BIT(19);
+		reg &= ~(0x7 << 23);
+		reg |= (5 << 23);
+		__raw_writel(reg, priv->base + REG_USBPCR1_OFFSET);
+
+		__raw_writel(0, priv->base + REG_USBVBFIL_OFFSET);
+		__raw_writel(0x96 | BIT(25), priv->base + REG_USBRDT_OFFSET);
+
+		__raw_writel(0x8380385a, priv->base + REG_USBPCR_OFFSET);
+
+		reg = __raw_readl(priv->base + REG_USBPCR_OFFSET);
+		reg |= USBPCR_USB_MODE | USBPCR_COMMONONN;
+		reg &= ~(USBPCR_SIDDQ | USBPCR_OTG_DISABLE |
+			 USBPCR_VBUSVLDEXT | USBPCR_VBUSVLDEXTSEL |
+			 FIELD_PREP(USBPCR_IDPULLUP_MASK, 3));
+		__raw_writel(reg, priv->base + REG_USBPCR_OFFSET);
+
+		__raw_writel(__raw_readl(priv->base + REG_USBPCR_OFFSET) |
+			     USBPCR_POR, priv->base + REG_USBPCR_OFFSET);
+		__raw_writel(__raw_readl(priv->base + REG_USBRDT_OFFSET) &
+			     ~BIT(27), priv->base + REG_USBRDT_OFFSET);
+		__raw_writel(__raw_readl(reg_srbc) | BIT(12), reg_srbc);
+		udelay(5);
+		__raw_writel(__raw_readl(priv->base + REG_USBPCR_OFFSET) &
+			     ~USBPCR_POR, priv->base + REG_USBPCR_OFFSET);
+
+		udelay(10);
+		__raw_writel(__raw_readl(reg_opcr) | BIT(7), reg_opcr);
+
+		udelay(550);
+		__raw_writel(__raw_readl(priv->base + REG_USBRDT_OFFSET) |
+			     BIT(27), priv->base + REG_USBRDT_OFFSET);
+
+		udelay(10);
+		__raw_writel(__raw_readl(reg_srbc) & ~BIT(12), reg_srbc);
+
+		{
+			void __iomem *utmi = ioremap(0x10060000, 0x100);
+			if (utmi) {
+				__raw_writel(__raw_readl(utmi + 0x78) | 0x20,
+					     utmi + 0x78);
+				__raw_writel(__raw_readl(utmi + 0x70) & ~0x8,
+					     utmi + 0x70);
+				iounmap(utmi);
+			}
+		}
+	}
+
 	provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
 
 	return PTR_ERR_OR_ZERO(provider);
@@ -364,6 +467,7 @@ static const struct of_device_id ingenic_usb_phy_of_matches[] = {
 	{ .compatible = "ingenic,jz4775-phy", .data = &jz4775_soc_info },
 	{ .compatible = "ingenic,jz4780-phy", .data = &jz4780_soc_info },
 	{ .compatible = "ingenic,x1000-phy", .data = &x1000_soc_info },
+	{ .compatible = "ingenic,t31-phy", .data = &t_series_soc_info },
 	{ .compatible = "ingenic,x1830-phy", .data = &x1830_soc_info },
 	{ .compatible = "ingenic,x2000-phy", .data = &x2000_soc_info },
 	{ /* sentinel */ }
