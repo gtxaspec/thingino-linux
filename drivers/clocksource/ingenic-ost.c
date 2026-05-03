@@ -170,6 +170,7 @@ static const struct of_device_id ingenic_ost_of_match[] = {
 	{ .compatible = "ingenic,jz4725b-ost", .data = &jz4725b_ost_soc_info, },
 	{ .compatible = "ingenic,jz4760b-ost", .data = &jz4760b_ost_soc_info, },
 	{ .compatible = "ingenic,jz4770-ost", .data = &jz4760b_ost_soc_info, },
+	{ .compatible = "ingenic,t31-ost", .data = &jz4760b_ost_soc_info, },
 	{ }
 };
 
