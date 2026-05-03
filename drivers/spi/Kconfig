@@ -522,6 +522,14 @@ config SPI_INGENIC
 	  To compile this driver as a module, choose M here: the module
 	  will be called spi-ingenic.
 
+config SPI_INGENIC_SFC
+	tristate "Ingenic SoCs SPI Flash Controller"
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on SPI_MEM
+	help
+	  This enables support for the Ingenic SoCs SPI Flash Controller
+	  found on X1000, X1600, X1830, T31, X2000 and related SoCs.
+
 config SPI_INTEL
 	tristate
 
