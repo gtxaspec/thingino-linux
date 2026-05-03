@@ -113,6 +113,7 @@ enum jz_version {
 	ID_X1500,
 	ID_X1600,
 	ID_X1830,
+	ID_T31,
 	ID_X2000,
 	ID_X2100,
 };
@@ -164,6 +165,7 @@ static const unsigned long enabled_socs =
 	IS_ENABLED(CONFIG_MACH_X1500) << ID_X1500 |
 	IS_ENABLED(CONFIG_MACH_X1600) << ID_X1600 |
 	IS_ENABLED(CONFIG_MACH_X1830) << ID_X1830 |
+	IS_ENABLED(CONFIG_MACH_T31) << ID_T31 |
 	IS_ENABLED(CONFIG_MACH_X2000) << ID_X2000 |
 	IS_ENABLED(CONFIG_MACH_X2100) << ID_X2100;
 
@@ -2824,6 +2826,125 @@ static const struct ingenic_chip_info x1830_chip_info = {
 	.access_table = &x1830_access_table,
 };
 
+/* T31 */
+static int t31_uart0_data_b_pins[] = { 0x33, 0x36, };
+static int t31_uart0_data_c_pins[] = { 0x48, 0x49, };
+static int t31_uart0_hwflow_pins[] = { 0x34, 0x35, };
+static int t31_uart1_data_b_pins[] = { 0x37, 0x38, };
+static int t31_uart1_data_a_pins[] = { 0x06, 0x07, };
+static int t31_uart2_data_c_pins[] = { 0x4d, 0x4e, };
+static int t31_uart2_data_a_pins[] = { 0x0a, 0x0b, };
+static int t31_i2c0_pins[] = { 0x0c, 0x0d, };
+static int t31_i2c1_a_pins[] = { 0x10, 0x11, };
+static int t31_i2c1_b_pins[] = { 0x39, 0x3a, };
+static int t31_i2c1_c_pins[] = { 0x48, 0x49, };
+static int t31_mmc0_1bit_pins[] = { 0x20, 0x21, 0x22, };
+static int t31_mmc0_4bit_pins[] = { 0x23, 0x24, 0x25, };
+static int t31_sfc_data_pins[] = { 0x17, 0x18, 0x1b, 0x1c, };
+static int t31_ssi0_dt_pins[] = { 0x4b, };
+static int t31_ssi0_dr_pins[] = { 0x4c, };
+static int t31_ssi0_clk_pins[] = { 0x4d, };
+static int t31_ssi0_ce_pins[] = { 0x4e, };
+static int t31_mac_rmii_pins[] = {
+	0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e,
+};
+static int t31_pwm_pwm0_pins[] = { 0x51, };
+static int t31_pwm_pwm1_pins[] = { 0x52, };
+static int t31_pwm_pwm2_pins[] = { 0x53, };
+static int t31_pwm_pwm3_pins[] = { 0x54, };
+
+static const struct group_desc t31_groups[] = {
+	INGENIC_PIN_GROUP("uart0-data-b", t31_uart0_data_b, 0),
+	INGENIC_PIN_GROUP("uart0-data-c", t31_uart0_data_c, 1),
+	INGENIC_PIN_GROUP("uart0-hwflow", t31_uart0_hwflow, 0),
+	INGENIC_PIN_GROUP("uart1-data-b", t31_uart1_data_b, 0),
+	INGENIC_PIN_GROUP("uart1-data-a", t31_uart1_data_a, 2),
+	INGENIC_PIN_GROUP("uart2-data-c", t31_uart2_data_c, 2),
+	INGENIC_PIN_GROUP("uart2-data-a", t31_uart2_data_a, 2),
+	INGENIC_PIN_GROUP("i2c0-data", t31_i2c0, 1),
+	INGENIC_PIN_GROUP("i2c1-data-a", t31_i2c1_a, 2),
+	INGENIC_PIN_GROUP("i2c1-data-b", t31_i2c1_b, 0),
+	INGENIC_PIN_GROUP("i2c1-data-c", t31_i2c1_c, 3),
+	INGENIC_PIN_GROUP("mmc0-1bit", t31_mmc0_1bit, 0),
+	INGENIC_PIN_GROUP("mmc0-4bit", t31_mmc0_4bit, 0),
+	INGENIC_PIN_GROUP("sfc-data", t31_sfc_data, 1),
+	INGENIC_PIN_GROUP("ssi0-dt", t31_ssi0_dt, 0),
+	INGENIC_PIN_GROUP("ssi0-dr", t31_ssi0_dr, 0),
+	INGENIC_PIN_GROUP("ssi0-clk", t31_ssi0_clk, 0),
+	INGENIC_PIN_GROUP("ssi0-ce", t31_ssi0_ce, 0),
+	INGENIC_PIN_GROUP("mac-rmii", t31_mac_rmii, 0),
+	INGENIC_PIN_GROUP("pwm0", t31_pwm_pwm0, 0),
+	INGENIC_PIN_GROUP("pwm1", t31_pwm_pwm1, 0),
+	INGENIC_PIN_GROUP("pwm2", t31_pwm_pwm2, 0),
+	INGENIC_PIN_GROUP("pwm3", t31_pwm_pwm3, 0),
+};
+
+static const char *t31_uart0_groups[] = {
+	"uart0-data-b", "uart0-data-c", "uart0-hwflow",
+};
+static const char *t31_uart1_groups[] = { "uart1-data-b", "uart1-data-a", };
+static const char *t31_uart2_groups[] = { "uart2-data-c", "uart2-data-a", };
+static const char *t31_i2c0_groups[] = { "i2c0-data", };
+static const char *t31_i2c1_groups[] = {
+	"i2c1-data-a", "i2c1-data-b", "i2c1-data-c",
+};
+static const char *t31_mmc0_groups[] = { "mmc0-1bit", "mmc0-4bit", };
+static const char *t31_sfc_groups[] = { "sfc-data", };
+static const char *t31_ssi0_groups[] = {
+	"ssi0-dt", "ssi0-dr", "ssi0-clk", "ssi0-ce",
+};
+static const char *t31_mac_groups[] = { "mac-rmii", };
+static const char *t31_pwm0_groups[] = { "pwm0", };
+static const char *t31_pwm1_groups[] = { "pwm1", };
+static const char *t31_pwm2_groups[] = { "pwm2", };
+static const char *t31_pwm3_groups[] = { "pwm3", };
+
+static const struct pinfunction t31_functions[] = {
+	INGENIC_PIN_FUNCTION("uart0", t31_uart0),
+	INGENIC_PIN_FUNCTION("uart1", t31_uart1),
+	INGENIC_PIN_FUNCTION("uart2", t31_uart2),
+	INGENIC_PIN_FUNCTION("i2c0", t31_i2c0),
+	INGENIC_PIN_FUNCTION("i2c1", t31_i2c1),
+	INGENIC_PIN_FUNCTION("mmc0", t31_mmc0),
+	INGENIC_PIN_FUNCTION("sfc", t31_sfc),
+	INGENIC_PIN_FUNCTION("ssi0", t31_ssi0),
+	INGENIC_PIN_FUNCTION("mac", t31_mac),
+	INGENIC_PIN_FUNCTION("pwm0", t31_pwm0),
+	INGENIC_PIN_FUNCTION("pwm1", t31_pwm1),
+	INGENIC_PIN_FUNCTION("pwm2", t31_pwm2),
+	INGENIC_PIN_FUNCTION("pwm3", t31_pwm3),
+};
+
+static const u32 t31_pull_ups[3] = {
+	0xffffffff, 0xffffffff, 0xffffffff,
+};
+
+static const u32 t31_pull_downs[3] = {
+	0xffffffff, 0xffffffff, 0xffffffff,
+};
+
+static const struct regmap_range t31_access_ranges[] = {
+	regmap_reg_range(0x0000, 0x3000 - 4),
+};
+
+static const struct regmap_access_table t31_access_table = {
+	.yes_ranges = t31_access_ranges,
+	.n_yes_ranges = ARRAY_SIZE(t31_access_ranges),
+};
+
+static const struct ingenic_chip_info t31_chip_info = {
+	.num_chips = 3,
+	.reg_offset = 0x1000,
+	.version = ID_T31,
+	.groups = t31_groups,
+	.num_groups = ARRAY_SIZE(t31_groups),
+	.functions = t31_functions,
+	.num_functions = ARRAY_SIZE(t31_functions),
+	.pull_ups = t31_pull_ups,
+	.pull_downs = t31_pull_downs,
+	.access_table = &t31_access_table,
+};
+
 static const u32 x2000_pull_ups[5] = {
 	0x0003ffff, 0xffffffff, 0x1ff0ffff, 0xc7fe3f3f, 0x8fff003f,
 };
@@ -4654,6 +4775,10 @@ static const struct of_device_id ingenic_pinctrl_of_matches[] = {
 	{
 		.compatible = "ingenic,x1830-pinctrl",
 		.data = IF_ENABLED(CONFIG_MACH_X1830, &x1830_chip_info)
+	},
+	{
+		.compatible = "ingenic,t31-pinctrl",
+		.data = IF_ENABLED(CONFIG_MACH_T31, &t31_chip_info)
 	},
 	{
 		.compatible = "ingenic,x2000-pinctrl",
