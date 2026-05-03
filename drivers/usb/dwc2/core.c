@@ -423,6 +423,20 @@ int dwc2_core_reset(struct dwc2_hsotg *hsotg, bool skip_wait)
 		}
 	}
 
+#ifdef CONFIG_MACH_INGENIC
+	/*
+	 * On Ingenic T-series SoCs writing CSFTRST to GRSTCTL takes the
+	 * DWC2 AHB slave offline; XBurst1 has no bus timeout, so the
+	 * next register access hangs the CPU. The controller is already
+	 * reset by SRBC in the phy-ingenic-usb probe, so the GRSTCTL
+	 * dance and the AHBIDLE wait are unnecessary.
+	 */
+	dwc2_clear_fifo_map(hsotg);
+	if (wait_for_host_mode && !skip_wait)
+		dwc2_wait_for_mode(hsotg, true);
+	return 0;
+#endif
+
 	/* Core Soft Reset */
 	greset = dwc2_readl(hsotg, GRSTCTL);
 	greset |= GRSTCTL_CSFTRST;
@@ -924,6 +938,12 @@ int dwc2_hsotg_wait_bit_set(struct dwc2_hsotg *hsotg, u32 offset, u32 mask,
 {
 	u32 i;
 
+#ifdef CONFIG_MACH_INGENIC
+	if (offset == GRSTCTL) {
+		udelay(10);
+		return 0;
+	}
+#endif
 	for (i = 0; i < timeout; i++) {
 		if (dwc2_readl(hsotg, offset) & mask)
 			return 0;
@@ -947,6 +967,12 @@ int dwc2_hsotg_wait_bit_clear(struct dwc2_hsotg *hsotg, u32 offset, u32 mask,
 {
 	u32 i;
 
+#ifdef CONFIG_MACH_INGENIC
+	if (offset == GRSTCTL) {
+		udelay(10);
+		return 0;
+	}
+#endif
 	for (i = 0; i < timeout; i++) {
 		if (!(dwc2_readl(hsotg, offset) & mask))
 			return 0;
@@ -1204,9 +1230,9 @@ int dwc2_phy_init(struct dwc2_hsotg *hsotg, bool select_phy)
 
 	if (!hsotg->params.activate_ingenic_overcurrent_detection) {
 		if (dwc2_is_host_mode(hsotg)) {
-			otgctl = readl(hsotg->regs + GOTGCTL);
+			otgctl = dwc2_readl(hsotg, GOTGCTL);
 			otgctl |= GOTGCTL_VBVALOEN | GOTGCTL_VBVALOVAL;
-			writel(otgctl, hsotg->regs + GOTGCTL);
+			dwc2_writel(hsotg, otgctl, GOTGCTL);
 		}
 	}
 

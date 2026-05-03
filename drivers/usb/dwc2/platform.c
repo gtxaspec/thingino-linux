@@ -385,7 +385,11 @@ static bool dwc2_check_core_endianness(struct dwc2_hsotg *hsotg)
 {
 	u32 snpsid;
 
+#ifdef CONFIG_MACH_INGENIC
+	snpsid = __raw_readl(hsotg->regs + GSNPSID);
+#else
 	snpsid = ioread32(hsotg->regs + GSNPSID);
+#endif
 	if ((snpsid & GSNPSID_ID_MASK) == DWC2_OTG_ID ||
 	    (snpsid & GSNPSID_ID_MASK) == DWC2_FS_IOT_ID ||
 	    (snpsid & GSNPSID_ID_MASK) == DWC2_HS_IOT_ID)
