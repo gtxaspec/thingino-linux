@@ -59,10 +59,22 @@
 #define EFUSTATE_WR_DONE	BIT(1)
 #define EFUSTATE_RD_DONE	BIT(0)
 
+struct jz4780_efuse_soc_data {
+	size_t size;
+};
+
 struct jz4780_efuse {
 	struct device *dev;
 	struct regmap *map;
 	struct clk *clk;
+};
+
+static const struct jz4780_efuse_soc_data jz4780_efuse_soc_data = {
+	.size = 1024,
+};
+
+static const struct jz4780_efuse_soc_data t31_efuse_soc_data = {
+	.size = 32,
 };
 
 /* main entry point */
@@ -209,6 +221,8 @@ static int jz4780_efuse_probe(struct platform_device *pdev)
 	cfg = jz4780_efuse_nvmem_config;
 	cfg.dev = &pdev->dev;
 	cfg.priv = efuse;
+	cfg.size = ((const struct jz4780_efuse_soc_data *)
+		    of_device_get_match_data(&pdev->dev))->size;
 
 	nvmem = devm_nvmem_register(dev, &cfg);
 
@@ -216,7 +230,8 @@ static int jz4780_efuse_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id jz4780_efuse_match[] = {
-	{ .compatible = "ingenic,jz4780-efuse" },
+	{ .compatible = "ingenic,jz4780-efuse", .data = &jz4780_efuse_soc_data },
+	{ .compatible = "ingenic,t31-efuse",    .data = &t31_efuse_soc_data    },
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, jz4780_efuse_match);
