@@ -1,0 +1,437 @@
+/**
+ * aux0 aux1 channels voltage sample interface for Ingenic SoC
+ *
+ * Copyright(C)2024 Ingenic Semiconductor Co., LTD.
+ * http://www.ingenic.cn
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License.
+ */
+
+#include <linux/err.h>
+#include <linux/irq.h>
+#include <linux/interrupt.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/platform_device.h>
+#include <linux/slab.h>
+#include <linux/io.h>
+#include <linux/cdev.h>
+#include <linux/spinlock.h>
+#include <linux/delay.h>
+#include <linux/clk.h>
+#include <linux/proc_fs.h>
+#include <linux/mfd/core.h>
+#include <linux/delay.h>
+#include <linux/vmalloc.h>/*for vfree*/
+#include <linux/miscdevice.h>
+
+#include <irq.h>
+
+
+/*ADC and Tsensor mutex*/
+#ifdef CONFIG_JZ_TEMP
+extern struct mutex adcmutex;
+#else
+DEFINE_MUTEX(adcmutex);
+#endif
+
+#ifdef CONFIG_SOC_PRJ008
+int adc_cal_value[] = {
+	18000,17000,16000,15000,14000,
+	13000,12000,11000,10000,9000,
+	8000,7000,6000,5000,4000,
+	3000,2000,1000,0,
+};
+
+int adc_com_value[] = {
+	0,600,600,500,50,
+	50,40,40,40,30,
+	30,20,20,20,10,
+	10,0,0,0,
+};
+#define ADC_CAL_LEN  (sizeof(adc_cal_value) / sizeof(adc_cal_value[0]))
+#define ADC_COM_LEN  (sizeof(adc_com_value) / sizeof(adc_com_value[0]))
+#endif
+
+static unsigned long int VREF_ADC = 1800;
+
+#define AUXCONST   4096
+
+#define ADC_MAGIC_NUMBER	'A'
+#define ADC_ENABLE			_IO(ADC_MAGIC_NUMBER, 11)
+#define ADC_DISABLE			_IO(ADC_MAGIC_NUMBER, 22)
+#define ADC_SET_VREF		_IOW(ADC_MAGIC_NUMBER, 33, unsigned int)
+
+#ifndef BITS_H2L
+#define BITS_H2L(msb, lsb)	((0xFFFFFFFF >> (32-((msb)-(lsb)+1))) << (lsb))
+#endif
+
+/**
+ *	* INIT_COMPLETION - reinitialize a completion structure
+ *	 * @x:	completion structure to be reinitialized
+ *	  *
+ *	   * This macro should be used to reinitialize a completion structure so it can
+ *		* be reused. This is especially important after complete_all() is used.
+ *		 */
+#define INIT_COMPLETION(x)		((x).done = 0)
+
+
+struct ingenic_adc_aux {
+	char aux_name[32];
+	struct platform_device *pdev;
+
+	struct resource *mem;
+	void __iomem *base;
+
+	int irq;
+
+	const struct mfd_cell *cell;
+
+	unsigned int voltage;
+
+	struct completion read_completion;
+
+	struct miscdevice mdev;
+
+	bool enabled;
+	bool was_enabled;	/* state before suspend */
+};
+
+
+enum aux_ch {
+	SADC_AUX0,
+	SADC_AUX1,
+};
+extern int ingenic_adc_set_config(struct device *dev, uint32_t mask, uint32_t val);
+
+static irqreturn_t ingenic_adc_aux_irq_handler(int irq, void *devid)
+{
+	struct ingenic_adc_aux *ingenic_adc_aux = (struct ingenic_adc_aux *)devid;
+
+	complete(&ingenic_adc_aux->read_completion);
+
+	return IRQ_HANDLED;
+}
+
+#ifdef CONFIG_PM
+static int ingenic_adc_aux_suspend(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct ingenic_adc_aux *adc_aux = platform_get_drvdata(pdev);
+
+	if (!adc_aux)
+		return 0;
+
+	adc_aux->was_enabled = adc_aux->enabled;
+
+	if (adc_aux->enabled && adc_aux->cell && adc_aux->cell->disable) {
+		adc_aux->cell->disable(pdev);
+		adc_aux->enabled = false;
+	}
+
+	return 0;
+}
+
+static int ingenic_adc_aux_resume(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct ingenic_adc_aux *adc_aux = platform_get_drvdata(pdev);
+
+	if (!adc_aux)
+		return 0;
+
+	if (adc_aux->was_enabled && adc_aux->cell && adc_aux->cell->enable) {
+		adc_aux->cell->enable(pdev);
+		adc_aux->enabled = true;
+	}
+
+	return 0;
+}
+
+static const struct dev_pm_ops ingenic_adc_aux_pm_ops = {
+	.suspend = ingenic_adc_aux_suspend,
+	.resume = ingenic_adc_aux_resume,
+};
+#endif
+
+#ifdef CONFIG_SOC_PRJ008
+int adc_get_compensation(int sadc_volt)
+{
+	int i;
+
+	if (sadc_volt >= adc_cal_value[0]) {
+		return adc_com_value[0];
+	}
+
+	for (i = 1; i < ADC_CAL_LEN; i++) {
+		// 区间：adc_cal_value[i] ≤ sadc_volt < adc_cal_value[i-1]
+		if (sadc_volt >= adc_cal_value[i] && sadc_volt < adc_cal_value[i-1])
+		{
+			return adc_com_value[i];
+		}
+	}
+
+	return adc_com_value[ADC_CAL_LEN - 1];
+}
+#endif
+
+int ingenic_adc_aux_sample_volt(enum aux_ch channels,struct ingenic_adc_aux *ingenic_adc_aux)
+{
+	unsigned long tmp;
+	unsigned long int sadc_volt = 0;
+#ifdef CONFIG_SOC_PRJ008
+	unsigned int comp = 0;
+#endif
+
+	if (!ingenic_adc_aux) {
+		printk("ingenic_adc_aux is null ! return\n");
+		return -EINVAL;
+	}
+
+	INIT_COMPLETION(ingenic_adc_aux->read_completion);
+
+	ingenic_adc_aux->cell->enable(ingenic_adc_aux->pdev);
+	ingenic_adc_aux->enabled = true;
+	enable_irq(ingenic_adc_aux->irq);
+
+restart:
+	tmp = wait_for_completion_interruptible_timeout(&ingenic_adc_aux->read_completion, HZ);
+	if (tmp > 0) {
+		if( (channels == 0) || (channels ==2 ) )
+			sadc_volt = readl(ingenic_adc_aux->base) & 0xfff;
+		else
+			sadc_volt = (readl(ingenic_adc_aux->base - 2) & 0xfff0000) >> 16;
+	} else if(tmp == -ERESTARTSYS){
+		goto restart;
+	}
+	else {
+		sadc_volt = tmp ? tmp : -ETIMEDOUT;
+	}
+
+	if (sadc_volt < 0) {
+		printk("ingenic_adc_aux read value error!!\n");
+		disable_irq(ingenic_adc_aux->irq);
+		ingenic_adc_aux->cell->disable(ingenic_adc_aux->pdev);
+		ingenic_adc_aux->enabled = false;
+		return -EIO;
+	}
+
+	disable_irq(ingenic_adc_aux->irq);
+	ingenic_adc_aux->cell->disable(ingenic_adc_aux->pdev);
+	ingenic_adc_aux->enabled = false;
+
+	sadc_volt = sadc_volt * VREF_ADC*10 / AUXCONST;
+#ifdef CONFIG_SOC_PRJ008
+	comp = adc_get_compensation(sadc_volt);
+	sadc_volt += comp;
+#endif
+
+	return sadc_volt;
+}
+
+
+int ingenic_adc_aux_open(struct inode *inode, struct file *filp)
+{
+	//struct miscdevice *dev = filp->private_data;
+	//struct ingenic_adc_aux *axu = container_of(dev, struct ingenic_adc_aux, mdev);
+	return 0;
+}
+
+int ingenic_adc_aux_release(struct inode *inode, struct file *filp)
+{
+	return 0;
+}
+
+ssize_t ingenic_adc_aux_read(struct file *filp, char *buf, size_t len, loff_t *off)
+{
+	unsigned long int sadc_val = 0;
+	struct miscdevice *dev = filp->private_data;
+	struct ingenic_adc_aux *aux = container_of(dev, struct ingenic_adc_aux, mdev);
+
+	mutex_lock(&adcmutex);
+	sadc_val = ingenic_adc_aux_sample_volt(aux->pdev->id,aux);
+	if (sadc_val < 0) {
+		printk("ingenic_adc_aux read value error !!\n");
+		mutex_unlock(&adcmutex);
+		return -EINVAL;
+	}
+
+	if(copy_to_user(buf, &sadc_val, sizeof(long int))) {
+		mutex_unlock(&adcmutex);
+		return -EFAULT;
+	}
+	mutex_unlock(&adcmutex);
+
+	return sizeof(int);
+}
+
+static long ingenic_adc_aux_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+	int ret = 0;
+	struct miscdevice *dev = filp->private_data;
+	struct ingenic_adc_aux *adc_aux = container_of(dev, struct ingenic_adc_aux, mdev);
+
+	mutex_lock(&adcmutex);
+	if(_IOC_TYPE(cmd) == ADC_MAGIC_NUMBER) {
+		switch (cmd) {
+			case ADC_ENABLE:
+				// ret = adc_aux->cell->enable(adc_aux->pdev);
+				break;
+			case ADC_DISABLE:
+				// ret = adc_aux->cell->disable(adc_aux->pdev);
+				break;
+			case ADC_SET_VREF:
+				VREF_ADC = *(unsigned int *)arg;
+				printk("VREF_ADC=%ld\n",VREF_ADC);
+				break;
+			default:
+				ret = -1;
+				printk("%s:unsupported ioctl cmd\n",__func__);
+		}
+	}
+	mutex_unlock(&adcmutex);
+
+	return ret;
+}
+
+struct file_operations ingenic_adc_aux_fops= {
+	.owner= THIS_MODULE,
+	.open= ingenic_adc_aux_open,
+	.release= ingenic_adc_aux_release,
+	.read= ingenic_adc_aux_read,
+	.unlocked_ioctl= ingenic_adc_aux_ioctl,
+};
+
+extern int key_fun_init(struct ingenic_adc_aux *ingenic_adc_aux);
+static int ingenic_adc_aux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+
+	struct ingenic_adc_aux *ingenic_adc_aux = NULL;
+
+	ingenic_adc_aux = kzalloc(sizeof(*ingenic_adc_aux), GFP_KERNEL);
+	if (!ingenic_adc_aux) {
+		dev_err(&pdev->dev, "Failed to allocate driver structre\n");
+		return -ENOMEM;
+	}
+
+	ingenic_adc_aux->cell = mfd_get_cell(pdev);
+	if (!ingenic_adc_aux->cell) {
+		ret = -ENOENT;
+		dev_err(&pdev->dev, "Failed to get mfd cell for ingenic_adc_aux!\n");
+		goto err_free;
+	}
+
+	ingenic_adc_aux->irq = platform_get_irq(pdev, 0);
+	if (ingenic_adc_aux->irq < 0) {
+		ret = ingenic_adc_aux->irq;
+		dev_err(&pdev->dev, "Failed to get platform irq: %d\n", ret);
+		goto err_free;
+	}
+
+	ingenic_adc_aux->mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!ingenic_adc_aux->mem) {
+		ret = -ENOENT;
+		dev_err(&pdev->dev, "Failed to get platform mmio resource\n");
+		goto err_free;
+	}
+
+	ingenic_adc_aux->mem = request_mem_region(ingenic_adc_aux->mem->start,
+			resource_size(ingenic_adc_aux->mem), pdev->name);
+	if (!ingenic_adc_aux->mem) {
+		ret = -EBUSY;
+		dev_err(&pdev->dev, "Failed to request mmio memory region\n");
+		goto err_free;
+	}
+
+	ingenic_adc_aux->base = ioremap_nocache(ingenic_adc_aux->mem->start,resource_size(ingenic_adc_aux->mem));
+	if (!ingenic_adc_aux->base) {
+		ret = -EBUSY;
+		dev_err(&pdev->dev, "Failed to ioremap mmio memory\n");
+		goto err_free;
+	}
+
+	ingenic_adc_aux->pdev = pdev;
+	ingenic_adc_aux->mdev.minor = MISC_DYNAMIC_MINOR;
+	sprintf(ingenic_adc_aux->aux_name, "ingenic_adc_aux_%d", pdev->id);
+	ingenic_adc_aux->mdev.name = ingenic_adc_aux->aux_name;
+	ingenic_adc_aux->mdev.fops = &ingenic_adc_aux_fops;
+
+	ret = misc_register(&ingenic_adc_aux->mdev);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "misc_register failed\n");
+		goto err_free;
+	}
+
+	init_completion(&ingenic_adc_aux->read_completion);
+
+	ret = request_irq(ingenic_adc_aux->irq, ingenic_adc_aux_irq_handler, 0, pdev->name, ingenic_adc_aux);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to request irq %d\n", ret);
+		goto err_free;
+	}
+
+	disable_irq(ingenic_adc_aux->irq);
+
+	platform_set_drvdata(pdev, ingenic_adc_aux);
+
+#ifdef CONFIG_ADC_BASED_KEY_FUN
+	if (!strncmp(ingenic_adc_aux->aux_name, "ingenic_adc_aux_1", strlen("ingenic_adc_aux_1")))
+		key_fun_init(ingenic_adc_aux);
+#endif
+
+	printk("ingenic sadc aux probe success\n");
+	return 0;
+
+err_free :
+	kfree(ingenic_adc_aux);
+	return ret;
+
+}
+
+static int ingenic_adc_aux_remove(struct platform_device *pdev)
+{
+	struct ingenic_adc_aux *ingenic_adc_aux = platform_get_drvdata(pdev);
+
+	misc_deregister(&ingenic_adc_aux->mdev);
+	free_irq(ingenic_adc_aux->irq, ingenic_adc_aux);
+	iounmap(ingenic_adc_aux->base);
+	release_mem_region(ingenic_adc_aux->mem->start,resource_size(ingenic_adc_aux->mem));
+	kfree(ingenic_adc_aux);
+
+	return 0;
+}
+
+static struct platform_driver ingenic_adc_aux_driver = {
+	.probe	= ingenic_adc_aux_probe,
+	.remove	= ingenic_adc_aux_remove,
+	.driver = {
+		.name	= "ingenic-aux",
+		.owner	= THIS_MODULE,
+#ifdef CONFIG_PM
+		.pm	= &ingenic_adc_aux_pm_ops,
+#endif
+	},
+};
+
+static int __init ingenic_adc_aux_init(void)
+{
+	platform_driver_register(&ingenic_adc_aux_driver);
+
+	return 0;
+}
+
+static void __exit ingenic_adc_aux_exit(void)
+{
+	platform_driver_unregister(&ingenic_adc_aux_driver);
+}
+
+module_init(ingenic_adc_aux_init);
+module_exit(ingenic_adc_aux_exit);
+
+MODULE_ALIAS("platform: ingenic ingenic_adc_aux");
+MODULE_AUTHOR("Guo Xu<xu.guo@ingenic.com>");
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("ingenic adc aux sample driver");
