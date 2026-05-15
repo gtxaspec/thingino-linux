@@ -1,0 +1,2500 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ACTIVE_LOW_HOME	chip-t21/isvp/Turkey/board.h	34;"	d
+ADD_JZ_CHIP	common/gpio.c	541;"	d	file:
+ADD_JZ_CHIP	common/gpio.c	576;"	d	file:
+AES_IOBASE	include/soc/base.h	52;"	d
+AES_IOBASE	include/soc/base.h	62;"	d
+AHBM_AHB0_IOB	include/soc/ahbm.h	12;"	d
+AHBM_AHB2_IOB	include/soc/ahbm.h	16;"	d
+AHBM_CIM_IOB	include/soc/ahbm.h	11;"	d
+AHBM_GPU_IOB	include/soc/ahbm.h	13;"	d
+AHBM_LCD_IOB	include/soc/ahbm.h	14;"	d
+AHBM_XXX_IOB	include/soc/ahbm.h	15;"	d
+AHB_MIN	common/clk/clk_cpccr.c	36;"	d	file:
+AIC0_IOBASE	include/soc/base.h	82;"	d
+APB_OST_IOBASE	common/timer_tcu.c	47;"	d	file:
+AUX_IOBASE	include/soc/base.h	39;"	d
+BANK_TYPE_NAND	include/soc/gpemc.h	/^	BANK_TYPE_NAND,$/;"	e	enum:__anon5
+BANK_TYPE_SRAM	include/soc/gpemc.h	/^	BANK_TYPE_SRAM = 0,$/;"	e	enum:__anon5
+BANK_TYPE_TOGGLE	include/soc/gpemc.h	/^	BANK_TYPE_TOGGLE,$/;"	e	enum:__anon5
+BCM1250_M3_WAR	include/war.h	15;"	d
+BCM_PWR_EN	chip-t21/isvp/Turkey/board.h	109;"	d
+BL	include/soc/gpemc.h	/^		burst_length_t BL;$/;"	m	struct:__anon9::__anon10
+BURST_LENGTH_16	include/soc/gpemc.h	/^	BURST_LENGTH_16 = 16,$/;"	e	enum:__anon7
+BURST_LENGTH_32	include/soc/gpemc.h	/^	BURST_LENGTH_32 = 32$/;"	e	enum:__anon7
+BURST_LENGTH_4	include/soc/gpemc.h	/^	BURST_LENGTH_4 = 4,$/;"	e	enum:__anon7
+BURST_LENGTH_8	include/soc/gpemc.h	/^	BURST_LENGTH_8 = 8,$/;"	e	enum:__anon7
+BUS_WIDTH_8	include/soc/gpemc.h	/^	BUS_WIDTH_8 = 8$/;"	e	enum:__anon6
+BW	include/soc/gpemc.h	/^	bus_width_t BW;$/;"	m	struct:__anon12
+BW	include/soc/gpemc.h	/^	bus_width_t BW;$/;"	m	struct:__anon9
+CAN_DISABLE_MENU	chip-t21/isvp/Turkey/board.h	36;"	d
+CDIV	common/clk/clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon4
+CFG_CACHELINE_SIZE	include/soc/cache.h	25;"	d
+CFG_DCACHE_SIZE	include/soc/cache.h	23;"	d
+CFG_ICACHE_SIZE	include/soc/cache.h	24;"	d
+CGU	common/clk/clk_fpga.c	26;"	d	file:
+CGU	common/clk/clk_fpga.c	97;"	d	file:
+CGU	common/clk/clk_sources.c	108;"	d	file:
+CGU	common/clk/clk_sources.c	33;"	d	file:
+CGU_CIM	common/clk/clk.h	/^	CGU_ISP, CGU_CIM,CGU_SSI,$/;"	e	enum:__anon3
+CGU_DDR	common/clk/clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,$/;"	e	enum:__anon3
+CGU_I2S	common/clk/clk.h	/^	CGU_I2S,CGU_MSC1,CGU_MSC0,$/;"	e	enum:__anon3
+CGU_ISP	common/clk/clk.h	/^	CGU_ISP, CGU_CIM,CGU_SSI,$/;"	e	enum:__anon3
+CGU_LPC	common/clk/clk.h	/^	CGU_MSC_MUX,CGU_LPC$/;"	e	enum:__anon3
+CGU_MACPHY	common/clk/clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,$/;"	e	enum:__anon3
+CGU_MSC0	common/clk/clk.h	/^	CGU_I2S,CGU_MSC1,CGU_MSC0,$/;"	e	enum:__anon3
+CGU_MSC1	common/clk/clk.h	/^	CGU_I2S,CGU_MSC1,CGU_MSC0,$/;"	e	enum:__anon3
+CGU_MSC_MUX	common/clk/clk.h	/^	CGU_MSC_MUX,CGU_LPC$/;"	e	enum:__anon3
+CGU_SSI	common/clk/clk.h	/^	CGU_ISP, CGU_CIM,CGU_SSI,$/;"	e	enum:__anon3
+CGU_VPU	common/clk/clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,$/;"	e	enum:__anon3
+CHFLG_SLAVE	include/mach/jzdma.h	196;"	d
+CHIP_ID	include/mach/jz_efuse.h	/^	CHIP_ID,$/;"	e	enum:segment_id
+CH_DCM	include/mach/jzdma.h	28;"	d
+CH_DCS	include/mach/jzdma.h	27;"	d
+CH_DDA	include/mach/jzdma.h	29;"	d
+CH_DRT	include/mach/jzdma.h	26;"	d
+CH_DSA	include/mach/jzdma.h	23;"	d
+CH_DSD	include/mach/jzdma.h	30;"	d
+CH_DTA	include/mach/jzdma.h	24;"	d
+CH_DTC	include/mach/jzdma.h	25;"	d
+CH_TCNT	include/soc/tcu.h	28;"	d
+CH_TCSR	include/soc/tcu.h	29;"	d
+CH_TDFR	include/soc/tcu.h	26;"	d
+CH_TDHR	include/soc/tcu.h	27;"	d
+CIM_IOBASE	include/soc/base.h	16;"	d
+CLK	common/clk/clk_cgu.c	26;"	d	file:
+CLK	common/clk/clk_cgu.c	85;"	d	file:
+CLKEVENT_CH	common/timer_sys_ost.c	47;"	d	file:
+CLKEVENT_CH	common/timer_tcu.c	44;"	d	file:
+CLKEVENT_DIV	common/timer_sys_ost.c	45;"	d	file:
+CLKEVENT_DIV	common/timer_tcu.c	42;"	d	file:
+CLKGR_VPU	include/soc/cpm.h	91;"	d
+CLKSOURCE_CH	common/timer_sys_ost.c	46;"	d	file:
+CLKSOURCE_CH	common/timer_tcu.c	43;"	d	file:
+CLKSOURCE_DIV	common/timer_sys_ost.c	44;"	d	file:
+CLKSOURCE_DIV	common/timer_tcu.c	41;"	d	file:
+CLK_CGU_NO	common/clk/clk.h	26;"	d
+CLK_CPCCR_NO	common/clk/clk.h	24;"	d
+CLK_FLG_CGU	common/clk/clk.h	27;"	d
+CLK_FLG_CPCCR	common/clk/clk.h	25;"	d
+CLK_FLG_ENABLE	common/clk/clk.h	21;"	d
+CLK_FLG_GATE	common/clk/clk.h	23;"	d
+CLK_FLG_NOALLOC	common/clk/clk.h	20;"	d
+CLK_FLG_PARENT	common/clk/clk.h	34;"	d
+CLK_FLG_PLL	common/clk/clk.h	29;"	d
+CLK_FLG_PWC	common/clk/clk.h	31;"	d
+CLK_FLG_RELATIVE	common/clk/clk.h	35;"	d
+CLK_GATE_BIT	common/clk/clk.h	22;"	d
+CLK_ID	common/clk/clk.h	/^	unsigned int CLK_ID;$/;"	m	struct:clk
+CLK_ID_AES	common/clk/clk.h	/^	CLK_ID_AES,$/;"	e	enum:__anon2
+CLK_ID_AHB0	common/clk/clk.h	/^	CLK_ID_AHB0,$/;"	e	enum:__anon2
+CLK_ID_AHB1	common/clk/clk.h	/^	CLK_ID_AHB1,$/;"	e	enum:__anon2
+CLK_ID_AIC	common/clk/clk.h	/^	CLK_ID_AIC,$/;"	e	enum:__anon2
+CLK_ID_APB0	common/clk/clk.h	/^	CLK_ID_APB0,$/;"	e	enum:__anon2
+CLK_ID_APLL	common/clk/clk.h	/^	CLK_ID_APLL,$/;"	e	enum:__anon2
+CLK_ID_CCLK	common/clk/clk.h	/^	CLK_ID_CCLK,$/;"	e	enum:__anon2
+CLK_ID_CGU	common/clk/clk.h	/^	CLK_ID_CGU,$/;"	e	enum:__anon2
+CLK_ID_CGU_CIM	common/clk/clk.h	/^	CLK_ID_CGU_CIM,$/;"	e	enum:__anon2
+CLK_ID_CGU_DDR	common/clk/clk.h	/^	CLK_ID_CGU_DDR,$/;"	e	enum:__anon2
+CLK_ID_CGU_I2S	common/clk/clk.h	/^	CLK_ID_CGU_I2S,$/;"	e	enum:__anon2
+CLK_ID_CGU_ISP	common/clk/clk.h	/^	CLK_ID_CGU_ISP,$/;"	e	enum:__anon2
+CLK_ID_CGU_LPC	common/clk/clk.h	/^	CLK_ID_CGU_LPC,$/;"	e	enum:__anon2
+CLK_ID_CGU_MACPHY	common/clk/clk.h	/^	CLK_ID_CGU_MACPHY,$/;"	e	enum:__anon2
+CLK_ID_CGU_MSC0	common/clk/clk.h	/^	CLK_ID_CGU_MSC0,$/;"	e	enum:__anon2
+CLK_ID_CGU_MSC1	common/clk/clk.h	/^	CLK_ID_CGU_MSC1,$/;"	e	enum:__anon2
+CLK_ID_CGU_MSC_MUX	common/clk/clk.h	/^	CLK_ID_CGU_MSC_MUX,$/;"	e	enum:__anon2
+CLK_ID_CGU_SSI	common/clk/clk.h	/^	CLK_ID_CGU_SSI,$/;"	e	enum:__anon2
+CLK_ID_CGU_VPU	common/clk/clk.h	/^	CLK_ID_CGU_VPU,$/;"	e	enum:__anon2
+CLK_ID_CPPCR	common/clk/clk.h	/^	CLK_ID_CPPCR,$/;"	e	enum:__anon2
+CLK_ID_CPU	common/clk/clk.h	/^	CLK_ID_CPU,$/;"	e	enum:__anon2
+CLK_ID_CSI	common/clk/clk.h	/^	CLK_ID_CSI,$/;"	e	enum:__anon2
+CLK_ID_DDR	common/clk/clk.h	/^	CLK_ID_DDR,$/;"	e	enum:__anon2
+CLK_ID_DES	common/clk/clk.h	/^	CLK_ID_DES,$/;"	e	enum:__anon2
+CLK_ID_DEVICES	common/clk/clk.h	/^	CLK_ID_DEVICES,$/;"	e	enum:__anon2
+CLK_ID_DTRNG	common/clk/clk.h	/^	CLK_ID_DTRNG,$/;"	e	enum:__anon2
+CLK_ID_EFUSE	common/clk/clk.h	/^	CLK_ID_EFUSE,$/;"	e	enum:__anon2
+CLK_ID_EXT	common/clk/clk.h	/^	CLK_ID_EXT     = 0,$/;"	e	enum:__anon2
+CLK_ID_EXT0	common/clk/clk.h	/^	CLK_ID_EXT0,$/;"	e	enum:__anon2
+CLK_ID_EXT1	common/clk/clk.h	/^	CLK_ID_EXT1,$/;"	e	enum:__anon2
+CLK_ID_GMAC	common/clk/clk.h	/^	CLK_ID_GMAC,$/;"	e	enum:__anon2
+CLK_ID_H0CLK	common/clk/clk.h	/^	CLK_ID_H0CLK,$/;"	e	enum:__anon2
+CLK_ID_H2CLK	common/clk/clk.h	/^	CLK_ID_H2CLK,$/;"	e	enum:__anon2
+CLK_ID_HASH	common/clk/clk.h	/^	CLK_ID_HASH,$/;"	e	enum:__anon2
+CLK_ID_HELIX0	common/clk/clk.h	/^	CLK_ID_HELIX0,$/;"	e	enum:__anon2
+CLK_ID_I2C0	common/clk/clk.h	/^	CLK_ID_I2C0,$/;"	e	enum:__anon2
+CLK_ID_I2C1	common/clk/clk.h	/^	CLK_ID_I2C1,$/;"	e	enum:__anon2
+CLK_ID_INVALID	common/clk/clk.h	/^	CLK_ID_INVALID,$/;"	e	enum:__anon2
+CLK_ID_IPU	common/clk/clk.h	/^	CLK_ID_IPU,$/;"	e	enum:__anon2
+CLK_ID_ISP	common/clk/clk.h	/^	CLK_ID_ISP,$/;"	e	enum:__anon2
+CLK_ID_L2CLK	common/clk/clk.h	/^	CLK_ID_L2CLK,$/;"	e	enum:__anon2
+CLK_ID_LCD	common/clk/clk.h	/^	CLK_ID_LCD,$/;"	e	enum:__anon2
+CLK_ID_MPLL	common/clk/clk.h	/^	CLK_ID_MPLL,$/;"	e	enum:__anon2
+CLK_ID_MSC	common/clk/clk.h	/^	CLK_ID_MSC,$/;"	e	enum:__anon2
+CLK_ID_MSC0	common/clk/clk.h	/^	CLK_ID_MSC0,$/;"	e	enum:__anon2
+CLK_ID_MSC1	common/clk/clk.h	/^	CLK_ID_MSC1,$/;"	e	enum:__anon2
+CLK_ID_OTG	common/clk/clk.h	/^	CLK_ID_OTG,$/;"	e	enum:__anon2
+CLK_ID_OTGPHY	common/clk/clk.h	/^	CLK_ID_OTGPHY,$/;"	e	enum:__anon2
+CLK_ID_PCLK	common/clk/clk.h	/^	CLK_ID_PCLK,$/;"	e	enum:__anon2
+CLK_ID_PDMA	common/clk/clk.h	/^	CLK_ID_PDMA,$/;"	e	enum:__anon2
+CLK_ID_PLL	common/clk/clk.h	/^	CLK_ID_PLL,$/;"	e	enum:__anon2
+CLK_ID_RADIX0	common/clk/clk.h	/^	CLK_ID_RADIX0,$/;"	e	enum:__anon2
+CLK_ID_RISCV	common/clk/clk.h	/^	CLK_ID_RISCV,$/;"	e	enum:__anon2
+CLK_ID_RTC	common/clk/clk.h	/^	CLK_ID_RTC,$/;"	e	enum:__anon2
+CLK_ID_SADC	common/clk/clk.h	/^	CLK_ID_SADC,$/;"	e	enum:__anon2
+CLK_ID_SCLKA	common/clk/clk.h	/^	CLK_ID_SCLKA,$/;"	e	enum:__anon2
+CLK_ID_SFC	common/clk/clk.h	/^	CLK_ID_SFC,$/;"	e	enum:__anon2
+CLK_ID_SSI0	common/clk/clk.h	/^	CLK_ID_SSI0,$/;"	e	enum:__anon2
+CLK_ID_SSI1	common/clk/clk.h	/^	CLK_ID_SSI1,$/;"	e	enum:__anon2
+CLK_ID_STOP	common/clk/clk.h	/^	CLK_ID_STOP,$/;"	e	enum:__anon2
+CLK_ID_SYS_OST	common/clk/clk.h	/^	CLK_ID_SYS_OST,$/;"	e	enum:__anon2
+CLK_ID_TCU	common/clk/clk.h	/^	CLK_ID_TCU,$/;"	e	enum:__anon2
+CLK_ID_UART0	common/clk/clk.h	/^	CLK_ID_UART0,$/;"	e	enum:__anon2
+CLK_ID_UART1	common/clk/clk.h	/^	CLK_ID_UART1,$/;"	e	enum:__anon2
+CLK_ID_UART2	common/clk/clk.h	/^	CLK_ID_UART2,$/;"	e	enum:__anon2
+CLK_ID_VPLL	common/clk/clk.h	/^	CLK_ID_VPLL,$/;"	e	enum:__anon2
+CLK_MASK	common/tcu.c	/^	CLK_MASK = 3,$/;"	e	enum:tcu_clk_mode	file:
+CLK_MASK	include/mach/jztcu.h	/^	CLK_MASK = 3,$/;"	e	enum:tcu_clk_mode
+CLK_NAME_AES	common/clk/clk.h	167;"	d
+CLK_NAME_AHB0	common/clk/clk.h	160;"	d
+CLK_NAME_AHB1	common/clk/clk.h	169;"	d
+CLK_NAME_AIC	common/clk/clk.h	133;"	d
+CLK_NAME_APB0	common/clk/clk.h	156;"	d
+CLK_NAME_APLL	common/clk/clk.h	55;"	d
+CLK_NAME_CCLK	common/clk/clk.h	66;"	d
+CLK_NAME_CGU_CIM	common/clk/clk.h	83;"	d
+CLK_NAME_CGU_DDR	common/clk/clk.h	101;"	d
+CLK_NAME_CGU_I2S	common/clk/clk.h	89;"	d
+CLK_NAME_CGU_ISP	common/clk/clk.h	81;"	d
+CLK_NAME_CGU_LPC	common/clk/clk.h	95;"	d
+CLK_NAME_CGU_MACPHY	common/clk/clk.h	97;"	d
+CLK_NAME_CGU_MSC0	common/clk/clk.h	93;"	d
+CLK_NAME_CGU_MSC1	common/clk/clk.h	91;"	d
+CLK_NAME_CGU_MSC_MUX	common/clk/clk.h	87;"	d
+CLK_NAME_CGU_SSI	common/clk/clk.h	85;"	d
+CLK_NAME_CGU_VPU	common/clk/clk.h	99;"	d
+CLK_NAME_CPU	common/clk/clk.h	154;"	d
+CLK_NAME_CSI	common/clk/clk.h	114;"	d
+CLK_NAME_DDR	common/clk/clk.h	106;"	d
+CLK_NAME_DES	common/clk/clk.h	112;"	d
+CLK_NAME_DTRNG	common/clk/clk.h	175;"	d
+CLK_NAME_EFUSE	common/clk/clk.h	151;"	d
+CLK_NAME_EXT0	common/clk/clk.h	47;"	d
+CLK_NAME_EXT1	common/clk/clk.h	49;"	d
+CLK_NAME_GMAC	common/clk/clk.h	171;"	d
+CLK_NAME_H0CLK	common/clk/clk.h	70;"	d
+CLK_NAME_H2CLK	common/clk/clk.h	72;"	d
+CLK_NAME_HASH	common/clk/clk.h	135;"	d
+CLK_NAME_HELIX0	common/clk/clk.h	177;"	d
+CLK_NAME_I2C0	common/clk/clk.h	139;"	d
+CLK_NAME_I2C1	common/clk/clk.h	137;"	d
+CLK_NAME_IPU	common/clk/clk.h	173;"	d
+CLK_NAME_ISP	common/clk/clk.h	119;"	d
+CLK_NAME_L2CLK	common/clk/clk.h	68;"	d
+CLK_NAME_LCD	common/clk/clk.h	116;"	d
+CLK_NAME_MPLL	common/clk/clk.h	57;"	d
+CLK_NAME_MSC	common/clk/clk.h	76;"	d
+CLK_NAME_MSC0	common/clk/clk.h	147;"	d
+CLK_NAME_MSC1	common/clk/clk.h	145;"	d
+CLK_NAME_OTG	common/clk/clk.h	149;"	d
+CLK_NAME_OTGPHY	common/clk/clk.h	51;"	d
+CLK_NAME_PCLK	common/clk/clk.h	74;"	d
+CLK_NAME_PDMA	common/clk/clk.h	121;"	d
+CLK_NAME_RADIX0	common/clk/clk.h	162;"	d
+CLK_NAME_RISCV	common/clk/clk.h	165;"	d
+CLK_NAME_RTC	common/clk/clk.h	110;"	d
+CLK_NAME_SADC	common/clk/clk.h	131;"	d
+CLK_NAME_SCLKA	common/clk/clk.h	62;"	d
+CLK_NAME_SFC	common/clk/clk.h	123;"	d
+CLK_NAME_SSI0	common/clk/clk.h	141;"	d
+CLK_NAME_SSI1	common/clk/clk.h	143;"	d
+CLK_NAME_SYS_OST	common/clk/clk.h	158;"	d
+CLK_NAME_TCU	common/clk/clk.h	108;"	d
+CLK_NAME_UART0	common/clk/clk.h	129;"	d
+CLK_NAME_UART1	common/clk/clk.h	127;"	d
+CLK_NAME_UART2	common/clk/clk.h	125;"	d
+CLK_NAME_VPLL	common/clk/clk.h	59;"	d
+CLK_PARENT	common/clk/clk.h	32;"	d
+CLK_PLL_NO	common/clk/clk.h	28;"	d
+CLK_PWC_NO	common/clk/clk.h	30;"	d
+CLK_RELATIVE	common/clk/clk.h	33;"	d
+CMD_BE_32K	include/mach/jzssi.h	23;"	d
+CMD_BE_64K	include/mach/jzssi.h	24;"	d
+CMD_CE	include/mach/jzssi.h	25;"	d
+CMD_DP	include/mach/jzssi.h	26;"	d
+CMD_DUAL_READ	include/mach/jzssi.h	15;"	d
+CMD_EN4B	include/mach/jzssi.h	31;"	d
+CMD_EX4B	include/mach/jzssi.h	32;"	d
+CMD_E_BLOCK	include/mach/jzssi.h	43;"	d
+CMD_FAST_READ	include/mach/jzssi.h	19;"	d
+CMD_G_FEATURE	include/mach/jzssi.h	37;"	d
+CMD_NON	include/mach/jzssi.h	30;"	d
+CMD_PP	include/mach/jzssi.h	20;"	d
+CMD_P_EXECUTE	include/mach/jzssi.h	42;"	d
+CMD_P_LOAD	include/mach/jzssi.h	41;"	d
+CMD_QPP	include/mach/jzssi.h	21;"	d
+CMD_QUAD_IO_FAST_READ	include/mach/jzssi.h	17;"	d
+CMD_QUAD_IO_WORD_FAST_READ	include/mach/jzssi.h	18;"	d
+CMD_QUAD_READ	include/mach/jzssi.h	16;"	d
+CMD_RDID	include/mach/jzssi.h	29;"	d
+CMD_RDSR	include/mach/jzssi.h	8;"	d
+CMD_RDSR_1	include/mach/jzssi.h	9;"	d
+CMD_RDSR_2	include/mach/jzssi.h	10;"	d
+CMD_READ	include/mach/jzssi.h	14;"	d
+CMD_REMS	include/mach/jzssi.h	28;"	d
+CMD_RES	include/mach/jzssi.h	27;"	d
+CMD_RESET	include/mach/jzssi.h	45;"	d
+CMD_R_CACHE	include/mach/jzssi.h	40;"	d
+CMD_R_PAGE	include/mach/jzssi.h	39;"	d
+CMD_SE	include/mach/jzssi.h	22;"	d
+CMD_S_FEATURE	include/mach/jzssi.h	38;"	d
+CMD_WRDI	include/mach/jzssi.h	7;"	d
+CMD_WREN	include/mach/jzssi.h	6;"	d
+CMD_WRSR	include/mach/jzssi.h	11;"	d
+CMD_WRSR_1	include/mach/jzssi.h	12;"	d
+CMD_WRSR_2	include/mach/jzssi.h	13;"	d
+CNT_BANK_TYPES	include/soc/gpemc.h	/^	CNT_BANK_TYPES$/;"	e	enum:__anon5
+CNT_SRAM_TYPES	include/soc/gpemc.h	/^	CNT_SRAM_TYPES$/;"	e	enum:__anon8
+CODEC_IOBASE	include/soc/base.h	81;"	d
+COMPRESS_IOBASE	include/soc/base.h	17;"	d
+CONVERT_DDR_RATE	common/clk/clk_cgu.c	385;"	d	file:
+CPCCR	common/clk/clk_fpga.c	25;"	d	file:
+CPCCR	common/clk/clk_fpga.c	96;"	d	file:
+CPCCR	common/clk/clk_sources.c	107;"	d	file:
+CPCCR	common/clk/clk_sources.c	32;"	d	file:
+CPCCR_CLK	common/clk/clk_cpccr.c	22;"	d	file:
+CPCCR_CLK	common/clk/clk_cpccr.c	30;"	d	file:
+CPM_CIMCDR	include/soc/cpm.h	30;"	d
+CPM_CLKGR	include/soc/cpm.h	55;"	d
+CPM_CLKGR1	include/soc/cpm.h	56;"	d
+CPM_CPAPCR	include/soc/cpm.h	14;"	d
+CPM_CPCCR	include/soc/cpm.h	12;"	d
+CPM_CPCSR	include/soc/cpm.h	17;"	d
+CPM_CPMPCR	include/soc/cpm.h	15;"	d
+CPM_CPPCR	include/soc/cpm.h	13;"	d
+CPM_CPPSR	include/soc/cpm.h	20;"	d
+CPM_CPSPPR	include/soc/cpm.h	21;"	d
+CPM_CPSPPR	include/soc/cpm.h	36;"	d
+CPM_CPSPR	include/soc/cpm.h	37;"	d
+CPM_CPVPCR	include/soc/cpm.h	16;"	d
+CPM_DDRCDR	include/soc/cpm.h	18;"	d
+CPM_DRCG	include/soc/cpm.h	35;"	d
+CPM_EXCLKDS	include/soc/cpm.h	42;"	d
+CPM_I2SCDR	include/soc/cpm.h	27;"	d
+CPM_I2SCDR1	include/soc/cpm.h	28;"	d
+CPM_INTR	include/soc/cpm.h	33;"	d
+CPM_INTRE	include/soc/cpm.h	34;"	d
+CPM_IOBASE	include/soc/base.h	75;"	d
+CPM_ISPCDR	include/soc/cpm.h	31;"	d
+CPM_LCR	include/soc/cpm.h	45;"	d
+CPM_LCR_PD_MASK	include/soc/cpm.h	81;"	d
+CPM_LCR_PD_VPU	include/soc/cpm.h	80;"	d
+CPM_LCR_PD_X2D	include/soc/cpm.h	79;"	d
+CPM_LCR_STATUS_MASK	include/soc/cpm.h	84;"	d
+CPM_LCR_VPUS	include/soc/cpm.h	83;"	d
+CPM_LCR_X2DS	include/soc/cpm.h	82;"	d
+CPM_LPCDR	include/soc/cpm.h	24;"	d
+CPM_MACCDR	include/soc/cpm.h	23;"	d
+CPM_MACPHY	include/soc/cpm.h	22;"	d
+CPM_MEMPDR0	include/soc/cpm.h	62;"	d
+CPM_MEMSCR0	include/soc/cpm.h	60;"	d
+CPM_MEMSCR1	include/soc/cpm.h	61;"	d
+CPM_MESTSEL	include/soc/cpm.h	58;"	d
+CPM_MPHYC	include/soc/cpm.h	32;"	d
+CPM_MSC0CDR	include/soc/cpm.h	25;"	d
+CPM_MSC1CDR	include/soc/cpm.h	26;"	d
+CPM_OPCR	include/soc/cpm.h	59;"	d
+CPM_RSR	include/soc/cpm.h	68;"	d
+CPM_SRBC	include/soc/cpm.h	57;"	d
+CPM_SSICDR	include/soc/cpm.h	29;"	d
+CPM_USBPCR	include/soc/cpm.h	38;"	d
+CPM_USBPCR1	include/soc/cpm.h	41;"	d
+CPM_USBRDT	include/soc/cpm.h	39;"	d
+CPM_USBVBFIL	include/soc/cpm.h	40;"	d
+CPM_VPUCDR	include/soc/cpm.h	19;"	d
+CPU_ID	include/mach/jz_efuse.h	/^	CPU_ID,$/;"	e	enum:segment_id
+CSRDIV	common/timer_sys_ost.c	48;"	d	file:
+CSRDIV	common/timer_tcu.c	45;"	d	file:
+CSR_CLK_MSK	include/soc/tcu.h	41;"	d
+CSR_DIV1	include/soc/tcu.h	43;"	d
+CSR_DIV1024	include/soc/tcu.h	48;"	d
+CSR_DIV16	include/soc/tcu.h	45;"	d
+CSR_DIV256	include/soc/tcu.h	47;"	d
+CSR_DIV4	include/soc/tcu.h	44;"	d
+CSR_DIV64	include/soc/tcu.h	46;"	d
+CSR_DIV_MSK	include/soc/tcu.h	49;"	d
+CSR_EXT_EN	include/soc/tcu.h	38;"	d
+CSR_PCK_EN	include/soc/tcu.h	40;"	d
+CSR_RTC_EN	include/soc/tcu.h	39;"	d
+CUSTOMER_RESV	include/mach/jz_efuse.h	/^	CUSTOMER_RESV,$/;"	e	enum:segment_id
+DBLK_IOBASE	include/soc/base.h	36;"	d
+DCIRQM	include/mach/jzdma.h	42;"	d
+DCIRQP	include/mach/jzdma.h	41;"	d
+DCM_CH1_DDR_TO_NAND	include/mach/jzdma.h	87;"	d
+DCM_CH1_DDR_TO_TCSM	include/mach/jzdma.h	94;"	d
+DCM_CH1_DST_DDR	include/mach/jzdma.h	85;"	d
+DCM_CH1_DST_NEMC	include/mach/jzdma.h	84;"	d
+DCM_CH1_DST_TCSM	include/mach/jzdma.h	83;"	d
+DCM_CH1_NAND_TO_DDR	include/mach/jzdma.h	88;"	d
+DCM_CH1_NAND_TO_TCSM	include/mach/jzdma.h	91;"	d
+DCM_CH1_SRC_DDR	include/mach/jzdma.h	81;"	d
+DCM_CH1_SRC_NEMC	include/mach/jzdma.h	80;"	d
+DCM_CH1_SRC_TCSM	include/mach/jzdma.h	79;"	d
+DCM_CH1_TCSM_TO_DDR	include/mach/jzdma.h	93;"	d
+DCM_CH1_TCSM_TO_NAND	include/mach/jzdma.h	90;"	d
+DCM_DAI	include/mach/jzdma.h	64;"	d
+DCM_DP_16	include/mach/jzdma.h	71;"	d
+DCM_DP_32	include/mach/jzdma.h	70;"	d
+DCM_DP_8	include/mach/jzdma.h	72;"	d
+DCM_DP_MSK	include/mach/jzdma.h	69;"	d
+DCM_LINK	include/mach/jzdma.h	77;"	d
+DCM_SAI	include/mach/jzdma.h	63;"	d
+DCM_SP_16	include/mach/jzdma.h	67;"	d
+DCM_SP_32	include/mach/jzdma.h	66;"	d
+DCM_SP_8	include/mach/jzdma.h	68;"	d
+DCM_SP_MSK	include/mach/jzdma.h	65;"	d
+DCM_STDE	include/mach/jzdma.h	75;"	d
+DCM_TIE	include/mach/jzdma.h	76;"	d
+DCM_TSZ_MSK	include/mach/jzdma.h	73;"	d
+DCM_TSZ_SHF	include/mach/jzdma.h	74;"	d
+DCS_AR	include/mach/jzdma.h	58;"	d
+DCS_CTE	include/mach/jzdma.h	61;"	d
+DCS_HLT	include/mach/jzdma.h	60;"	d
+DCS_NDES	include/mach/jzdma.h	57;"	d
+DCS_TT	include/mach/jzdma.h	59;"	d
+DDR	include/mach/jzdma.h	36;"	d
+DDRC_AUTOSR_CNT	include/soc/ddr.h	82;"	d
+DDRC_AUTOSR_EN	include/soc/ddr.h	83;"	d
+DDRC_AUTOSR_ENABLE	include/soc/ddr.h	22;"	d
+DDRC_BASE	include/soc/base.h	11;"	d
+DDRC_CFG	include/soc/ddr.h	74;"	d
+DDRC_CTRL	include/soc/ddr.h	75;"	d
+DDRC_DLP	include/soc/ddr.h	80;"	d
+DDRC_LMR	include/soc/ddr.h	76;"	d
+DDRC_MMAP0	include/soc/ddr.h	78;"	d
+DDRC_MMAP1	include/soc/ddr.h	79;"	d
+DDRC_REFCNT	include/soc/ddr.h	77;"	d
+DDRC_REMAP	include/soc/ddr.h	85;"	d
+DDRC_STATUS	include/soc/ddr.h	73;"	d
+DDRC_STRB	include/soc/ddr.h	81;"	d
+DDRC_TIMING	include/soc/ddr.h	84;"	d
+DDRP_ACDLLCR	include/soc/ddr.h	31;"	d
+DDRP_ACIOCR	include/soc/ddr.h	35;"	d
+DDRP_DCR	include/soc/ddr.h	38;"	d
+DDRP_DCUAR	include/soc/ddr.h	52;"	d
+DDRP_DCUDR	include/soc/ddr.h	53;"	d
+DDRP_DCUGCR	include/soc/ddr.h	56;"	d
+DDRP_DCULR	include/soc/ddr.h	55;"	d
+DDRP_DCURR	include/soc/ddr.h	54;"	d
+DDRP_DCUSR0	include/soc/ddr.h	58;"	d
+DDRP_DCUSR1	include/soc/ddr.h	59;"	d
+DDRP_DCUTPR	include/soc/ddr.h	57;"	d
+DDRP_DLLGCR	include/soc/ddr.h	30;"	d
+DDRP_DSGCR	include/soc/ddr.h	37;"	d
+DDRP_DTAR	include/soc/ddr.h	48;"	d
+DDRP_DTDR0	include/soc/ddr.h	49;"	d
+DDRP_DTDR1	include/soc/ddr.h	50;"	d
+DDRP_DTPR0	include/soc/ddr.h	40;"	d
+DDRP_DTPR1	include/soc/ddr.h	41;"	d
+DDRP_DTPR2	include/soc/ddr.h	42;"	d
+DDRP_DX0GSR	include/soc/ddr.h	71;"	d
+DDRP_DXCCR	include/soc/ddr.h	36;"	d
+DDRP_DXDLLCR	include/soc/ddr.h	64;"	d
+DDRP_DXDQSTR	include/soc/ddr.h	65;"	d
+DDRP_DXGCR	include/soc/ddr.h	61;"	d
+DDRP_DXGSR0	include/soc/ddr.h	62;"	d
+DDRP_DXGSR1	include/soc/ddr.h	63;"	d
+DDRP_DXnDQSTR	include/soc/ddr.h	88;"	d
+DDRP_DXnDQTR	include/soc/ddr.h	89;"	d
+DDRP_MR0	include/soc/ddr.h	43;"	d
+DDRP_MR1	include/soc/ddr.h	44;"	d
+DDRP_MR2	include/soc/ddr.h	45;"	d
+DDRP_MR3	include/soc/ddr.h	46;"	d
+DDRP_ODTCR	include/soc/ddr.h	47;"	d
+DDRP_PGCR	include/soc/ddr.h	28;"	d
+DDRP_PGSR	include/soc/ddr.h	29;"	d
+DDRP_PGSR_DFTEERR	include/soc/ddr.h	21;"	d
+DDRP_PGSR_DIDONE	include/soc/ddr.h	17;"	d
+DDRP_PGSR_DLDONE	include/soc/ddr.h	15;"	d
+DDRP_PGSR_DTDONE	include/soc/ddr.h	18;"	d
+DDRP_PGSR_DTERR	include/soc/ddr.h	19;"	d
+DDRP_PGSR_DTIERR	include/soc/ddr.h	20;"	d
+DDRP_PGSR_IDONE	include/soc/ddr.h	14;"	d
+DDRP_PGSR_ZCDONE	include/soc/ddr.h	16;"	d
+DDRP_PIR	include/soc/ddr.h	27;"	d
+DDRP_PIR_DLLBYP	include/soc/ddr.h	12;"	d
+DDRP_PIR_DLLLOCK	include/soc/ddr.h	5;"	d
+DDRP_PIR_DLLSRST	include/soc/ddr.h	4;"	d
+DDRP_PIR_DRAMINT	include/soc/ddr.h	9;"	d
+DDRP_PIR_DRAMRST	include/soc/ddr.h	8;"	d
+DDRP_PIR_EYETRN	include/soc/ddr.h	11;"	d
+DDRP_PIR_INIT	include/soc/ddr.h	3;"	d
+DDRP_PIR_ITMSRST	include/soc/ddr.h	7;"	d
+DDRP_PIR_LOCKBYP	include/soc/ddr.h	13;"	d
+DDRP_PIR_QSTRN	include/soc/ddr.h	10;"	d
+DDRP_PIR_ZCAL	include/soc/ddr.h	6;"	d
+DDRP_PTR0	include/soc/ddr.h	32;"	d
+DDRP_PTR1	include/soc/ddr.h	33;"	d
+DDRP_PTR2	include/soc/ddr.h	34;"	d
+DDRP_ZQXCR0	include/soc/ddr.h	66;"	d
+DDRP_ZQXCR1	include/soc/ddr.h	67;"	d
+DDRP_ZQXSR0	include/soc/ddr.h	68;"	d
+DDRP_ZQXSR1	include/soc/ddr.h	69;"	d
+DDRS	include/mach/jzdma.h	37;"	d
+DDR_MC	include/soc/ahbm.h	5;"	d
+DDR_PHY_OFFSET	include/soc/ddr.h	25;"	d
+DDR_RESULT_1	include/soc/ahbm.h	6;"	d
+DDR_RESULT_2	include/soc/ahbm.h	7;"	d
+DDR_RESULT_3	include/soc/ahbm.h	8;"	d
+DDR_RESULT_4	include/soc/ahbm.h	9;"	d
+DEF_CLK	common/clk/clk_fpga.c	29;"	d	file:
+DEF_CLK	common/clk/clk_fpga.c	99;"	d	file:
+DEF_CLK	common/clk/clk_sources.c	111;"	d	file:
+DEF_CLK	common/clk/clk_sources.c	38;"	d	file:
+DEF_DEVICE	chip-t21/isvp/common/board_base.c	25;"	d	file:
+DEF_GPIO_I2C	chip-t21/isvp/common/i2c_bus.c	81;"	d	file:
+DEF_I2C	common/platform.c	571;"	d	file:
+DEF_MIXER	common/platform.c	641;"	d	file:
+DEF_MSC	common/platform.c	317;"	d	file:
+DEF_PIO_SSI	common/platform.c	769;"	d	file:
+DEF_SSI	common/platform.c	798;"	d	file:
+DEF_VPU	common/platform.c	374;"	d	file:
+DELAY	common/pm.c	68;"	d	file:
+DES_IOBASE	include/soc/base.h	61;"	d
+DES_IOBASE	include/soc/base.h	91;"	d
+DEV_DSP_NAME	include/mach/jzsnd.h	194;"	d
+DEV_MIXER_NAME	include/mach/jzsnd.h	201;"	d
+DIRQP	include/mach/jzdma.h	35;"	d
+DISABLE_LCR_MODULES	common/pm.c	112;"	d	file:
+DMAC	include/mach/jzdma.h	34;"	d
+DMACP	include/mach/jzdma.h	38;"	d
+DMAC_AR	include/mach/jzdma.h	55;"	d
+DMAC_HLT	include/mach/jzdma.h	54;"	d
+DMCS	include/mach/jzdma.h	45;"	d
+DMIC_IOBASE	include/soc/base.h	80;"	d
+DMINT	include/mach/jzdma.h	48;"	d
+DMINT_N_IP	include/mach/jzdma.h	52;"	d
+DMINT_S_IP	include/mach/jzdma.h	51;"	d
+DMMU_PMD_VLD	common/libdmmu.c	32;"	d	file:
+DMMU_PTE_VLD	common/libdmmu.c	31;"	d	file:
+DMNMB	include/mach/jzdma.h	46;"	d
+DMSMB	include/mach/jzdma.h	47;"	d
+DONTCARE	include/mach/jzmmc.h	/^	DONTCARE = 0,$/;"	e	enum:__anon20
+DOWN_DIV	common/clk/clk_cgu.c	387;"	d	file:
+DPU_PORTD_SLCD_16BIT	include/mach/platform.h	86;"	d
+DPU_PORTD_SLCD_8BIT	include/mach/platform.h	82;"	d
+DPU_PORTD_SLCD_SPI	include/mach/platform.h	88;"	d
+DPU_PORTD_TFT_18BIT	include/mach/platform.h	84;"	d
+DSIRQM	include/mach/jzdma.h	40;"	d
+DSIRQP	include/mach/jzdma.h	39;"	d
+DSI_IOBASE	include/soc/base.h	26;"	d
+DTRNG_IOBASE	include/soc/base.h	93;"	d
+DUMMY_CLOCK_RATE	include/mach/tx_isp.h	7;"	d
+DVP_CAMERA_PWDN_N	chip-t21/isvp/Turkey/board.h	61;"	d
+DVP_CAMERA_RST	chip-t21/isvp/Turkey/board.h	60;"	d
+DVP_PORTA_12BIT	include/mach/platform.h	78;"	d
+DVP_PORTA_HIGH_10BIT	include/mach/platform.h	75;"	d
+DVP_PORTA_LOW_10BIT	include/mach/platform.h	72;"	d
+EFE_IOBASE	include/soc/base.h	34;"	d
+EFUSE_IOBASE	include/soc/base.h	59;"	d
+ENABLE_LCR_MODULES	common/pm.c	102;"	d	file:
+EPDCE_IOBASE	include/soc/base.h	23;"	d
+EPDC_IOBASE	include/soc/base.h	22;"	d
+ETHC_IOBASE	include/soc/base.h	57;"	d
+EXT_EN	common/tcu.c	/^	EXT_EN = 2,\/*timer input clock is EXT*\/$/;"	e	enum:tcu_clk_mode	file:
+EXT_EN	include/mach/jztcu.h	/^	EXT_EN = 2,\/*timer input clock is EXT*\/$/;"	e	enum:tcu_clk_mode
+FAKECYCLIC_ACTIVE	include/mach/jzdma.h	207;"	d
+FAKECYCLIC_IDX	include/mach/jzdma.h	209;"	d
+FAKECYCLIC_POSSIBLE	include/mach/jzdma.h	208;"	d
+FB_IOBASE	include/soc/base.h	14;"	d
+FULL_HALF_IRQ_MODE	common/tcu.c	/^	FULL_HALF_IRQ_MODE = 3,$/;"	e	enum:tcu_irq_mode	file:
+FULL_HALF_IRQ_MODE	include/mach/jztcu.h	/^	FULL_HALF_IRQ_MODE = 3,$/;"	e	enum:tcu_irq_mode
+FULL_IRQ_MODE	common/tcu.c	/^	FULL_IRQ_MODE = 1,$/;"	e	enum:tcu_irq_mode	file:
+FULL_IRQ_MODE	include/mach/jztcu.h	/^	FULL_IRQ_MODE = 1,$/;"	e	enum:tcu_irq_mode
+GATE	common/clk/clk_fpga.c	24;"	d	file:
+GATE	common/clk/clk_fpga.c	95;"	d	file:
+GATE	common/clk/clk_sources.c	106;"	d	file:
+GATE	common/clk/clk_sources.c	31;"	d	file:
+GET_MAP_TYPE	include/mach/jzdma.h	166;"	d
+GMAC_INTERNAL_PHY_PORTB	include/mach/platform.h	93;"	d
+GMAC_INTERNAL_PHY_PORTB_NO_ACTLED	include/mach/platform.h	95;"	d
+GMAC_PHY_DELAYTIME	chip-t21/isvp/Turkey/board.h	94;"	d
+GMAC_PHY_PORT_END_FUNC	chip-t21/isvp/Turkey/board.h	93;"	d
+GMAC_PHY_PORT_GPIO	chip-t21/isvp/Turkey/board.h	91;"	d
+GMAC_PHY_PORT_START_FUNC	chip-t21/isvp/Turkey/board.h	92;"	d
+GMAC_PORTB	include/mach/platform.h	91;"	d
+GPIO_AS_FUNC	include/soc/gpio.h	28;"	d
+GPIO_BUILDIN_MIC_LEVEL	chip-t21/isvp/Turkey/board.h	77;"	d
+GPIO_FUNC_0	include/soc/gpio.h	/^	GPIO_FUNC_0	= 0x00,  \/\/0000, GPIO as function 0 \/ device 0$/;"	e	enum:gpio_function
+GPIO_FUNC_1	include/soc/gpio.h	/^	GPIO_FUNC_1	= 0x01,  \/\/0001, GPIO as function 1 \/ device 1$/;"	e	enum:gpio_function
+GPIO_FUNC_2	include/soc/gpio.h	/^	GPIO_FUNC_2	= 0x02,  \/\/0010, GPIO as function 2 \/ device 2$/;"	e	enum:gpio_function
+GPIO_FUNC_3	include/soc/gpio.h	/^	GPIO_FUNC_3	= 0x03,  \/\/0011, GPIO as function 3 \/ device 3$/;"	e	enum:gpio_function
+GPIO_HANDSET_EN	chip-t21/isvp/Turkey/board.h	71;"	d
+GPIO_HANDSET_EN_LEVEL	chip-t21/isvp/Turkey/board.h	72;"	d
+GPIO_HOME	chip-t21/isvp/Turkey/board.h	33;"	d
+GPIO_HP_DETECT	chip-t21/isvp/Turkey/board.h	74;"	d
+GPIO_HP_INSERT_LEVEL	chip-t21/isvp/Turkey/board.h	75;"	d
+GPIO_HP_MUTE	chip-t21/isvp/Turkey/board.h	65;"	d
+GPIO_HP_MUTE_LEVEL	chip-t21/isvp/Turkey/board.h	66;"	d
+GPIO_I2C0_SCK	chip-t21/isvp/Turkey/board.h	10;"	d
+GPIO_I2C0_SDA	chip-t21/isvp/Turkey/board.h	9;"	d
+GPIO_I2C1_SCK	chip-t21/isvp/Turkey/board.h	15;"	d
+GPIO_I2C1_SDA	chip-t21/isvp/Turkey/board.h	14;"	d
+GPIO_I2C2_SCK	chip-t21/isvp/Turkey/board.h	20;"	d
+GPIO_I2C2_SDA	chip-t21/isvp/Turkey/board.h	19;"	d
+GPIO_INPUT	include/soc/gpio.h	/^	GPIO_INPUT	= 0x06,  \/\/0110, GPIO as input.7 also.$/;"	e	enum:gpio_function
+GPIO_INPUT_PULL_HI	include/soc/gpio.h	/^	GPIO_INPUT_PULL_HI   = 0x96$/;"	e	enum:gpio_function
+GPIO_INT_FE	include/soc/gpio.h	/^	GPIO_INT_FE	= 0x0a,  \/\/1010, Fall Edge trigger interrupt$/;"	e	enum:gpio_function
+GPIO_INT_HI	include/soc/gpio.h	/^	GPIO_INT_HI	= 0x09,  \/\/1001, High Level trigger interrupt$/;"	e	enum:gpio_function
+GPIO_INT_LO	include/soc/gpio.h	/^	GPIO_INT_LO	= 0x08,  \/\/1000, Low  Level trigger interrupt$/;"	e	enum:gpio_function
+GPIO_INT_RE	include/soc/gpio.h	/^	GPIO_INT_RE	= 0x0b,  \/\/1011, Rise Edge trigger interrupt$/;"	e	enum:gpio_function
+GPIO_IOBASE	include/soc/base.h	79;"	d
+GPIO_MIC_DETECT	chip-t21/isvp/Turkey/board.h	78;"	d
+GPIO_MIC_DETECT_EN	chip-t21/isvp/Turkey/board.h	80;"	d
+GPIO_MIC_DETECT_EN_LEVEL	chip-t21/isvp/Turkey/board.h	81;"	d
+GPIO_MIC_INSERT_LEVEL	chip-t21/isvp/Turkey/board.h	79;"	d
+GPIO_MIC_SELECT	chip-t21/isvp/Turkey/board.h	76;"	d
+GPIO_MMC_CD_N	chip-t21/isvp/Turkey/board.h	42;"	d
+GPIO_MMC_CD_N_LEVEL	chip-t21/isvp/Turkey/board.h	43;"	d
+GPIO_MMC_PWR	chip-t21/isvp/Turkey/board.h	44;"	d
+GPIO_MMC_PWR_LEVEL	chip-t21/isvp/Turkey/board.h	45;"	d
+GPIO_MMC_RST_N	chip-t21/isvp/Turkey/board.h	40;"	d
+GPIO_MMC_RST_N_LEVEL	chip-t21/isvp/Turkey/board.h	41;"	d
+GPIO_MMC_WP_N	chip-t21/isvp/Turkey/board.h	46;"	d
+GPIO_MMC_WP_N_LEVEL	chip-t21/isvp/Turkey/board.h	47;"	d
+GPIO_NR_IRQS	include/irq.h	30;"	d
+GPIO_NR_PORTS	include/soc/gpio.h	/^	GPIO_NR_PORTS,$/;"	e	enum:gpio_port
+GPIO_OUTPUT0	include/soc/gpio.h	/^	GPIO_OUTPUT0	= 0x04,  \/\/0100, GPIO output low  level$/;"	e	enum:gpio_function
+GPIO_OUTPUT1	include/soc/gpio.h	/^	GPIO_OUTPUT1	= 0x05,  \/\/0101, GPIO output high level$/;"	e	enum:gpio_function
+GPIO_PG	include/soc/gpio.h	46;"	d
+GPIO_PORT_A	include/soc/gpio.h	/^	GPIO_PORT_A = 0, GPIO_PORT_B,$/;"	e	enum:gpio_port
+GPIO_PORT_B	include/soc/gpio.h	/^	GPIO_PORT_A = 0, GPIO_PORT_B,$/;"	e	enum:gpio_port
+GPIO_PORT_C	include/soc/gpio.h	/^	GPIO_PORT_C, GPIO_PORT_D,$/;"	e	enum:gpio_port
+GPIO_PORT_D	include/soc/gpio.h	/^	GPIO_PORT_C, GPIO_PORT_D,$/;"	e	enum:gpio_port
+GPIO_PORT_E	include/soc/gpio.h	/^	GPIO_PORT_E, GPIO_PORT_F,$/;"	e	enum:gpio_port
+GPIO_PORT_F	include/soc/gpio.h	/^	GPIO_PORT_E, GPIO_PORT_F,$/;"	e	enum:gpio_port
+GPIO_PORT_OFF	common/gpio.c	28;"	d	file:
+GPIO_PULL_BUSHOLD	include/soc/gpio.h	/^	GPIO_PULL_BUSHOLD = 0xb0,$/;"	e	enum:gpio_function
+GPIO_PULL_DOWN	include/soc/gpio.h	/^	GPIO_PULL_DOWN = 0xa0,$/;"	e	enum:gpio_function
+GPIO_PULL_HIZ	include/soc/gpio.h	/^	GPIO_PULL_HIZ = 0x80,$/;"	e	enum:gpio_function
+GPIO_PULL_UP	include/soc/gpio.h	/^	GPIO_PULL_UP  = 0x90,$/;"	e	enum:gpio_function
+GPIO_SHADOW_OFF	common/gpio.c	29;"	d	file:
+GPIO_SIZE	common/gpio.c	30;"	d	file:
+GPIO_SPEAKER_EN	chip-t21/isvp/Turkey/board.h	68;"	d
+GPIO_SPEAKER_EN_LEVEL	chip-t21/isvp/Turkey/board.h	69;"	d
+GPIO_SPI_MISO	chip-t21/isvp/Turkey/board.h	28;"	d
+GPIO_SPI_MOSI	chip-t21/isvp/Turkey/board.h	27;"	d
+GPIO_SPI_SCK	chip-t21/isvp/Turkey/board.h	26;"	d
+GPIO_USB_DETE	chip-t21/isvp/Turkey/board.h	53;"	d
+GPIO_USB_DETE_LEVEL	chip-t21/isvp/Turkey/board.h	54;"	d
+GPIO_USB_DRVVBUS	chip-t21/isvp/Turkey/board.h	55;"	d
+GPIO_USB_DRVVBUS_LEVEL	chip-t21/isvp/Turkey/board.h	56;"	d
+GPIO_USB_ID	chip-t21/isvp/Turkey/board.h	51;"	d
+GPIO_USB_ID_LEVEL	chip-t21/isvp/Turkey/board.h	52;"	d
+GPU_IOBASE	include/soc/base.h	13;"	d
+GPVLC_IOBASE	include/soc/base.h	19;"	d
+H0DIV	common/clk/clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon4
+H2DIV	common/clk/clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon4
+HALF_IRQ_MODE	common/tcu.c	/^	HALF_IRQ_MODE = 2,$/;"	e	enum:tcu_irq_mode	file:
+HALF_IRQ_MODE	include/mach/jztcu.h	/^	HALF_IRQ_MODE = 2,$/;"	e	enum:tcu_irq_mode
+HARB0_IOBASE	include/soc/base.h	10;"	d
+HARB2_IOBASE	include/soc/base.h	49;"	d
+HASH_IOBASE	include/soc/base.h	56;"	d
+HDMI_IOBASE	include/soc/base.h	72;"	d
+HELIX_IOBASE	include/soc/base.h	43;"	d
+HELIX_IOBASE_UNIT	include/soc/base.h	44;"	d
+HIGH_ENABLE	include/mach/jzmmc.h	37;"	d
+HOOK_ACTIVE_LEVEL	chip-t21/isvp/Turkey/board.h	84;"	d
+HP_SENSE_ACTIVE_LEVEL	chip-t21/isvp/Turkey/board.h	83;"	d
+HWFCR_WAIT_TIME	common/reset.c	99;"	d	file:
+I2C0_IOBASE	include/soc/base.h	88;"	d
+I2C0_PORTA	include/mach/platform.h	45;"	d
+I2C1_IOBASE	include/soc/base.h	89;"	d
+I2C1_PORTB	include/mach/platform.h	47;"	d
+I2C1_PORTC	include/mach/platform.h	49;"	d
+ICACHE_REFILLS_WORKAROUND_WAR	include/war.h	22;"	d
+IMCR_OFF	common/irq.c	31;"	d	file:
+IMR_OFF	common/irq.c	29;"	d	file:
+IMSR_OFF	common/irq.c	30;"	d	file:
+INTC_IOBASE	include/soc/base.h	76;"	d
+INTC_IRQ_BASE	include/irq.h	19;"	d
+INTC_NR_IRQS	include/irq.h	22;"	d
+IPR_OFF	common/irq.c	32;"	d	file:
+IPU1_IOBASE	include/soc/base.h	20;"	d
+IPU_IOBASE	include/soc/base.h	18;"	d
+IRQ_AES	include/soc/irq.h	/^	IRQ_AES,$/;"	e	enum:__anon17
+IRQ_AIC0	include/soc/irq.h	/^	IRQ_AIC0,$/;"	e	enum:__anon17
+IRQ_CPM	include/soc/irq.h	/^	IRQ_CPM,$/;"	e	enum:__anon17
+IRQ_DDR	include/soc/irq.h	/^	IRQ_DDR,$/;"	e	enum:__anon17
+IRQ_DTRNG	include/soc/irq.h	/^	IRQ_DTRNG,$/;"	e	enum:__anon17
+IRQ_EFUSE	include/soc/irq.h	/^	IRQ_EFUSE,$/;"	e	enum:__anon17
+IRQ_GMAC	include/soc/irq.h	/^	IRQ_GMAC,$/;"	e	enum:__anon17
+IRQ_GPIO0	include/soc/irq.h	/^	IRQ_GPIO0,$/;"	e	enum:__anon17
+IRQ_GPIO1	include/soc/irq.h	/^	IRQ_GPIO1,$/;"	e	enum:__anon17
+IRQ_GPIO2	include/soc/irq.h	/^	IRQ_GPIO2,$/;"	e	enum:__anon17
+IRQ_GPIO_BASE	include/irq.h	/^	IRQ_GPIO_BASE,$/;"	e	enum:__anon23
+IRQ_GPIO_END	include/irq.h	/^	IRQ_GPIO_END = IRQ_GPIO_BASE + GPIO_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_GPIO_PORT	include/soc/irq.h	34;"	d
+IRQ_HARB2	include/soc/irq.h	/^	IRQ_HARB2,$/;"	e	enum:__anon17
+IRQ_HASH	include/soc/irq.h	/^	IRQ_HASH,$/;"	e	enum:__anon17
+IRQ_HELIX0	include/soc/irq.h	/^	IRQ_HELIX0,$/;"	e	enum:__anon17
+IRQ_I2C0	include/soc/irq.h	/^	IRQ_I2C0,$/;"	e	enum:__anon17
+IRQ_I2C1	include/soc/irq.h	/^	IRQ_I2C1,$/;"	e	enum:__anon17
+IRQ_INTC_BASE	include/irq.h	/^	IRQ_INTC_BASE = INTC_IRQ_BASE,$/;"	e	enum:__anon23
+IRQ_INTC_END	include/irq.h	/^	IRQ_INTC_END = IRQ_INTC_BASE + INTC_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_IPU	include/soc/irq.h	/^	IRQ_IPU,$/;"	e	enum:__anon17
+IRQ_IRQ_RESERVED0	include/soc/irq.h	/^	IRQ_IRQ_RESERVED0=IRQ_INTC_BASE,$/;"	e	enum:__anon17
+IRQ_ISP	include/soc/irq.h	/^	IRQ_ISP,$/;"	e	enum:__anon17
+IRQ_LCDC	include/soc/irq.h	/^	IRQ_LCDC,$/;"	e	enum:__anon17
+IRQ_MCU	include/soc/irq.h	/^	IRQ_MCU = IRQ_MCU_BASE,$/;"	e	enum:__anon19
+IRQ_MCU_BASE	include/irq.h	/^	IRQ_MCU_BASE,$/;"	e	enum:__anon23
+IRQ_MCU_END	include/irq.h	/^	IRQ_MCU_END = IRQ_MCU_BASE + MCU_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_MCU_GPIO0	include/soc/irq.h	/^	IRQ_MCU_GPIO0,$/;"	e	enum:__anon17
+IRQ_MCU_GPIO1	include/soc/irq.h	/^	IRQ_MCU_GPIO1,$/;"	e	enum:__anon17
+IRQ_MCU_GPIO2	include/soc/irq.h	/^	IRQ_MCU_GPIO2,$/;"	e	enum:__anon17
+IRQ_MCU_GPIO3	include/soc/irq.h	/^	IRQ_MCU_GPIO3,$/;"	e	enum:__anon17
+IRQ_MCU_GPIO4	include/soc/irq.h	/^	IRQ_MCU_GPIO4,$/;"	e	enum:__anon17
+IRQ_MCU_GPIO5	include/soc/irq.h	/^	IRQ_MCU_GPIO5,$/;"	e	enum:__anon17
+IRQ_MCU_GPIO_PORT	include/soc/irq.h	84;"	d
+IRQ_MSC0	include/soc/irq.h	/^	IRQ_MSC0,$/;"	e	enum:__anon17
+IRQ_MSC1	include/soc/irq.h	/^	IRQ_MSC1,$/;"	e	enum:__anon17
+IRQ_OST	include/soc/irq.h	/^	IRQ_OST = IRQ_OST_BASE,$/;"	e	enum:__anon18
+IRQ_OST_BASE	include/irq.h	/^	IRQ_OST_BASE,$/;"	e	enum:__anon23
+IRQ_OST_END	include/irq.h	/^	IRQ_OST_END = IRQ_OST_BASE + OST_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_OTG	include/soc/irq.h	/^	IRQ_OTG,$/;"	e	enum:__anon17
+IRQ_PDMA	include/soc/irq.h	/^	IRQ_PDMA,$/;"	e	enum:__anon17
+IRQ_PDMAM	include/soc/irq.h	/^	IRQ_PDMAM,$/;"	e	enum:__anon17
+IRQ_RESERVED11	include/soc/irq.h	/^	IRQ_RESERVED11,$/;"	e	enum:__anon17
+IRQ_RESERVED12	include/soc/irq.h	/^	IRQ_RESERVED12,$/;"	e	enum:__anon17
+IRQ_RESERVED13	include/soc/irq.h	/^	IRQ_RESERVED13,$/;"	e	enum:__anon17
+IRQ_RESERVED14	include/soc/irq.h	/^	IRQ_RESERVED14,$/;"	e	enum:__anon17
+IRQ_RESERVED19	include/soc/irq.h	/^	IRQ_RESERVED19,$/;"	e	enum:__anon17
+IRQ_RESERVED2	include/soc/irq.h	/^	IRQ_RESERVED2,$/;"	e	enum:__anon17
+IRQ_RESERVED20	include/soc/irq.h	/^	IRQ_RESERVED20,$/;"	e	enum:__anon17
+IRQ_RESERVED24	include/soc/irq.h	/^	IRQ_RESERVED24,$/;"	e	enum:__anon17
+IRQ_RESERVED28	include/soc/irq.h	/^	IRQ_RESERVED28,$/;"	e	enum:__anon17
+IRQ_RESERVED33	include/soc/irq.h	/^	IRQ_RESERVED33,$/;"	e	enum:__anon17
+IRQ_RESERVED35	include/soc/irq.h	/^	IRQ_RESERVED35,$/;"	e	enum:__anon17
+IRQ_RESERVED38	include/soc/irq.h	/^	IRQ_RESERVED38,$/;"	e	enum:__anon17
+IRQ_RESERVED39	include/soc/irq.h	/^	IRQ_RESERVED39,$/;"	e	enum:__anon17
+IRQ_RESERVED40	include/soc/irq.h	/^	IRQ_RESERVED40,$/;"	e	enum:__anon17
+IRQ_RESERVED41	include/soc/irq.h	/^	IRQ_RESERVED41,$/;"	e	enum:__anon17
+IRQ_RESERVED42	include/soc/irq.h	/^	IRQ_RESERVED42,$/;"	e	enum:__anon17
+IRQ_RESERVED43	include/soc/irq.h	/^	IRQ_RESERVED43,$/;"	e	enum:__anon17
+IRQ_RESERVED45	include/soc/irq.h	/^	IRQ_RESERVED45,$/;"	e	enum:__anon17
+IRQ_RESERVED46	include/soc/irq.h	/^	IRQ_RESERVED46,$/;"	e	enum:__anon17
+IRQ_RESERVED48	include/soc/irq.h	/^	IRQ_RESERVED48,$/;"	e	enum:__anon17
+IRQ_RESERVED5	include/soc/irq.h	/^	IRQ_RESERVED5,$/;"	e	enum:__anon17
+IRQ_RESERVED53	include/soc/irq.h	/^	IRQ_RESERVED53,$/;"	e	enum:__anon17
+IRQ_RESERVED56	include/soc/irq.h	/^	IRQ_RESERVED56,$/;"	e	enum:__anon17
+IRQ_RESERVED57	include/soc/irq.h	/^	IRQ_RESERVED57,$/;"	e	enum:__anon17
+IRQ_RESERVED58	include/soc/irq.h	/^	IRQ_RESERVED58,$/;"	e	enum:__anon17
+IRQ_RESERVED63	include/soc/irq.h	/^	IRQ_RESERVED63,$/;"	e	enum:__anon17
+IRQ_RESERVED_BASE	include/irq.h	/^	IRQ_RESERVED_BASE,$/;"	e	enum:__anon23
+IRQ_RESERVED_END	include/irq.h	/^	IRQ_RESERVED_END = IRQ_RESERVED_BASE + RESERVED_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_RISCV	include/soc/irq.h	/^	IRQ_RISCV,$/;"	e	enum:__anon17
+IRQ_RTC	include/soc/irq.h	/^	IRQ_RTC,$/;"	e	enum:__anon17
+IRQ_SADC	include/soc/irq.h	/^	IRQ_SADC,$/;"	e	enum:__anon17
+IRQ_SADC_BASE	include/irq.h	/^	IRQ_SADC_BASE,$/;"	e	enum:__anon23
+IRQ_SADC_END	include/irq.h	/^	IRQ_SADC_END = IRQ_SADC_BASE + SADC_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_SFC	include/soc/irq.h	/^	IRQ_SFC,$/;"	e	enum:__anon17
+IRQ_SMP_CALL_FUNCTION	include/irq.h	17;"	d
+IRQ_SMP_RESCHEDULE_YOURSELF	include/irq.h	16;"	d
+IRQ_SSI0	include/soc/irq.h	/^	IRQ_SSI0,$/;"	e	enum:__anon17
+IRQ_SSI1	include/soc/irq.h	/^	IRQ_SSI1,$/;"	e	enum:__anon17
+IRQ_SYS_OST	include/soc/irq.h	/^	IRQ_SYS_OST,\/*TODO*\/$/;"	e	enum:__anon17
+IRQ_TCU0	include/soc/irq.h	/^	IRQ_TCU0,$/;"	e	enum:__anon17
+IRQ_TCU1	include/soc/irq.h	/^	IRQ_TCU1,$/;"	e	enum:__anon17
+IRQ_TCU2	include/soc/irq.h	/^	IRQ_TCU2,$/;"	e	enum:__anon17
+IRQ_TCU_BASE	include/irq.h	/^	IRQ_TCU_BASE,$/;"	e	enum:__anon23
+IRQ_TCU_END	include/irq.h	/^	IRQ_TCU_END = IRQ_TCU_BASE + TCU_NR_IRQS - 1,$/;"	e	enum:__anon23
+IRQ_UART0	include/soc/irq.h	/^	IRQ_UART0,$/;"	e	enum:__anon17
+IRQ_UART1	include/soc/irq.h	/^	IRQ_UART1,$/;"	e	enum:__anon17
+IRQ_UART2	include/soc/irq.h	/^	IRQ_UART2,$/;"	e	enum:__anon17
+IRQ_VIC	include/soc/irq.h	/^	IRQ_VIC,$/;"	e	enum:__anon17
+ISP_CORE_IOBASE	include/soc/base.h	29;"	d
+ISP_ERROR	include/mach/tx_isp.h	32;"	d
+ISP_IRQ_IOBASE	include/soc/base.h	28;"	d
+ISP_SUCCESS	include/mach/tx_isp.h	31;"	d
+ISP_VIC_IOBASE	include/soc/base.h	27;"	d
+ISR_OFF	common/irq.c	28;"	d	file:
+IS_CGU_CLK	common/clk/clk_cgu.c	88;"	d	file:
+JPGC_IOBASE	include/soc/base.h	41;"	d
+JZDMA_REQ_AUTO	include/mach/jzdma.h	/^	JZDMA_REQ_AUTO = JZDMA_REQ_AUTO_TXRX,$/;"	e	enum:jzdma_type
+JZDMA_REQ_AUTO_TXRX	include/mach/jzdma.h	/^	JZDMA_REQ_AUTO_TXRX = 0x08,$/;"	e	enum:jzdma_req_type
+JZDMA_REQ_DES_R	include/mach/jzdma.h	/^	JZDMA_REQ_DES_R = JZDMA_REQ_DES_RX,$/;"	e	enum:jzdma_type
+JZDMA_REQ_INVAL	include/mach/jzdma.h	/^	JZDMA_REQ_INVAL = 0,$/;"	e	enum:jzdma_type
+JZDMA_REQ_NAND0	include/mach/jzdma.h	/^	JZDMA_REQ_NAND0 = JZDMA_REQ_AUTO_TXRX | (1 << 16),$/;"	e	enum:jzdma_type
+JZDMA_REQ_NAND1	include/mach/jzdma.h	/^	JZDMA_REQ_NAND1 = JZDMA_REQ_AUTO_TXRX | (2 << 16),$/;"	e	enum:jzdma_type
+JZDMA_REQ_NAND2	include/mach/jzdma.h	/^	JZDMA_REQ_NAND2 = JZDMA_REQ_AUTO_TXRX | (3 << 16),$/;"	e	enum:jzdma_type
+JZDMA_REQ_NAND3	include/mach/jzdma.h	/^	JZDMA_REQ_NAND3 = JZDMA_REQ_AUTO_TXRX | (4 << 16),$/;"	e	enum:jzdma_type
+JZDMA_REQ_NAND4	include/mach/jzdma.h	/^	JZDMA_REQ_NAND4 = JZDMA_REQ_AUTO_TXRX | (5 << 16),$/;"	e	enum:jzdma_type
+JZDMA_REQ_RESERVED0	include/mach/jzdma.h	/^	JZDMA_REQ_RESERVED0 = 0x03,$/;"	e	enum:jzdma_req_type
+JZDMA_REQ_RESERVED1	include/mach/jzdma.h	/^	JZDMA_REQ_RESERVED1 = 0x0b,$/;"	e	enum:jzdma_req_type
+JZDMA_REQ_SADC	include/mach/jzdma.h	/^	JZDMA_REQ_SADC = JZDMA_REQ_SADC_RX,$/;"	e	enum:jzdma_type
+JZDMA_REQ_SADC_RX	include/mach/jzdma.h	/^	JZDMA_REQ_SADC_RX,$/;"	e	enum:jzdma_req_type
+JZ_EXTAL	include/soc/extal.h	6;"	d
+JZ_EXTAL_RTC	include/soc/extal.h	5;"	d
+K0BASE	include/soc/cache.h	22;"	d
+KEEP_OR_IGNORE	include/mach/jzsnd.h	/^	KEEP_OR_IGNORE = 0, \/\/default$/;"	e	enum:__anon22
+KSEG0_LOW_LIMIT	common/libdmmu.c	34;"	d	file:
+KSEG1_HEIGH_LIMIT	common/libdmmu.c	35;"	d	file:
+L2CDIV	common/clk/clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon4
+LCDC_IOBASE	include/soc/base.h	15;"	d
+LCD_TYPE_SLCD	include/mach/jzfb.h	/^	LCD_TYPE_SLCD =1,$/;"	e	enum:jzfb_lcd_type
+LCD_TYPE_TFT	include/mach/jzfb.h	/^	LCD_TYPE_TFT = 0,$/;"	e	enum:jzfb_lcd_type
+LCR_LPM_MASK	include/soc/cpm.h	76;"	d
+LCR_LPM_SLEEP	include/soc/cpm.h	77;"	d
+LOW_ENABLE	include/mach/jzmmc.h	36;"	d
+LSR_TDRQ	common/clk/clk_cgu.c	394;"	d	file:
+LSR_TDRQ	common/pm.c	49;"	d	file:
+LSR_TDRQ	common/serial.c	19;"	d	file:
+LSR_TEMT	common/clk/clk_cgu.c	395;"	d	file:
+LSR_TEMT	common/pm.c	50;"	d	file:
+LSR_TEMT	common/serial.c	20;"	d	file:
+M7_0	include/mach/jzssi.h	/^	u8 M7_0;\/\/ some cmd must be send the M7-0$/;"	m	struct:sfc_nor_info
+MANUAL	include/mach/jzmmc.h	/^	MANUAL,$/;"	e	enum:__anon20
+MAP_CONUT_MASK	common/libdmmu.c	29;"	d	file:
+MAP_COUNT	common/libdmmu.c	28;"	d	file:
+MAX_SND_MINOR	include/mach/jzsnd.h	191;"	d
+MCE_IOBASE	include/soc/base.h	35;"	d
+MCLK_PORTA	include/mach/platform.h	55;"	d
+MCU_MSG_TYPE_INTC	include/mach/jzdma.h	97;"	d
+MCU_MSG_TYPE_INTC_MASKA	include/mach/jzdma.h	98;"	d
+MCU_MSG_TYPE_NORMAL	include/mach/jzdma.h	96;"	d
+MCU_NR_IRQS	include/irq.h	38;"	d
+MDIO_MDIO_GPIO	chip-t21/isvp/Turkey/board.h	98;"	d
+MDIO_MDIO_MDC_GPIO	chip-t21/isvp/Turkey/board.h	97;"	d
+MHz	common/clk/clk_cpccr.c	34;"	d	file:
+MII_PORTBDF	include/mach/platform.h	60;"	d
+MIPI_CSI_IOBASE	include/soc/base.h	24;"	d
+MIPI_PHY_IOBASE	include/soc/base.h	25;"	d
+MIPS34K_MISSED_ITLB_WAR	include/war.h	24;"	d
+MIPS4K_ICACHE_REFILL_WAR	include/war.h	17;"	d
+MIPS_BRIDGE_SYNC_WAR	include/war.h	19;"	d
+MIPS_CACHE_SYNC_WAR	include/war.h	18;"	d
+MIPS_CPU_IRQ_BASE	include/irq.h	15;"	d
+MMC_BOOT_AREA_OPENED	include/mach/jzmmc.h	10;"	d
+MMC_BOOT_AREA_PROTECTED	include/mach/jzmmc.h	9;"	d
+MONITOR_IOBASE	include/soc/base.h	21;"	d
+MSC0_IOBASE	include/soc/base.h	54;"	d
+MSC0_IOBASE	include/soc/base.h	64;"	d
+MSC0_PORTB_4BIT	include/mach/platform.h	25;"	d
+MSC1_IOBASE	include/soc/base.h	55;"	d
+MSC1_IOBASE	include/soc/base.h	65;"	d
+MSC1_PORTC	include/mach/platform.h	27;"	d
+NEMC_CS1_IOBASE	include/soc/base.h	97;"	d
+NEMC_CS2_IOBASE	include/soc/base.h	98;"	d
+NEMC_CS3_IOBASE	include/soc/base.h	99;"	d
+NEMC_CS4_IOBASE	include/soc/base.h	100;"	d
+NEMC_CS5_IOBASE	include/soc/base.h	101;"	d
+NEMC_CS6_IOBASE	include/soc/base.h	102;"	d
+NFI_IOBASE	include/soc/base.h	50;"	d
+NONREMOVABLE	include/mach/jzmmc.h	/^	NONREMOVABLE,$/;"	e	enum:__anon20
+NR_DMA_CHANNELS	include/mach/jzdma.h	21;"	d
+NR_IRQS	include/irq.h	/^	NR_IRQS,$/;"	e	enum:__anon23
+NR_TCU_CH	common/tcu.c	25;"	d	file:
+NULL_IRQ_MODE	common/tcu.c	/^	NULL_IRQ_MODE = 4,$/;"	e	enum:tcu_irq_mode	file:
+NULL_IRQ_MODE	include/mach/jztcu.h	/^	NULL_IRQ_MODE = 4,$/;"	e	enum:tcu_irq_mode
+OFF_LCR	common/clk/clk_cgu.c	391;"	d	file:
+OFF_LCR	common/pm.c	46;"	d	file:
+OFF_LCR	common/serial.c	16;"	d	file:
+OFF_LSR	common/clk/clk_cgu.c	392;"	d	file:
+OFF_LSR	common/pm.c	47;"	d	file:
+OFF_LSR	common/serial.c	17;"	d	file:
+OFF_TDR	common/clk/clk_cgu.c	390;"	d	file:
+OFF_TDR	common/pm.c	45;"	d	file:
+OFF_TDR	common/serial.c	15;"	d	file:
+OPCR_ERCS	include/soc/cpm.h	86;"	d
+OPCR_IDLE	include/soc/cpm.h	88;"	d
+OPCR_PD	include/soc/cpm.h	87;"	d
+OPCR_SPENDN0	common/cpm_usb.c	22;"	d	file:
+OSTCSR_CNT_MD	include/soc/tcu.h	76;"	d
+OST_CNTH	include/soc/tcu.h	71;"	d
+OST_CNTH_BUF	include/soc/tcu.h	73;"	d
+OST_CNTL	include/soc/tcu.h	70;"	d
+OST_CSR	include/soc/tcu.h	72;"	d
+OST_DR	include/soc/tcu.h	69;"	d
+OST_IOBASE	include/soc/base.h	71;"	d
+OST_NR_IRQS	include/irq.h	26;"	d
+OST_T1CNT	include/soc/ost.h	18;"	d
+OST_T1DFR	include/soc/ost.h	17;"	d
+OST_T2CNTH	include/soc/ost.h	20;"	d
+OST_T2CNTL	include/soc/ost.h	19;"	d
+OST_TCCR	include/soc/ost.h	10;"	d
+OST_TCNT2HBUF	include/soc/ost.h	21;"	d
+OST_TCR	include/soc/ost.h	14;"	d
+OST_TECR	include/soc/ost.h	13;"	d
+OST_TER	include/soc/ost.h	11;"	d
+OST_TESR	include/soc/ost.h	12;"	d
+OST_TFR	include/soc/ost.h	15;"	d
+OST_TMR	include/soc/ost.h	16;"	d
+OTG_DRVVUS	include/mach/platform.h	67;"	d
+OTG_IOBASE	include/soc/base.h	58;"	d
+OTG_IOBASE	include/soc/base.h	69;"	d
+PARENT	common/clk/clk_fpga.c	28;"	d	file:
+PARENT	common/clk/clk_fpga.c	98;"	d	file:
+PARENT	common/clk/clk_sources.c	110;"	d	file:
+PARENT	common/clk/clk_sources.c	36;"	d	file:
+PART_OFF	common/irq.c	26;"	d	file:
+PAVDDSEL	common/gpio.c	47;"	d	file:
+PAVDDSELC	common/gpio.c	49;"	d	file:
+PAVDDSELS	common/gpio.c	48;"	d	file:
+PCLK_EN	common/tcu.c	/^	PCLK_EN = 0, \/*timer input clock is PCLK*\/$/;"	e	enum:tcu_clk_mode	file:
+PCLK_EN	include/mach/jztcu.h	/^	PCLK_EN = 0, \/*timer input clock is PCLK*\/$/;"	e	enum:tcu_clk_mode
+PDIV	common/clk/clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon4
+PDMA_IOBASE	include/soc/base.h	51;"	d
+PDMA_IOBASE	include/soc/base.h	60;"	d
+PLL	common/clk/clk_fpga.c	27;"	d	file:
+PLL	common/clk/clk_sources.c	34;"	d	file:
+PROGRAM_PROTECT	include/mach/jz_efuse.h	/^	PROGRAM_PROTECT,$/;"	e	enum:segment_id
+PWC	common/clk/clk_sources.c	109;"	d	file:
+PWC	common/clk/clk_sources.c	35;"	d	file:
+PWC_SRC	common/clk/cpm_pwc.c	31;"	d	file:
+PWC_SRC	common/clk/cpm_pwc.c	39;"	d	file:
+PWM_32K_OUTPUT	chip-t21/isvp/Turkey/board.h	110;"	d
+PXFLG	common/gpio.c	45;"	d	file:
+PXFLGC	common/gpio.c	46;"	d	file:
+PXINT	common/gpio.c	33;"	d	file:
+PXINTC	common/gpio.c	35;"	d	file:
+PXINTS	common/gpio.c	34;"	d	file:
+PXMSK	common/gpio.c	36;"	d	file:
+PXMSKC	common/gpio.c	38;"	d	file:
+PXMSKS	common/gpio.c	37;"	d	file:
+PXPAT0	common/gpio.c	42;"	d	file:
+PXPAT0C	common/gpio.c	44;"	d	file:
+PXPAT0S	common/gpio.c	43;"	d	file:
+PXPAT1	common/gpio.c	39;"	d	file:
+PXPAT1C	common/gpio.c	41;"	d	file:
+PXPAT1S	common/gpio.c	40;"	d	file:
+PXPEH	common/gpio.c	53;"	d	file:
+PXPEHC	common/gpio.c	55;"	d	file:
+PXPEHS	common/gpio.c	54;"	d	file:
+PXPEL	common/gpio.c	50;"	d	file:
+PXPELC	common/gpio.c	52;"	d	file:
+PXPELS	common/gpio.c	51;"	d	file:
+PXPIN	common/gpio.c	32;"	d	file:
+PZGID2LD	common/gpio.c	56;"	d	file:
+R10000_LLSC_WAR	include/war.h	23;"	d
+R4600_V1_HIT_CACHEOP_WAR	include/war.h	12;"	d
+R4600_V1_INDEX_ICACHEOP_WAR	include/war.h	11;"	d
+R4600_V2_HIT_CACHEOP_WAR	include/war.h	13;"	d
+R5432_CP0_INTERRUPT_WAR	include/war.h	14;"	d
+RADIX_IOBASE	include/soc/base.h	45;"	d
+RADIX_IOBASE_UNIT	include/soc/base.h	46;"	d
+RDSR_CMD	include/mach/jzssi.h	/^	u8 RDSR_CMD;$/;"	m	struct:spi_quad_mode
+RDSR_DATE	include/mach/jzssi.h	/^	unsigned int RDSR_DATE;\/\/the data is write the spi status register for QE bit$/;"	m	struct:spi_quad_mode
+RD_DATE_SIZE	include/mach/jzssi.h	/^	unsigned int RD_DATE_SIZE;\/\/the data is write the spi status register for QE bit$/;"	m	struct:spi_quad_mode
+REBOOT_SIGNATURE	common/reset.c	51;"	d	file:
+RECOVERY_SIGNATURE	common/reset.c	50;"	d	file:
+REG32	common/clk/clk_cgu.c	388;"	d	file:
+REG32	include/soc/ddr.h	92;"	d
+RELATIVE	common/clk/clk_sources.c	112;"	d	file:
+RELATIVE	common/clk/clk_sources.c	37;"	d	file:
+REMOVABLE	include/mach/jzmmc.h	/^	REMOVABLE,$/;"	e	enum:__anon20
+REMOVABLE_ONDEMAND	include/mach/jzmmc.h	/^	REMOVABLE_ONDEMAND,$/;"	e	enum:__anon20
+RESERVED_CH	common/tcu.c	26;"	d	file:
+RESERVED_NR_IRQS	include/irq.h	46;"	d
+RM9000_CDEX_SMP_WAR	include/war.h	21;"	d
+RTCCR_WRDY	common/reset.c	47;"	d	file:
+RTC_CKPCR	common/reset.c	38;"	d	file:
+RTC_EN	common/tcu.c	/^	RTC_EN = 1,\/*timer input clock is RTC*\/$/;"	e	enum:tcu_clk_mode	file:
+RTC_EN	include/mach/jztcu.h	/^	RTC_EN = 1,\/*timer input clock is RTC*\/$/;"	e	enum:tcu_clk_mode
+RTC_HCR	common/reset.c	31;"	d	file:
+RTC_HRCR	common/reset.c	33;"	d	file:
+RTC_HSPR	common/reset.c	36;"	d	file:
+RTC_HWCR	common/reset.c	34;"	d	file:
+RTC_HWFCR	common/reset.c	32;"	d	file:
+RTC_HWRSR	common/reset.c	35;"	d	file:
+RTC_IOBASE	include/soc/base.h	78;"	d
+RTC_OWIPCR	common/reset.c	39;"	d	file:
+RTC_PWRONCR	common/reset.c	40;"	d	file:
+RTC_RTCCR	common/reset.c	27;"	d	file:
+RTC_RTCGR	common/reset.c	30;"	d	file:
+RTC_RTCSAR	common/reset.c	29;"	d	file:
+RTC_RTCSR	common/reset.c	28;"	d	file:
+RTC_WENR	common/reset.c	37;"	d	file:
+SADC_IOBASE	include/soc/base.h	92;"	d
+SADC_NR_IRQS	include/irq.h	34;"	d
+SAMPLE_INTERVAL_MS	common/ddr.c	184;"	d	file:
+SAMPLE_TIME_MS	common/ddr.c	183;"	d	file:
+SARADC_CAL_DAT	include/mach/jz_efuse.h	/^	SARADC_CAL_DAT,$/;"	e	enum:segment_id
+SAVE_SIZE	common/pm.c	122;"	d	file:
+SCH_IOBASE	include/soc/base.h	32;"	d
+SCLKA	common/clk/clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon4
+SDE_IOBASE	include/soc/base.h	38;"	d
+SELECTOR_2	common/clk/clk_cgu.c	/^	SELECTOR_2,$/;"	e	enum:__anon1	file:
+SELECTOR_3	common/clk/clk_cgu.c	/^	SELECTOR_3,$/;"	e	enum:__anon1	file:
+SELECTOR_A	common/clk/clk_cgu.c	/^	SELECTOR_A = 0,$/;"	e	enum:__anon1	file:
+SELECTOR_C	common/clk/clk_cgu.c	/^	SELECTOR_C,$/;"	e	enum:__anon1	file:
+SELECTOR_F	common/clk/clk_cgu.c	/^	SELECTOR_F,$/;"	e	enum:__anon1	file:
+SELECTOR_H	common/clk/clk_cgu.c	/^	SELECTOR_H$/;"	e	enum:__anon1	file:
+SELECTOR_MSC_MUX	common/clk/clk_cgu.c	/^	SELECTOR_MSC_MUX,$/;"	e	enum:__anon1	file:
+SEL_SLCD_SPI_3	common/jzfblcd/byd9158b.c	27;"	d	file:
+SFC_IOBASE	include/soc/base.h	53;"	d
+SFC_IOBASE	include/soc/base.h	63;"	d
+SFC_PORTA	include/mach/platform.h	40;"	d
+SFC_PORTA_QUAD	include/mach/platform.h	38;"	d
+SIBYTE_1956_WAR	include/war.h	16;"	d
+SIZEOF_NAME	include/mach/jzssi.h	136;"	d
+SLEEP_SET_STATE	common/gpio.c	821;"	d	file:
+SLEEP_SET_STATE	common/gpio.c	833;"	d	file:
+SMART_CONFIG_CMD	include/mach/jzfb.h	/^	SMART_CONFIG_CMD,$/;"	e	enum:smart_config_type
+SMART_CONFIG_DATA	include/mach/jzfb.h	/^	SMART_CONFIG_DATA,$/;"	e	enum:smart_config_type
+SMART_CONFIG_PRM	include/mach/jzfb.h	/^	SMART_CONFIG_PRM,$/;"	e	enum:smart_config_type
+SMART_CONFIG_UDELAY	include/mach/jzfb.h	/^	SMART_CONFIG_UDELAY,$/;"	e	enum:smart_config_type
+SMART_LCD_CWIDTH_16_BIT	include/mach/jzfb.h	/^	SMART_LCD_CWIDTH_16_BIT,$/;"	e	enum:smart_lcd_cwidth
+SMART_LCD_CWIDTH_18_BIT	include/mach/jzfb.h	/^	SMART_LCD_CWIDTH_18_BIT,$/;"	e	enum:smart_lcd_cwidth
+SMART_LCD_CWIDTH_24_BIT	include/mach/jzfb.h	/^	SMART_LCD_CWIDTH_24_BIT,$/;"	e	enum:smart_lcd_cwidth
+SMART_LCD_CWIDTH_8_BIT	include/mach/jzfb.h	/^	SMART_LCD_CWIDTH_8_BIT,$/;"	e	enum:smart_lcd_cwidth
+SMART_LCD_CWIDTH_9_BIT	include/mach/jzfb.h	/^	SMART_LCD_CWIDTH_9_BIT,$/;"	e	enum:smart_lcd_cwidth
+SMART_LCD_DWIDTH_16_BIT	include/mach/jzfb.h	/^	SMART_LCD_DWIDTH_16_BIT,$/;"	e	enum:smart_lcd_dwidth
+SMART_LCD_DWIDTH_18_BIT	include/mach/jzfb.h	/^	SMART_LCD_DWIDTH_18_BIT,$/;"	e	enum:smart_lcd_dwidth
+SMART_LCD_DWIDTH_24_BIT	include/mach/jzfb.h	/^	SMART_LCD_DWIDTH_24_BIT,$/;"	e	enum:smart_lcd_dwidth
+SMART_LCD_DWIDTH_8_BIT	include/mach/jzfb.h	/^	SMART_LCD_DWIDTH_8_BIT,$/;"	e	enum:smart_lcd_dwidth
+SMART_LCD_DWIDTH_9_BIT	include/mach/jzfb.h	/^	SMART_LCD_DWIDTH_9_BIT,$/;"	e	enum:smart_lcd_dwidth
+SMART_LCD_FORMAT_565	include/mach/jzfb.h	/^	SMART_LCD_FORMAT_565,$/;"	e	enum:smart_lcd_format
+SMART_LCD_FORMAT_666	include/mach/jzfb.h	/^	SMART_LCD_FORMAT_666,$/;"	e	enum:smart_lcd_format
+SMART_LCD_FORMAT_888	include/mach/jzfb.h	/^	SMART_LCD_FORMAT_888,$/;"	e	enum:smart_lcd_format
+SMART_LCD_TYPE_6800	include/mach/jzfb.h	/^	SMART_LCD_TYPE_6800,$/;"	e	enum:smart_lcd_type
+SMART_LCD_TYPE_8080	include/mach/jzfb.h	/^	SMART_LCD_TYPE_8080,$/;"	e	enum:smart_lcd_type
+SMART_LCD_TYPE_SPI_3	include/mach/jzfb.h	/^	SMART_LCD_TYPE_SPI_3,$/;"	e	enum:smart_lcd_type
+SMART_LCD_TYPE_SPI_4	include/mach/jzfb.h	/^	SMART_LCD_TYPE_SPI_4,$/;"	e	enum:smart_lcd_type
+SND_DEV_DSP0	include/mach/jzsnd.h	196;"	d
+SND_DEV_DSP1	include/mach/jzsnd.h	197;"	d
+SND_DEV_DSP2	include/mach/jzsnd.h	198;"	d
+SND_DEV_DSP3	include/mach/jzsnd.h	199;"	d
+SND_DEV_MIXER0	include/mach/jzsnd.h	203;"	d
+SND_DEV_MIXER1	include/mach/jzsnd.h	204;"	d
+SND_DEV_MIXER2	include/mach/jzsnd.h	205;"	d
+SND_DEV_MIXER3	include/mach/jzsnd.h	206;"	d
+SND_ROUTE_ALL_CLEAR	include/mach/jzsnd.h	/^	SND_ROUTE_ALL_CLEAR,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_CALL_MIC_BYPASS_TO_HPRL	include/mach/jzsnd.h	/^	SND_ROUTE_CALL_MIC_BYPASS_TO_HPRL,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_CALL_RECORD	include/mach/jzsnd.h	/^	SND_ROUTE_CALL_RECORD,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_COUNT	include/mach/jzsnd.h	/^	SND_ROUTE_COUNT,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_LINE1IN_BYPASS_TO_HP	include/mach/jzsnd.h	/^	SND_ROUTE_LINE1IN_BYPASS_TO_HP,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_LOOP_MIC1_AN1_LOOP_TO_HP	include/mach/jzsnd.h	/^	SND_ROUTE_LOOP_MIC1_AN1_LOOP_TO_HP,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_LOOP_ROUTE_END	include/mach/jzsnd.h	/^	SND_ROUTE_LOOP_ROUTE_END = SND_ROUTE_LOOP_MIC1_AN1_LOOP_TO_HP,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_LOOP_ROUTE_START	include/mach/jzsnd.h	/^	SND_ROUTE_LOOP_ROUTE_START,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_MIC2_AN3_TO_AD_AND_DA_TO_LO	include/mach/jzsnd.h	/^	SND_ROUTE_MIC2_AN3_TO_AD_AND_DA_TO_LO,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_NONE	include/mach/jzsnd.h	/^	SND_ROUTE_NONE = 0,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_CLEAR	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_CLEAR,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_LINEIN1_AN2_SIN_TO_ADCL_AND_LINEIN2_AN3_SIN_TO_ADCR	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_LINEIN1_AN2_SIN_TO_ADCL_AND_LINEIN2_AN3_SIN_TO_ADCR,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_LINEIN1_DIFF_AN2	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_LINEIN1_DIFF_AN2,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_LINEIN2_SIN_AN3	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_LINEIN2_SIN_AN3,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_MIC1_AN1	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_MIC1_AN1 = SND_ROUTE_RECORD_ROUTE_START,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_MIC1_SIN_AN2	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_MIC1_SIN_AN2,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_MIC2_SIN_AN3	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_MIC2_SIN_AN3,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_ROUTE_END	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_ROUTE_END = SND_ROUTE_CALL_RECORD,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_RECORD_ROUTE_START	include/mach/jzsnd.h	/^	SND_ROUTE_RECORD_ROUTE_START,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_CLEAR	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_CLEAR,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_DACRL_TO_ALL	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_DACRL_TO_ALL,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_DACRL_TO_HPRL	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_DACRL_TO_HPRL,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_DACRL_TO_LO	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_DACRL_TO_LO = SND_ROUTE_REPLAY_ROUTE_START,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_LINEIN2_BYPASS_TO_HPRL	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_LINEIN2_BYPASS_TO_HPRL,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_LINEIN2_BYPASS_TO_LINEOUT	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_LINEIN2_BYPASS_TO_LINEOUT = SND_ROUTE_LOOP_ROUTE_START,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_ROUTE_END	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_ROUTE_END = SND_ROUTE_REPLAY_DACRL_TO_ALL,$/;"	e	enum:snd_codec_route_t
+SND_ROUTE_REPLAY_ROUTE_START	include/mach/jzsnd.h	/^	SND_ROUTE_REPLAY_ROUTE_START,$/;"	e	enum:snd_codec_route_t
+SOUND_STEP	include/mach/jzsnd.h	192;"	d
+SRAM_IOBASE	include/soc/base.h	42;"	d
+SRAM_TYPE_BURST	include/soc/gpemc.h	/^	SRAM_TYPE_BURST,$/;"	e	enum:__anon8
+SRAM_TYPE_NORMAL	include/soc/gpemc.h	/^	SRAM_TYPE_NORMAL = 0,$/;"	e	enum:__anon8
+SRBC_USB_SR	common/cpm_usb.c	26;"	d	file:
+SSI0_IOBASE	include/soc/base.h	86;"	d
+SSI0_PORTC	include/mach/platform.h	33;"	d
+SSI1_IOBASE	include/soc/base.h	87;"	d
+SSI1_PORTC	include/mach/platform.h	35;"	d
+STATE_DISABLE	include/mach/jzsnd.h	/^	STATE_DISABLE,$/;"	e	enum:__anon22
+STATE_ENABLE	include/mach/jzsnd.h	/^	STATE_ENABLE,$/;"	e	enum:__anon22
+STAT_PREPED	include/mach/jzdma.h	/^	STAT_STOPED,STAT_SUBED,STAT_PREPED,STAT_RUNNING,$/;"	e	enum:channel_status
+STAT_RUNNING	include/mach/jzdma.h	/^	STAT_STOPED,STAT_SUBED,STAT_PREPED,STAT_RUNNING,$/;"	e	enum:channel_status
+STAT_STOPED	include/mach/jzdma.h	/^	STAT_STOPED,STAT_SUBED,STAT_PREPED,STAT_RUNNING,$/;"	e	enum:channel_status
+STAT_SUBED	include/mach/jzdma.h	/^	STAT_STOPED,STAT_SUBED,STAT_PREPED,STAT_RUNNING,$/;"	e	enum:channel_status
+TCSM	include/mach/jzdma.h	32;"	d
+TCSM_DELAY	common/pm.c	59;"	d	file:
+TCSM_IOBASE	include/soc/base.h	40;"	d
+TCSM_PCHAR	common/clk/clk_cgu.c	398;"	d	file:
+TCSM_PCHAR	common/pm.c	51;"	d	file:
+TCSM_PCHAR	common/pm.c	56;"	d	file:
+TCSR_CNT_CLRZ	include/soc/tcu.h	58;"	d
+TCSR_PWM_BYPASS	include/soc/tcu.h	57;"	d
+TCSR_PWM_EN	include/soc/tcu.h	61;"	d
+TCSR_PWM_HIGH	include/soc/tcu.h	60;"	d
+TCSR_PWM_IN	include/soc/tcu.h	62;"	d
+TCSR_PWM_SD	include/soc/tcu.h	59;"	d
+TCU1_MODE	common/tcu.c	/^	TCU1_MODE = 1,$/;"	e	enum:tcu_mode	file:
+TCU1_MODE	include/mach/jztcu.h	/^	TCU1_MODE = 1,$/;"	e	enum:tcu_mode
+TCU2_MODE	common/tcu.c	/^	TCU2_MODE = 2,$/;"	e	enum:tcu_mode	file:
+TCU2_MODE	include/mach/jztcu.h	/^	TCU2_MODE = 2,$/;"	e	enum:tcu_mode
+TCU_CNT_MAX	common/tcu.c	24;"	d	file:
+TCU_IOBASE	include/soc/base.h	77;"	d
+TCU_NR_IRQS	include/irq.h	42;"	d
+TCU_SIZE	common/tcu.c	27;"	d	file:
+TCU_TECR	include/soc/tcu.h	18;"	d
+TCU_TER	include/soc/tcu.h	16;"	d
+TCU_TESR	include/soc/tcu.h	17;"	d
+TCU_TFCR	include/soc/tcu.h	21;"	d
+TCU_TFR	include/soc/tcu.h	19;"	d
+TCU_TFSR	include/soc/tcu.h	20;"	d
+TCU_TMCR	include/soc/tcu.h	24;"	d
+TCU_TMR	include/soc/tcu.h	22;"	d
+TCU_TMSR	include/soc/tcu.h	23;"	d
+TCU_TSCR	include/soc/tcu.h	15;"	d
+TCU_TSR	include/soc/tcu.h	13;"	d
+TCU_TSSR	include/soc/tcu.h	14;"	d
+TCU_TSTCR	include/soc/tcu.h	12;"	d
+TCU_TSTR	include/soc/tcu.h	10;"	d
+TCU_TSTSR	include/soc/tcu.h	11;"	d
+TER_OSTEN	include/soc/tcu.h	31;"	d
+TESR_OSTEN1	include/soc/ost.h	23;"	d
+TESR_OSTEN2	include/soc/ost.h	24;"	d
+TFR_OSTF	include/soc/tcu.h	33;"	d
+TFR_OSTM	include/soc/ost.h	27;"	d
+TFR_OSTN	include/soc/ost.h	28;"	d
+TFT_LCD_COLOR_EVEN_BGR	include/mach/jzfb.h	/^	TFT_LCD_COLOR_EVEN_BGR,$/;"	e	enum:tft_lcd_color_even
+TFT_LCD_COLOR_EVEN_BRG	include/mach/jzfb.h	/^	TFT_LCD_COLOR_EVEN_BRG,$/;"	e	enum:tft_lcd_color_even
+TFT_LCD_COLOR_EVEN_GBR	include/mach/jzfb.h	/^	TFT_LCD_COLOR_EVEN_GBR,$/;"	e	enum:tft_lcd_color_even
+TFT_LCD_COLOR_EVEN_GRB	include/mach/jzfb.h	/^	TFT_LCD_COLOR_EVEN_GRB,$/;"	e	enum:tft_lcd_color_even
+TFT_LCD_COLOR_EVEN_RBG	include/mach/jzfb.h	/^	TFT_LCD_COLOR_EVEN_RBG,$/;"	e	enum:tft_lcd_color_even
+TFT_LCD_COLOR_EVEN_RGB	include/mach/jzfb.h	/^	TFT_LCD_COLOR_EVEN_RGB,$/;"	e	enum:tft_lcd_color_even
+TFT_LCD_COLOR_ODD_BGR	include/mach/jzfb.h	/^	TFT_LCD_COLOR_ODD_BGR,$/;"	e	enum:tft_lcd_color_odd
+TFT_LCD_COLOR_ODD_BRG	include/mach/jzfb.h	/^	TFT_LCD_COLOR_ODD_BRG,$/;"	e	enum:tft_lcd_color_odd
+TFT_LCD_COLOR_ODD_GBR	include/mach/jzfb.h	/^	TFT_LCD_COLOR_ODD_GBR,$/;"	e	enum:tft_lcd_color_odd
+TFT_LCD_COLOR_ODD_GRB	include/mach/jzfb.h	/^	TFT_LCD_COLOR_ODD_GRB,$/;"	e	enum:tft_lcd_color_odd
+TFT_LCD_COLOR_ODD_RBG	include/mach/jzfb.h	/^	TFT_LCD_COLOR_ODD_RBG,$/;"	e	enum:tft_lcd_color_odd
+TFT_LCD_COLOR_ODD_RGB	include/mach/jzfb.h	/^	TFT_LCD_COLOR_ODD_RGB,$/;"	e	enum:tft_lcd_color_odd
+TFT_LCD_MODE_PARALLEL_24B	include/mach/jzfb.h	/^	TFT_LCD_MODE_PARALLEL_24B,$/;"	e	enum:tft_lcd_mode
+TFT_LCD_MODE_SERIAL_RGB	include/mach/jzfb.h	/^	TFT_LCD_MODE_SERIAL_RGB,$/;"	e	enum:tft_lcd_mode
+TFT_LCD_MODE_SERIAL_RGBD	include/mach/jzfb.h	/^	TFT_LCD_MODE_SERIAL_RGBD,$/;"	e	enum:tft_lcd_mode
+TMR_OSTM	include/soc/ost.h	25;"	d
+TMR_OSTM	include/soc/tcu.h	32;"	d
+TMR_OSTN	include/soc/ost.h	26;"	d
+TRACE_IRQ	common/irq.c	25;"	d	file:
+TRAN_SPI_IO_QUAD	include/mach/jzssi.h	49;"	d
+TRAN_SPI_QUAD	include/mach/jzssi.h	48;"	d
+TRIM_DATA	include/mach/jz_efuse.h	/^	TRIM_DATA,$/;"	e	enum:segment_id
+TSR_OSTS	include/soc/ost.h	29;"	d
+TSR_OSTS	include/soc/tcu.h	34;"	d
+TSR_WDTS	include/soc/tcu.h	36;"	d
+TSSI0_IOBASE	include/soc/base.h	67;"	d
+TSSI1_IOBASE	include/soc/base.h	68;"	d
+TSTR_BUSY1	include/soc/tcu.h	55;"	d
+TSTR_BUSY2	include/soc/tcu.h	54;"	d
+TSTR_REAL1	include/soc/tcu.h	53;"	d
+TSTR_REAL2	include/soc/tcu.h	52;"	d
+TX49XX_ICACHE_INDEX_INV_WAR	include/war.h	20;"	d
+TX_ISP_CORE_GRP_IDX	include/mach/tx_isp.h	/^	TX_ISP_CORE_GRP_IDX,$/;"	e	enum:tx_isp_subdev_group_index
+TX_ISP_CORE_NAME	include/mach/tx_isp.h	26;"	d
+TX_ISP_CSI_GRP_IDX	include/mach/tx_isp.h	/^	TX_ISP_CSI_GRP_IDX,$/;"	e	enum:tx_isp_subdev_group_index
+TX_ISP_CSI_NAME	include/mach/tx_isp.h	24;"	d
+TX_ISP_MAX_GRP_IDX	include/mach/tx_isp.h	/^	TX_ISP_MAX_GRP_IDX,$/;"	e	enum:tx_isp_subdev_group_index
+TX_ISP_VIC_GRP_IDX	include/mach/tx_isp.h	/^	TX_ISP_VIC_GRP_IDX,$/;"	e	enum:tx_isp_subdev_group_index
+TX_ISP_VIC_NAME	include/mach/tx_isp.h	25;"	d
+TX_ISP_VIDEO_IN_GRP_IDX	include/mach/tx_isp.h	/^	TX_ISP_VIDEO_IN_GRP_IDX,$/;"	e	enum:tx_isp_subdev_group_index
+TX_SENSOR_MAX_REGULATOR_NUM	include/mach/tx_isp.h	6;"	d
+TYPE_MASK	include/mach/jzdma.h	/^	TYPE_MASK = 0xffff,$/;"	e	enum:jzdma_type
+Tadl	include/soc/gpemc.h	/^		u32 Tadl;$/;"	m	struct:__anon12::__anon13
+Tah	include/soc/gpemc.h	/^		u32 Tah;$/;"	m	struct:__anon9::__anon10
+Tah	include/soc/gpemc.h	/^		u32 Tah;$/;"	m	struct:__anon9::__anon11
+Talh	include/soc/gpemc.h	/^	u32 Talh;$/;"	m	struct:__anon12
+Tals	include/soc/gpemc.h	/^	u32 Tals;$/;"	m	struct:__anon12
+Tas	include/soc/gpemc.h	/^		u32 Tas;$/;"	m	struct:__anon9::__anon10
+Tas	include/soc/gpemc.h	/^		u32 Tas;$/;"	m	struct:__anon9::__anon11
+Taw	include/soc/gpemc.h	/^		u32 Taw;$/;"	m	struct:__anon9::__anon10
+Tbp	include/soc/gpemc.h	/^		u32 Tbp;$/;"	m	struct:__anon9::__anon10
+Tccs	include/soc/gpemc.h	/^		u32 Tccs;$/;"	m	struct:__anon12::__anon13
+Tcdqss	include/soc/gpemc.h	/^		u32 Tcdqss;$/;"	m	struct:__anon9::__anon11
+Tch	include/soc/gpemc.h	/^	u32 Tch;$/;"	m	struct:__anon12
+Tclh	include/soc/gpemc.h	/^	u32 Tclh;$/;"	m	struct:__anon12
+Tclr	include/soc/gpemc.h	/^		u32 Tclr;$/;"	m	struct:__anon9::__anon11
+Tcls	include/soc/gpemc.h	/^	u32 Tcls;$/;"	m	struct:__anon12
+Tcs	include/soc/gpemc.h	/^		u32 Tcs;$/;"	m	struct:__anon12::__anon13
+Tcwaw	include/soc/gpemc.h	/^		u32 Tcwaw;$/;"	m	struct:__anon12::__anon13
+Tcwaw	include/soc/gpemc.h	/^		u32 Tcwaw;$/;"	m	struct:__anon9::__anon11
+Tdcbsyr	include/soc/gpemc.h	/^		u32 Tdcbsyr;$/;"	m	struct:__anon12::__anon13
+Tdcbsyr2	include/soc/gpemc.h	/^		u32 Tdcbsyr2;$/;"	m	struct:__anon12::__anon13
+Tdh	include/soc/gpemc.h	/^	u32 Tdh;$/;"	m	struct:__anon12
+Tdpht	include/soc/gpemc.h	/^		u32 Tdpht;$/;"	m	struct:__anon9::__anon11
+Tdphtd	include/soc/gpemc.h	/^		u32 Tdphtd;$/;"	m	struct:__anon9::__anon11
+Tdqsre	include/soc/gpemc.h	/^		u32 Tdqsre;$/;"	m	struct:__anon9::__anon11
+Tds	include/soc/gpemc.h	/^	u32 Tds;$/;"	m	struct:__anon12
+Tfda	include/soc/gpemc.h	/^		u32 Tfda;$/;"	m	struct:__anon9::__anon11
+Tfeat	include/soc/gpemc.h	/^		u32 Tfeat;$/;"	m	struct:__anon12::__anon13
+Trc	include/soc/gpemc.h	/^	u32 Trc;$/;"	m	struct:__anon12
+Trhw	include/soc/gpemc.h	/^	u32 Trhw;$/;"	m	struct:__anon12
+Trp	include/soc/gpemc.h	/^	u32 Trp;$/;"	m	struct:__anon12
+Trr	include/soc/gpemc.h	/^		u32 Trr;$/;"	m	struct:__anon12::__anon13
+Trst	include/soc/gpemc.h	/^		u32 Trst;$/;"	m	struct:__anon12::__anon13
+Trv	include/soc/gpemc.h	/^		u32 Trv;$/;"	m	struct:__anon9::__anon11
+Trw	include/soc/gpemc.h	/^		u32 Trw;$/;"	m	struct:__anon9::__anon11
+Tstrv	include/soc/gpemc.h	/^		u32 Tstrv;$/;"	m	struct:__anon9::__anon10
+Twb	include/soc/gpemc.h	/^		u32 Twb;$/;"	m	struct:__anon12::__anon13
+Twc	include/soc/gpemc.h	/^	u32 Twc;$/;"	m	struct:__anon12
+Twh	include/soc/gpemc.h	/^	u32 Twh;$/;"	m	struct:__anon12
+Twhr	include/soc/gpemc.h	/^		u32 Twhr;$/;"	m	struct:__anon12::__anon13
+Twhr2	include/soc/gpemc.h	/^		u32 Twhr2;$/;"	m	struct:__anon12::__anon13
+Twp	include/soc/gpemc.h	/^	u32 Twp;$/;"	m	struct:__anon12
+Tww	include/soc/gpemc.h	/^		u32 Tww;$/;"	m	struct:__anon12::__anon13
+Tww	include/soc/gpemc.h	/^		u32 Tww;$/;"	m	struct:__anon9::__anon11
+U1_IOBASE	common/clk/clk_cgu.c	397;"	d	file:
+U3_IOBASE	common/pm.c	43;"	d	file:
+UART0_IOBASE	include/soc/base.h	83;"	d
+UART0_PORTB	include/mach/platform.h	15;"	d
+UART1_IOBASE	include/soc/base.h	84;"	d
+UART1_PORTB	include/mach/platform.h	17;"	d
+UART2_IOBASE	include/soc/base.h	85;"	d
+UART2_PORTC	include/mach/platform.h	19;"	d
+UART_BASE	common/serial.c	12;"	d	file:
+UART_OFF	common/serial.c	13;"	d	file:
+UNMSAK_SIGNATURE	common/reset.c	52;"	d	file:
+UP_DIV	common/clk/clk_cgu.c	386;"	d	file:
+USBPCR1_USB_SEL	common/cpm_usb.c	23;"	d	file:
+USBPCR1_WORD_IF0	common/cpm_usb.c	24;"	d	file:
+USBPCR1_WORD_IF1	common/cpm_usb.c	25;"	d	file:
+USBPCR_COMMONONN	common/cpm_usb.c	16;"	d	file:
+USBPCR_IDPULLUP_MASK	common/cpm_usb.c	21;"	d	file:
+USBPCR_OTG_DISABLE	common/cpm_usb.c	19;"	d	file:
+USBPCR_POR	common/cpm_usb.c	14;"	d	file:
+USBPCR_SIDDQ	common/cpm_usb.c	20;"	d	file:
+USBPCR_TXPREEMPHTUNE	common/cpm_usb.c	13;"	d	file:
+USBPCR_USB_MODE	common/cpm_usb.c	15;"	d	file:
+USBPCR_VBUSVLDEXT	common/cpm_usb.c	17;"	d	file:
+USBPCR_VBUSVLDEXTSEL	common/cpm_usb.c	18;"	d	file:
+USBPHY_IOBASE	include/soc/base.h	90;"	d
+USBRDT_IDDIG_EN	common/cpm_usb.c	27;"	d	file:
+USBRDT_IDDIG_REG	common/cpm_usb.c	28;"	d	file:
+USBRDT_UTMI_RST	common/cpm_usb.c	12;"	d	file:
+USBRDT_VBFIL_LD_EN	common/cpm_usb.c	11;"	d	file:
+USER_ID	include/mach/jz_efuse.h	/^	USER_ID,$/;"	e	enum:segment_id
+USE_PLL	common/clk/clk_cpccr.c	16;"	d	file:
+VDMA_IOBASE	include/soc/base.h	33;"	d
+VMAU_IOBASE	include/soc/base.h	37;"	d
+WAIT_PWDN_PORTA	include/mach/platform.h	21;"	d
+WAKEUP_HOME	chip-t21/isvp/Turkey/board.h	35;"	d
+WDT_IOBASE	include/soc/base.h	94;"	d
+WDT_TCER	common/reset.c	43;"	d	file:
+WDT_TCNT	common/reset.c	45;"	d	file:
+WDT_TCSR	common/reset.c	42;"	d	file:
+WDT_TDR	common/reset.c	44;"	d	file:
+WD_DATE_SIZE	include/mach/jzssi.h	/^	unsigned int WD_DATE_SIZE;\/\/the data is write the spi status register for QE bit$/;"	m	struct:spi_quad_mode
+WENR_WEN	common/reset.c	48;"	d	file:
+WLAN_PWR_EN	chip-t21/isvp/Turkey/board.h	108;"	d
+WL_MMC_NUM	chip-t21/isvp/Turkey/board.h	106;"	d
+WL_REG_EN	chip-t21/isvp/Turkey/board.h	105;"	d
+WL_WAKE_HOST	chip-t21/isvp/Turkey/board.h	104;"	d
+WRSR_CMD	include/mach/jzssi.h	/^	u8 WRSR_CMD;$/;"	m	struct:spi_quad_mode
+WRSR_DATE	include/mach/jzssi.h	/^	unsigned int WRSR_DATE;\/\/this bit should be the flash QUAD mode enable$/;"	m	struct:spi_quad_mode
+X2D_IOBASE	include/soc/base.h	12;"	d
+_CLK_H_	common/clk/clk.h	2;"	d
+_DDR_H_	include/soc/ddr.h	2;"	d
+_LIBDMMU_	include/mach/libdmmu.h	2;"	d
+_LINUX_TCU_H	include/mach/jztcu.h	2;"	d
+_RTP	include/mach/jzdma.h	/^	_RTP(AEC),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(AEC),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(DES),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(DES),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C0),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C0),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C1),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C1),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C2),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C2),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C3),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C3),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C4),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2C4),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2S0),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(I2S0),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(MSC0),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(MSC0),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(MSC1),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(MSC1),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(MSC2),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(MSC2),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(PCM0),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(PCM0),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(PCM1),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(PCM1),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(SSI0),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(SSI0),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(SSI1),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(SSI1),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART0),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART0),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART1),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART1),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART2),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART2),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART3),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART3),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART4),$/;"	e	enum:jzdma_req_type
+_RTP	include/mach/jzdma.h	/^	_RTP(UART4),$/;"	e	enum:jzdma_type
+_RTP	include/mach/jzdma.h	101;"	d
+_RTP	include/mach/jzdma.h	127;"	d
+_RTP	include/mach/jzdma.h	132;"	d
+_RTP	include/mach/jzdma.h	163;"	d
+__ASM_MACH_INGENIC_CPU_FEATURE_OVERRIDES_H__	include/cpu-feature-overrides.h	12;"	d
+__ASM_MACH_INGENIC_IRQ_H__	include/irq.h	12;"	d
+__ASM_MACH_INGENIC_WAR_H__	include/war.h	9;"	d
+__BOARD_BASE_H__	chip-t21/isvp/common/board_base.h	2;"	d
+__BOARD_H__	chip-t21/isvp/Turkey/board.h	2;"	d
+__CHIP_CACHE_H__	include/soc/cache.h	2;"	d
+__CPM_H__	include/soc/cpm.h	10;"	d
+__INCLUDE_AHBM_	include/soc/ahbm.h	3;"	d
+__INTC_IRQ_H__	include/soc/irq.h	9;"	d
+__JZFB_H__	include/mach/jzfb.h	16;"	d
+__JZSOC_EXTAL_H__	include/soc/extal.h	3;"	d
+__JZSOC_JZ_GPIO_H__	include/soc/gpio.h	8;"	d
+__JZSOC_SOC_DEV_H__	include/soc/base.h	3;"	d
+__JZSSI__	include/mach/jzssi.h	2;"	d
+__JZ_EFUSE_H__	include/mach/jz_efuse.h	2;"	d
+__JZ_MMC_H__	include/mach/jzmmc.h	2;"	d
+__JZ_SSI_V1_2__	include/mach/jzspi.h	2;"	d
+__MACH_JZDMA_H__	include/mach/jzdma.h	16;"	d
+__MACH_JZSND_H__	include/mach/jzsnd.h	6;"	d
+__OST_H__	include/soc/ost.h	8;"	d
+__PLATFORM_H__	include/mach/platform.h	10;"	d
+__SOC_GPEMC_H__	include/soc/gpemc.h	17;"	d
+__TCU_H__	include/soc/tcu.h	8;"	d
+__TXX_FUNCS_H__	include/mach/txx-funcs.h	2;"	d
+__TX_ISP_H__	include/mach/tx_isp.h	2;"	d
+__initdata	chip-t21/isvp/common/board_base.c	/^static struct jz_platform_device platform_devices_array[] __initdata = {$/;"	v	typeref:struct:platform_devices_array	file:
+__initdata	chip-t21/isvp/common/i2c_bus.c	/^struct i2c_board_info jz_i2c0_devs[] __initdata = {$/;"	v	typeref:struct:jz_i2c0_devs
+__initdata	chip-t21/isvp/common/i2c_bus.c	/^struct i2c_board_info jz_i2c1_devs[] __initdata = {$/;"	v	typeref:struct:jz_i2c1_devs
+__initdata	chip-t21/isvp/common/i2c_bus.c	/^struct i2c_board_info jz_i2c2_devs[] __initdata = {$/;"	v	typeref:struct:jz_i2c2_devs
+__jz_cache_init	include/soc/cache.h	/^static inline void __jz_cache_init(void)$/;"	f
+__jz_flush_cache_all	include/soc/cache.h	/^static inline void __jz_flush_cache_all(void)$/;"	f
+__read_cp0	common/timer_sys_ost.c	52;"	d	file:
+__reset_dll	common/pm.c	/^void (*__reset_dll)(void);$/;"	v
+active_level	include/mach/jzsnd.h	/^	int active_level;	\/* -1 , invalidation 0 ,low avlible  1,high valible *\/$/;"	m	struct:snd_board_gpio
+adc_platform_data	chip-t21/isvp/common/misc.c	/^struct jz_adc_platform_data adc_platform_data = {$/;"	v	typeref:struct:jz_adc_platform_data
+add_node	common/libdmmu.c	/^static struct pmd_node *add_node(struct dmmu_handle *h,unsigned int vaddr)$/;"	f	file:
+addr_len	include/mach/jzssi.h	/^	u8 addr_len;$/;"	m	struct:sfc_nor_info
+addrsize	include/mach/jzssi.h	/^	int addrsize;$/;"	m	struct:spi_nor_platform_data
+after_change_udelay_hz	common/clk/clk_cpccr.c	240;"	d	file:
+ahb_change	common/clk/clk_cpccr.c	/^static struct jz_notifier ahb_change;$/;"	v	typeref:struct:jz_notifier	file:
+ahb_change_notify	common/clk/clk_cpccr.c	/^static int ahb_change_notify(struct jz_notifier *notify,void *v)$/;"	f	file:
+ahbm_read	include/soc/ahbm.h	29;"	d
+ahbm_restart	include/soc/ahbm.h	18;"	d
+ahbm_stop	include/soc/ahbm.h	24;"	d
+ak4951_codec_pdata	chip-t21/isvp/common/i2c_bus.c	/^static struct snd_codec_data ak4951_codec_pdata = {$/;"	v	typeref:struct:snd_codec_data	file:
+all_timings_plus	include/soc/gpemc.h	/^	int32_t all_timings_plus;$/;"	m	struct:__anon12
+allow_cs_same	include/mach/jzssi.h	/^	u32	 allow_cs_same;$/;"	m	struct:jz_sfc_info
+allow_cs_same	include/mach/jzssi.h	/^	u32	 allow_cs_same;$/;"	m	struct:jz_spi_info
+apbost_readl	common/timer_tcu.c	48;"	d	file:
+apbost_writel	common/timer_tcu.c	49;"	d	file:
+arch_init_irq	common/irq.c	/^void __init arch_init_irq(void)$/;"	f
+arch_suspend_disable_irqs	common/irq.c	/^void arch_suspend_disable_irqs(void)$/;"	f
+arch_suspend_enable_irqs	common/irq.c	/^void arch_suspend_enable_irqs(void)$/;"	f
+audio_gpio_state_t	include/mach/jzsnd.h	/^} audio_gpio_state_t;$/;"	t	typeref:enum:__anon22
+backlight	include/mach/jzfb.h	/^    unsigned long backlight;$/;"	m	struct:lcdc_gpio_struct
+bank_timing	include/soc/gpemc.h	/^	gpemc_bank_timing_t bank_timing;$/;"	m	struct:__anon16
+bank_type	include/soc/gpemc.h	/^	bank_type_t bank_type;$/;"	m	struct:__anon16
+bank_type_t	include/soc/gpemc.h	/^} bank_type_t;$/;"	t	typeref:enum:__anon5
+bcm_customer_wlan_get_oob_irq	chip-t21/isvp/common/bcm_power_control.c	/^EXPORT_SYMBOL(bcm_customer_wlan_get_oob_irq);$/;"	v
+bcm_customer_wlan_get_oob_irq	chip-t21/isvp/common/bcm_power_control.c	/^int bcm_customer_wlan_get_oob_irq(void)$/;"	f
+bcm_manual_detect	chip-t21/isvp/common/bcm_power_control.c	/^EXPORT_SYMBOL(bcm_manual_detect);$/;"	v
+bcm_manual_detect	chip-t21/isvp/common/bcm_power_control.c	/^int bcm_manual_detect(int on)$/;"	f
+bcm_wlan_init	chip-t21/isvp/common/bcm_power_control.c	/^EXPORT_SYMBOL(bcm_wlan_init);$/;"	v
+bcm_wlan_init	chip-t21/isvp/common/bcm_power_control.c	/^int bcm_wlan_init(void)$/;"	f
+bcm_wlan_power_off	chip-t21/isvp/common/bcm_power_control.c	/^EXPORT_SYMBOL(bcm_wlan_power_off);$/;"	v
+bcm_wlan_power_off	chip-t21/isvp/common/bcm_power_control.c	/^int bcm_wlan_power_off(int flag)$/;"	f
+bcm_wlan_power_on	chip-t21/isvp/common/bcm_power_control.c	/^EXPORT_SYMBOL(bcm_wlan_power_on);$/;"	v
+bcm_wlan_power_on	chip-t21/isvp/common/bcm_power_control.c	/^int bcm_wlan_power_on(int flag)$/;"	f
+be_maxbusy	include/mach/jzssi.h	/^	u32 be_maxbusy;$/;"	m	struct:spi_nor_block_info
+before_change_udelay_hz	common/clk/clk_cpccr.c	223;"	d	file:
+block_info	include/mach/jzssi.h	/^	struct spi_nor_block_info *block_info;$/;"	m	struct:spi_nor_platform_data	typeref:struct:spi_nor_platform_data::spi_nor_block_info
+block_size	include/mach/jzssi.h	/^	int block_size;$/;"	m	struct:jz_spi_support
+blocksize	include/mach/jzssi.h	/^	u32 blocksize;$/;"	m	struct:spi_nor_block_info
+bm8766_cfg	common/jzfblcd/bm8766.c	/^static struct jzfb_tft_config bm8766_cfg = {$/;"	v	typeref:struct:jzfb_tft_config	file:
+bm8766_ops	common/jzfblcd/bm8766.c	/^static struct lcd_callback_ops bm8766_ops = {$/;"	v	typeref:struct:lcd_callback_ops	file:
+bm8766_power_off	common/jzfblcd/bm8766.c	/^static int bm8766_power_off(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+bm8766_power_on	common/jzfblcd/bm8766.c	/^static int bm8766_power_on(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+board_base_init	chip-t21/isvp/common/board_base.c	/^arch_initcall(board_base_init);$/;"	v
+board_base_init	chip-t21/isvp/common/board_base.c	/^static int __init board_base_init(void)$/;"	f	file:
+board_button_data	chip-t21/isvp/common/keyboard_gpio.c	/^static struct gpio_keys_platform_data board_button_data = {$/;"	v	typeref:struct:gpio_keys_platform_data	file:
+board_buttons	chip-t21/isvp/common/keyboard_gpio.c	/^struct gpio_keys_button __attribute__((weak)) board_buttons[] = {$/;"	v	typeref:struct:gpio_keys_button
+board_info	include/mach/jzspi.h	/^	struct spi_board_info	*board_info; 	\/* link to spi devices info *\/$/;"	m	struct:jz_spi_info	typeref:struct:jz_spi_info::spi_board_info
+board_info	include/mach/jzssi.h	/^	struct spi_board_info	*board_info; 	\/* link to spi devices info *\/$/;"	m	struct:jz_spi_info	typeref:struct:jz_spi_info::spi_board_info
+board_info	include/mach/jzssi.h	/^	void  *board_info;$/;"	m	struct:jz_sfc_info
+board_info_size	include/mach/jzssi.h	/^	u32  board_info_size;$/;"	m	struct:jz_sfc_info
+board_size	include/mach/jzspi.h	/^	unsigned long	board_size;		\/* spi_master.num_chipselect *\/$/;"	m	struct:jz_spi_info
+board_size	include/mach/jzssi.h	/^	unsigned long	board_size;		\/* spi_master.num_chipselect *\/$/;"	m	struct:jz_sfc_info
+board_size	include/mach/jzssi.h	/^	unsigned long	board_size;		\/* spi_master.num_chipselect *\/$/;"	m	struct:jz_spi_info
+bpp	include/mach/jzfb.h	/^	unsigned int bpp;$/;"	m	struct:jzfb_platform_data
+bt_route	include/mach/jzsnd.h	/^	struct snd_board_route bt_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+burst_length_t	include/soc/gpemc.h	/^} burst_length_t;$/;"	t	typeref:enum:__anon7
+bus_num	include/mach/jzspi.h	/^	unsigned short	bus_num;			\/* spi_master.bus_num *\/$/;"	m	struct:jz_spi_info
+bus_num	include/mach/jzssi.h	/^	u16	bus_num;			\/* spi_master.bus_num *\/$/;"	m	struct:jz_sfc_info
+bus_num	include/mach/jzssi.h	/^	u16	bus_num;			\/* spi_master.bus_num *\/$/;"	m	struct:jz_spi_info
+bus_width	include/mach/jzfb.h	/^	unsigned int bus_width;$/;"	m	struct:jzfb_smart_config
+bus_width_t	include/soc/gpemc.h	/^} bus_width_t;$/;"	t	typeref:enum:__anon6
+busy_wait_timing	include/soc/gpemc.h	/^	} busy_wait_timing;$/;"	m	struct:__anon12	typeref:struct:__anon12::__anon13
+byd9158B_cfg	common/jzfblcd/byd9158b.c	/^static struct jzfb_smart_config byd9158B_cfg = {$/;"	v	typeref:struct:jzfb_smart_config	file:
+byd9158B_data_table	common/jzfblcd/byd9158b.c	/^static struct smart_lcd_data_table byd9158B_data_table[] = {$/;"	v	typeref:struct:smart_lcd_data_table	file:
+byd9158B_ops	common/jzfblcd/byd9158b.c	/^static struct lcd_callback_ops byd9158B_ops = {$/;"	v	typeref:struct:lcd_callback_ops	file:
+byd9158B_power_initialize	common/jzfblcd/byd9158b.c	/^static int byd9158B_power_initialize(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+byd9158B_power_off	common/jzfblcd/byd9158b.c	/^static int byd9158B_power_off(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+byd9158B_power_on	common/jzfblcd/byd9158b.c	/^static int byd9158B_power_on(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+byd9158B_power_reset	common/jzfblcd/byd9158b.c	/^static int byd9158B_power_reset(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+byd9158B_set_gpio_func	common/jzfblcd/byd9158b.c	/^static int byd9158B_set_gpio_func(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+bypass_l_volume_base	include/mach/jzsnd.h	/^	int bypass_l_volume_base;					\/*call uplink or other use*\/$/;"	m	struct:snd_codec_data
+bypass_l_volume_base	include/mach/jzsnd.h	/^	int bypass_l_volume_base;			\/\/val: +6 ~ +1, 32(0dB), -1 ~ -25 (dB);$/;"	m	struct:snd_board_route
+bypass_r_volume_base	include/mach/jzsnd.h	/^	int bypass_r_volume_base;					\/*call downlink or other use*\/$/;"	m	struct:snd_codec_data
+bypass_r_volume_base	include/mach/jzsnd.h	/^	int bypass_r_volume_base;			\/\/val: +6 ~ +1, 32(0dB), -1 ~ -25 (dB);$/;"	m	struct:snd_board_route
+cache	common/clk/clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	file:
+cache_prefetch	include/soc/cache.h	4;"	d
+cal_pll_setting	common/clk/clk_pll.c	/^struct pll_rate_setting* cal_pll_setting(unsigned long rate)$/;"	f
+call_handset_route	include/mach/jzsnd.h	/^	struct snd_board_route call_handset_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+call_headset_route	include/mach/jzsnd.h	/^	struct snd_board_route call_headset_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+call_speaker_route	include/mach/jzsnd.h	/^	struct snd_board_route call_speaker_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+capacity	include/mach/jzmmc.h	/^	unsigned int			capacity;$/;"	m	struct:jzmmc_platform_data
+card_gpio	include/mach/jzmmc.h	/^struct card_gpio {$/;"	s
+cclk_set_rate_nopll	common/clk/clk_cpccr.c	/^static int cclk_set_rate_nopll(struct clk *clk,unsigned long rate,struct clk *parentclk,unsigned int cpccr) {$/;"	f	file:
+cd	include/mach/jzmmc.h	/^	struct jzmmc_pin 		cd;$/;"	m	struct:card_gpio	typeref:struct:card_gpio::jzmmc_pin
+ce	common/clk/clk_cpccr.c	/^	short off,sel,ce;$/;"	m	struct:cpccr_clk	file:
+ce_busy_stop	common/clk/clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	file:
+ce_maxbusy	include/mach/jzssi.h	/^	u32 ce_maxbusy;$/;"	m	struct:spi_nor_platform_data
+cgu_clk	common/clk/clk_cgu.c	/^struct cgu_clk {$/;"	s	file:
+cgu_clks	common/clk/clk_cgu.c	/^static struct cgu_clk cgu_clks[] = {$/;"	v	typeref:struct:cgu_clk	file:
+cgu_enable	common/clk/clk_cgu.c	/^static int cgu_enable(struct clk *clk,int on)$/;"	f	file:
+cgu_get_parent	common/clk/clk_cgu.c	/^static struct clk * cgu_get_parent(struct clk *clk)$/;"	f	file:
+cgu_get_rate	common/clk/clk_cgu.c	/^static unsigned long cgu_get_rate(struct clk *clk)$/;"	f	file:
+cgu_is_enabled	common/clk/clk_cgu.c	/^static int cgu_is_enabled(struct clk *clk) {$/;"	f	file:
+cgu_set_parent	common/clk/clk_cgu.c	/^static int cgu_set_parent(struct clk *clk, struct clk *parent)$/;"	f	file:
+cgu_set_parent	common/clk/clk_fpga.c	/^static int cgu_set_parent(struct clk *clk, struct clk *parent){$/;"	f	file:
+cgu_set_rate	common/clk/clk_cgu.c	/^static int cgu_set_rate(struct clk *clk, unsigned long rate)$/;"	f	file:
+cgu_set_rate	common/clk/clk_fpga.c	/^static int cgu_set_rate(struct clk *clk, unsigned long rate){$/;"	f	file:
+chan	include/mach/jzdma.h	/^	struct dma_chan		chan;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::dma_chan
+chan2dev	include/mach/jzdma.h	/^static inline struct device *chan2dev(struct dma_chan *chan)$/;"	f
+channel	common/timer_sys_ost.c	/^	unsigned int channel;$/;"	m	struct:tmr_src	file:
+channel	common/timer_tcu.c	/^	unsigned int channel;$/;"	m	struct:tmr_src	file:
+channel	include/mach/jzdma.h	/^	struct jzdma_channel	channel[NR_DMA_CHANNELS];$/;"	m	struct:jzdma_master	typeref:struct:jzdma_master::jzdma_channel
+channel_status	include/mach/jzdma.h	/^enum channel_status {$/;"	g
+check_map	common/libdmmu.c	/^static struct map_node *check_map(struct dmmu_handle *h,unsigned long vaddr,unsigned long len)$/;"	f	file:
+check_uart	common/serial.c	/^static void check_uart(char c)$/;"	f	file:
+child	common/clk/clk.h	/^	struct clk *child;$/;"	m	struct:clk	typeref:struct:clk::clk
+child	common/proc.c	/^	struct task_struct *child;$/;"	m	struct:watch_struct	typeref:struct:watch_struct::task_struct	file:
+chipselect	include/mach/jzspi.h	/^	unsigned int chipselect[2];$/;"	m	struct:jz_spi_info
+chipselect	include/mach/jzssi.h	/^	unsigned int chipselect[2];$/;"	m	struct:jz_spi_info
+chipsize	include/mach/jzssi.h	/^	u32 chipsize;$/;"	m	struct:spi_nor_platform_data
+chnl	include/mach/jzspi.h	/^	unsigned char chnl;				\/* the chanel of SSI controller *\/$/;"	m	struct:jz_spi_info
+chnl	include/mach/jzssi.h	/^	u8	chnl;				\/* the chanel of SSI controller *\/$/;"	m	struct:jz_sfc_info
+chnl	include/mach/jzssi.h	/^	u8	chnl;				\/* the chanel of SSI controller *\/$/;"	m	struct:jz_spi_info
+clk	common/clk/clk.h	/^struct clk {$/;"	s
+clk	include/mach/jzdma.h	/^	struct clk		*clk;$/;"	m	struct:jzdma_master	typeref:struct:jzdma_master::clk
+clk32k_control	include/mach/jzmmc.h	/^static void inline clk32k_control(int on_off)$/;"	f
+clk_T_real_ps	include/soc/gpemc.h	/^	u64 clk_T_real_ps;$/;"	m	struct:__anon9
+clk_cgu_ops	common/clk/clk_cgu.c	/^static struct clk_ops clk_cgu_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_cgu_ops	common/clk/clk_fpga.c	/^static struct clk_ops clk_cgu_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_cpccr_ops	common/clk/clk_cpccr.c	/^static struct clk_ops clk_cpccr_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_ddr_ops	common/clk/clk_cgu.c	/^static struct clk_ops clk_ddr_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_disable	common/clk/clk.c	/^EXPORT_SYMBOL(clk_disable);$/;"	v
+clk_disable	common/clk/clk.c	/^void clk_disable(struct clk *clk)$/;"	f
+clk_disable	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_disable);$/;"	v
+clk_disable	common/clk/clk_fpga.c	/^void clk_disable(struct clk *clk)$/;"	f
+clk_enable	common/clk/clk.c	/^EXPORT_SYMBOL(clk_enable);$/;"	v
+clk_enable	common/clk/clk.c	/^int clk_enable(struct clk *clk)$/;"	f
+clk_enable	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_enable);$/;"	v
+clk_enable	common/clk/clk_fpga.c	/^int clk_enable(struct clk *clk)$/;"	f
+clk_gate	common/timer_sys_ost.c	/^	struct clk *clk_gate;$/;"	m	struct:jz_timerevent	typeref:struct:jz_timerevent::clk	file:
+clk_gate	common/timer_sys_ost.c	/^	struct clk *clk_gate;$/;"	m	struct:tmr_src	typeref:struct:tmr_src::clk	file:
+clk_gate	common/timer_tcu.c	/^	struct clk *clk_gate;$/;"	m	struct:jz_timerevent	typeref:struct:jz_timerevent::clk	file:
+clk_gate	common/timer_tcu.c	/^	struct clk *clk_gate;$/;"	m	struct:tmr_src	typeref:struct:tmr_src::clk	file:
+clk_gate_ctrl	common/clk/clk_fpga.c	/^static int clk_gate_ctrl(struct clk *clk, int enable)$/;"	f	file:
+clk_gate_ops	common/clk/clk_gate.c	/^static struct clk_ops clk_gate_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_get	common/clk/clk.c	/^EXPORT_SYMBOL(clk_get);$/;"	v
+clk_get	common/clk/clk.c	/^struct clk *clk_get(struct device *dev, const char *id)$/;"	f
+clk_get	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_get);$/;"	v
+clk_get	common/clk/clk_fpga.c	/^struct clk *clk_get(struct device *dev, const char *id)$/;"	f
+clk_get_parent	common/clk/clk.c	/^EXPORT_SYMBOL(clk_get_parent);$/;"	v
+clk_get_parent	common/clk/clk.c	/^struct clk *clk_get_parent(struct clk *clk)$/;"	f
+clk_get_parent	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_get_parent);$/;"	v
+clk_get_parent	common/clk/clk_fpga.c	/^struct clk *clk_get_parent(struct clk *clk)$/;"	f
+clk_get_rate	common/clk/clk.c	/^EXPORT_SYMBOL(clk_get_rate);$/;"	v
+clk_get_rate	common/clk/clk.c	/^unsigned long clk_get_rate(struct clk *clk)$/;"	f
+clk_get_rate	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_get_rate);$/;"	v
+clk_get_rate	common/clk/clk_fpga.c	/^unsigned long clk_get_rate(struct clk *clk)$/;"	f
+clk_is_enabled	common/clk/clk.c	/^EXPORT_SYMBOL(clk_is_enabled);$/;"	v
+clk_is_enabled	common/clk/clk.c	/^int clk_is_enabled(struct clk *clk)$/;"	f
+clk_is_enabled	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_is_enabled);$/;"	v
+clk_is_enabled	common/clk/clk_fpga.c	/^int clk_is_enabled(struct clk *clk)$/;"	f
+clk_num	include/mach/tx_isp.h	/^	unsigned int clk_num;$/;"	m	struct:tx_isp_subdev_platform_data
+clk_ops	common/clk/clk.h	/^struct clk_ops {$/;"	s
+clk_pll_ops	common/clk/clk_pll.c	/^static struct clk_ops clk_pll_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_pm_ops	common/clk/clk.c	/^struct syscore_ops clk_pm_ops = {$/;"	v	typeref:struct:syscore_ops
+clk_put	common/clk/clk.c	/^EXPORT_SYMBOL(clk_put);$/;"	v
+clk_put	common/clk/clk.c	/^void clk_put(struct clk *clk)$/;"	f
+clk_put	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_put);$/;"	v
+clk_put	common/clk/clk_fpga.c	/^void clk_put(struct clk *clk)$/;"	f
+clk_pwc_ops	common/clk/cpm_pwc.c	/^static struct clk_ops clk_pwc_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_resume	common/clk/clk.c	/^static void clk_resume(void)$/;"	f	file:
+clk_selectors	common/clk/clk_cgu.c	/^struct clk_selectors {$/;"	s	file:
+clk_set_parent	common/clk/clk.c	/^EXPORT_SYMBOL(clk_set_parent);$/;"	v
+clk_set_parent	common/clk/clk.c	/^int clk_set_parent(struct clk *clk, struct clk *parent)$/;"	f
+clk_set_parent	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_set_parent);$/;"	v
+clk_set_parent	common/clk/clk_fpga.c	/^int clk_set_parent(struct clk *clk, struct clk *parent)$/;"	f
+clk_set_rate	common/clk/clk.c	/^EXPORT_SYMBOL(clk_set_rate);$/;"	v
+clk_set_rate	common/clk/clk.c	/^int clk_set_rate(struct clk *clk, unsigned long rate)$/;"	f
+clk_set_rate	common/clk/clk_fpga.c	/^EXPORT_SYMBOL(clk_set_rate);$/;"	v
+clk_set_rate	common/clk/clk_fpga.c	/^int clk_set_rate(struct clk *clk, unsigned long rate)$/;"	f
+clk_sleep_pm_callback	common/clk/clk.c	/^static int clk_sleep_pm_callback(struct notifier_block *nfb,unsigned long action,void *ignored)$/;"	f	file:
+clk_sleep_pm_notifier	common/clk/clk.c	/^static struct notifier_block clk_sleep_pm_notifier = {$/;"	v	typeref:struct:notifier_block	file:
+clk_srcs	common/clk/clk_fpga.c	/^static struct clk clk_srcs[] = {$/;"	v	typeref:struct:clk	file:
+clk_srcs	common/clk/clk_sources.c	/^static struct clk clk_srcs[] = {$/;"	v	typeref:struct:clk	file:
+clk_suspend	common/clk/clk.c	/^static int clk_suspend(void)$/;"	f	file:
+clkevt	common/timer_sys_ost.c	/^	struct clock_event_device clkevt;$/;"	m	struct:jz_timerevent	typeref:struct:jz_timerevent::clock_event_device	file:
+clkevt	common/timer_tcu.c	/^	struct clock_event_device clkevt;$/;"	m	struct:jz_timerevent	typeref:struct:jz_timerevent::clock_event_device	file:
+clks	include/mach/tx_isp.h	/^	struct tx_isp_subdev_clk_info *clks;$/;"	m	struct:tx_isp_subdev_platform_data	typeref:struct:tx_isp_subdev_platform_data::tx_isp_subdev_clk_info
+clock	common/tcu.c	/^	enum tcu_clk_mode clock;$/;"	m	struct:tcu_device	typeref:enum:tcu_device::tcu_clk_mode	file:
+clock	include/mach/jztcu.h	/^	enum tcu_clk_mode clock;$/;"	m	struct:tcu_device	typeref:enum:tcu_device::tcu_clk_mode
+clocks_open	common/clk/clk.c	/^static int clocks_open(struct inode *inode, struct file *file)$/;"	f	file:
+clocks_proc_fops	common/clk/clk.c	/^static const struct file_operations clocks_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+clocks_show	common/clk/clk.c	/^static int clocks_show(struct seq_file *m, void *v)$/;"	f	file:
+cmd	include/mach/jzssi.h	/^	u8 cmd;$/;"	m	struct:sfc_nor_info
+cmd_blockerase	include/mach/jzssi.h	/^	u8 cmd_blockerase;$/;"	m	struct:spi_nor_block_info
+cmd_read	include/mach/jzssi.h	/^	u8 cmd_read;$/;"	m	struct:spi_quad_mode
+cnt_addr_pins	include/soc/gpemc.h	/^	unsigned int cnt_addr_pins;$/;"	m	struct:__anon16
+codec_data	chip-t21/isvp/common/sound.c	/^struct snd_codec_data __attribute__((weak)) codec_data = {$/;"	v	typeref:struct:snd_codec_data
+codec_dmic_clk	include/mach/jzsnd.h	/^	int codec_dmic_clk;$/;"	m	struct:snd_codec_data
+codec_sys_clk	include/mach/jzsnd.h	/^	int codec_sys_clk;$/;"	m	struct:snd_codec_data
+coe	common/clk/clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	file:
+color_even	include/mach/jzfb.h	/^	enum tft_lcd_color_even color_even;$/;"	m	struct:jzfb_tft_config	typeref:enum:jzfb_tft_config::tft_lcd_color_even
+color_odd	include/mach/jzfb.h	/^	enum tft_lcd_color_odd color_odd;$/;"	m	struct:jzfb_tft_config	typeref:enum:jzfb_tft_config::tft_lcd_color_odd
+column_cmdaddr_bits	include/mach/jzssi.h	/^	unsigned short column_cmdaddr_bits;\/* read from cache ,the bits of cmd + addr *\/$/;"	m	struct:jz_spi_support
+common_nand_timing_t	include/soc/gpemc.h	/^} common_nand_timing_t;$/;"	t	typeref:struct:__anon12
+config	include/mach/jzdma.h	/^	struct dma_slave_config	*config;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::dma_slave_config
+count	common/clk/clk.h	/^	int count;$/;"	m	struct:clk
+count	common/libdmmu.c	/^	unsigned int count;$/;"	m	struct:pmd_node	file:
+count	common/reset.c	/^	unsigned count;$/;"	m	struct:wdt_reset	file:
+count_value	common/tcu.c	/^	int count_value;$/;"	m	struct:tcu_device	file:
+count_value	include/mach/jztcu.h	/^	int count_value;$/;"	m	struct:tcu_device
+cpccr_clk	common/clk/clk_cpccr.c	/^struct cpccr_clk {$/;"	s	file:
+cpccr_clks	common/clk/clk_cpccr.c	/^static struct cpccr_clk cpccr_clks[] = {$/;"	v	typeref:struct:cpccr_clk	file:
+cpccr_get_rate	common/clk/clk_cpccr.c	/^static unsigned long cpccr_get_rate(struct clk *clk)$/;"	f	file:
+cpccr_selector	common/clk/clk_cpccr.c	/^static unsigned int cpccr_selector[4] = {0,CLK_ID_SCLKA,CLK_ID_MPLL,0};$/;"	v	file:
+cpccr_set_rate	common/clk/clk_cpccr.c	/^static int cpccr_set_rate(struct clk *clk,unsigned long rate) {$/;"	f	file:
+cpm_clear_bit	include/soc/cpm.h	104;"	d
+cpm_gate_enable	common/clk/clk_gate.c	/^static int cpm_gate_enable(struct clk *clk,int on){$/;"	f	file:
+cpm_inl	include/soc/cpm.h	102;"	d
+cpm_outl	include/soc/cpm.h	103;"	d
+cpm_pwc	common/clk/cpm_pwc.c	/^struct cpm_pwc$/;"	s	file:
+cpm_pwc_ctrl	common/clk/cpm_pwc.c	/^struct cpm_pwc_ctrl {$/;"	s	file:
+cpm_pwc_ctrl	common/clk/cpm_pwc.c	/^}cpm_pwc_ctrl;$/;"	v	typeref:struct:cpm_pwc_ctrl
+cpm_pwc_dev_init	common/clk/cpm_pwc.c	/^module_init(cpm_pwc_dev_init);$/;"	v
+cpm_pwc_dev_init	common/clk/cpm_pwc.c	/^static int __init cpm_pwc_dev_init(void)$/;"	f	file:
+cpm_pwc_enable	common/clk/cpm_pwc.c	/^static int cpm_pwc_enable(struct clk *clk,int on) {$/;"	f	file:
+cpm_pwc_enable_ctrl	common/clk/cpm_pwc.c	/^int cpm_pwc_enable_ctrl(struct clk *clk,int on) {$/;"	f
+cpm_pwc_init	common/clk/cpm_pwc.c	/^void __init cpm_pwc_init(void)$/;"	f
+cpm_pwc_is_enabled	common/clk/cpm_pwc.c	/^int cpm_pwc_is_enabled(struct cpm_pwc * pwc) {$/;"	f
+cpm_pwc_poweroff	common/clk/cpm_pwc.c	/^static void cpm_pwc_poweroff(unsigned long data)$/;"	f	file:
+cpm_pwc_poweron	common/clk/cpm_pwc.c	/^static void cpm_pwc_poweron(unsigned long data)$/;"	f	file:
+cpm_pwc_resume	common/clk/cpm_pwc.c	/^void cpm_pwc_resume(void)$/;"	f
+cpm_pwc_srcs	common/clk/cpm_pwc.c	/^static struct cpm_pwc cpm_pwc_srcs[] = {$/;"	v	typeref:struct:cpm_pwc	file:
+cpm_pwc_suspend	common/clk/cpm_pwc.c	/^void cpm_pwc_suspend(void)$/;"	f
+cpm_reset	common/setup.c	/^void __init cpm_reset(void)$/;"	f
+cpm_set_bit	include/soc/cpm.h	105;"	d
+cpm_test_bit	include/soc/cpm.h	106;"	d
+cpu_dcache_line_size	include/cpu-feature-overrides.h	18;"	d
+cpu_dcache_size	include/cpu-feature-overrides.h	16;"	d
+cpu_dcache_ways	include/cpu-feature-overrides.h	17;"	d
+cpu_has_32fpr	include/cpu-feature-overrides.h	28;"	d
+cpu_has_3k_cache	include/cpu-feature-overrides.h	24;"	d
+cpu_has_4k_cache	include/cpu-feature-overrides.h	25;"	d
+cpu_has_4kex	include/cpu-feature-overrides.h	23;"	d
+cpu_has_64bit_zero_reg	include/cpu-feature-overrides.h	57;"	d
+cpu_has_64bits	include/cpu-feature-overrides.h	56;"	d
+cpu_has_cache_cdex_p	include/cpu-feature-overrides.h	33;"	d
+cpu_has_cache_cdex_s	include/cpu-feature-overrides.h	34;"	d
+cpu_has_counter	include/cpu-feature-overrides.h	29;"	d
+cpu_has_dc_aliases	include/cpu-feature-overrides.h	44;"	d
+cpu_has_divec	include/cpu-feature-overrides.h	31;"	d
+cpu_has_dsp	include/cpu-feature-overrides.h	52;"	d
+cpu_has_ejtag	include/cpu-feature-overrides.h	37;"	d
+cpu_has_fpu	include/cpu-feature-overrides.h	27;"	d
+cpu_has_ic_fills_f_dc	include/cpu-feature-overrides.h	45;"	d
+cpu_has_inclusive_pcaches	include/cpu-feature-overrides.h	60;"	d
+cpu_has_llsc	include/cpu-feature-overrides.h	38;"	d
+cpu_has_mcheck	include/cpu-feature-overrides.h	36;"	d
+cpu_has_mdmx	include/cpu-feature-overrides.h	40;"	d
+cpu_has_mips16	include/cpu-feature-overrides.h	39;"	d
+cpu_has_mips32r1	include/cpu-feature-overrides.h	48;"	d
+cpu_has_mips32r2	include/cpu-feature-overrides.h	49;"	d
+cpu_has_mips3d	include/cpu-feature-overrides.h	41;"	d
+cpu_has_mips64r1	include/cpu-feature-overrides.h	50;"	d
+cpu_has_mips64r2	include/cpu-feature-overrides.h	51;"	d
+cpu_has_mipsmt	include/cpu-feature-overrides.h	53;"	d
+cpu_has_mxu	include/cpu-feature-overrides.h	62;"	d
+cpu_has_nofpuex	include/cpu-feature-overrides.h	55;"	d
+cpu_has_pindexed_dcache	include/cpu-feature-overrides.h	46;"	d
+cpu_has_prefetch	include/cpu-feature-overrides.h	35;"	d
+cpu_has_smartmips	include/cpu-feature-overrides.h	42;"	d
+cpu_has_tlb	include/cpu-feature-overrides.h	22;"	d
+cpu_has_tx39_cache	include/cpu-feature-overrides.h	26;"	d
+cpu_has_userlocal	include/cpu-feature-overrides.h	54;"	d
+cpu_has_vce	include/cpu-feature-overrides.h	32;"	d
+cpu_has_veic	include/cpu-feature-overrides.h	59;"	d
+cpu_has_vint	include/cpu-feature-overrides.h	58;"	d
+cpu_has_vtag_icache	include/cpu-feature-overrides.h	43;"	d
+cpu_has_watch	include/cpu-feature-overrides.h	30;"	d
+cpu_icache_line_size	include/cpu-feature-overrides.h	21;"	d
+cpu_icache_size	include/cpu-feature-overrides.h	19;"	d
+cpu_icache_snoops_remote_store	include/cpu-feature-overrides.h	47;"	d
+cpu_icache_ways	include/cpu-feature-overrides.h	20;"	d
+cpu_irq_affinity	common/irq.c	/^static unsigned int cpu_irq_affinity[NR_CPUS];$/;"	v	file:
+cpu_irq_unmask	common/irq.c	/^static unsigned int cpu_irq_unmask[NR_CPUS];$/;"	v	file:
+cpu_mask_affinity	common/irq.c	/^static unsigned int cpu_mask_affinity[NR_CPUS];$/;"	v	file:
+cpufreq	common/clk/clk.h	/^	unsigned int  cpufreq;$/;"	m	struct:freq_udelay_jiffy
+cpufreq_setting_cmp	common/clk/clk_cpccr.c	/^static int cpufreq_setting_cmp(const void *key,const void *elt) {$/;"	f	file:
+create_handle	common/libdmmu.c	/^static struct dmmu_handle *create_handle(void)$/;"	f	file:
+cs	common/timer_sys_ost.c	/^	struct clocksource cs;$/;"	m	struct:tmr_src	typeref:struct:tmr_src::clocksource	file:
+cs	common/timer_tcu.c	/^	struct clocksource cs;$/;"	m	struct:tmr_src	typeref:struct:tmr_src::clocksource	file:
+cs	include/mach/jzfb.h	/^    unsigned long cs;$/;"	m	struct:lcdc_gpio_struct
+cs	include/soc/gpemc.h	/^	int cs;$/;"	m	struct:__anon16
+cs_dp	include/mach/jzfb.h	/^	unsigned int cs_dp:1;$/;"	m	struct:jzfb_smart_config
+cs_en	include/mach/jzfb.h	/^	unsigned int cs_en:1;$/;"	m	struct:jzfb_smart_config
+ctrl_bit	common/clk/cpm_pwc.c	/^	unsigned int ctrl_bit;$/;"	m	struct:cpm_pwc	file:
+curmode	common/timer_sys_ost.c	/^	int curmode;$/;"	m	struct:jz_timerevent	file:
+curmode	common/timer_tcu.c	/^	int curmode;$/;"	m	struct:jz_timerevent	file:
+cwidth	include/mach/jzfb.h	/^	enum smart_lcd_cwidth cwidth;$/;"	m	struct:jzfb_smart_config	typeref:enum:jzfb_smart_config::smart_lcd_cwidth
+data_table	include/mach/jzfb.h	/^	struct smart_lcd_data_table *data_table;$/;"	m	struct:jzfb_smart_config	typeref:struct:jzfb_smart_config::smart_lcd_data_table
+daten	include/mach/jzssi.h	/^	u8 daten;$/;"	m	struct:sfc_nor_info
+dc_md	include/mach/jzfb.h	/^	unsigned int dc_md:1;$/;"	m	struct:jzfb_smart_config
+dcm	include/mach/jzdma.h	/^	unsigned long dcm;$/;"	m	struct:dma_desc
+dcs_saved	include/mach/jzdma.h	/^	unsigned long 		dcs_saved;$/;"	m	struct:jzdma_channel
+ddr_mon1_proc_fops	common/ddr.c	/^static const struct file_operations ddr_mon1_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+ddr_mon1_proc_open	common/ddr.c	/^static int ddr_mon1_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+ddr_mon1_proc_read	common/ddr.c	/^static int ddr_mon1_proc_read(struct seq_file *m, void *v)$/;"	f	file:
+ddr_mon1_proc_write	common/ddr.c	/^static int ddr_mon1_proc_write(struct file *file, const char __user *buffer,$/;"	f	file:
+ddr_mon2_proc_fops	common/ddr.c	/^static const struct file_operations ddr_mon2_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+ddr_mon2_proc_open	common/ddr.c	/^static int ddr_mon2_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+ddr_mon2_proc_read	common/ddr.c	/^static int ddr_mon2_proc_read(struct seq_file *m, void *v)$/;"	f	file:
+ddr_mon2_proc_write	common/ddr.c	/^static int ddr_mon2_proc_write(struct file *file, const char __user *buffer,$/;"	f	file:
+ddr_mon3_proc_fops	common/ddr.c	/^static const struct file_operations ddr_mon3_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+ddr_mon3_proc_open	common/ddr.c	/^static int ddr_mon3_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+ddr_mon3_proc_read	common/ddr.c	/^static int ddr_mon3_proc_read(struct seq_file *m, void *v)$/;"	f	file:
+ddr_mon3_proc_write	common/ddr.c	/^static int ddr_mon3_proc_write(struct file *file, const char __user *buffer,$/;"	f	file:
+ddr_readl	include/soc/ddr.h	96;"	d
+ddr_register_proc_fops	common/ddr.c	/^static const struct file_operations ddr_register_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+ddr_register_proc_open	common/ddr.c	/^static int ddr_register_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+ddr_set_rate	common/clk/clk_cgu.c	/^static int ddr_set_rate(struct clk *clk, unsigned long rate)$/;"	f	file:
+ddr_writel	include/soc/ddr.h	95;"	d
+de_dl	include/mach/jzfb.h	/^	unsigned int de_dl:1;$/;"	m	struct:jzfb_tft_config
+delay_ms	common/clk/cpm_pwc.c	/^	unsigned int delay_ms;$/;"	m	struct:cpm_pwc	file:
+delaytime_usec	include/soc/gpio.h	/^	unsigned int		delaytime_usec;$/;"	m	struct:jz_gpio_phy_reset
+desc	include/mach/jzdma.h	/^	struct dma_desc		*desc;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::dma_desc
+desc_max	include/mach/jzdma.h	/^	unsigned short		desc_max;$/;"	m	struct:jzdma_channel
+desc_nr	include/mach/jzdma.h	/^	unsigned short		desc_nr;$/;"	m	struct:jzdma_channel
+desc_phys	include/mach/jzdma.h	/^	dma_addr_t 		desc_phys;$/;"	m	struct:jzdma_channel
+dev	common/libdmmu.c	/^	struct device *dev;$/;"	m	struct:map_node	typeref:struct:map_node::device	file:
+dev	include/mach/jzdma.h	/^	struct device		*dev;$/;"	m	struct:jzdma_master	typeref:struct:jzdma_master::device
+dev	include/mach/jzsnd.h	/^	struct device *dev;$/;"	m	struct:snd_dev_data	typeref:struct:snd_dev_data::device
+dev	include/soc/gpemc.h	/^	struct device* dev;$/;"	m	struct:__anon16	typeref:struct:__anon16::device
+dev_ioctl	include/mach/jzsnd.h	/^	long (*dev_ioctl) (unsigned int cmd, unsigned long arg);$/;"	m	struct:snd_dev_data
+dev_ioctl_2	include/mach/jzsnd.h	/^	long (*dev_ioctl_2)(struct snd_dev_data *dev_data, unsigned int cmd, unsigned long arg);$/;"	m	struct:snd_dev_data
+dither	include/mach/jzfb.h	/^	} dither;$/;"	m	struct:jzfb_platform_data	typeref:struct:jzfb_platform_data::__anon21
+dither_blue	include/mach/jzfb.h	/^		unsigned dither_blue;$/;"	m	struct:jzfb_platform_data::__anon21
+dither_enable	include/mach/jzfb.h	/^	unsigned dither_enable:1;$/;"	m	struct:jzfb_platform_data
+dither_green	include/mach/jzfb.h	/^		unsigned dither_green;$/;"	m	struct:jzfb_platform_data::__anon21
+dither_red	include/mach/jzfb.h	/^		unsigned dither_red;$/;"	m	struct:jzfb_platform_data::__anon21
+div	common/clk/clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	file:
+divi_ratio	common/tcu.c	/^	unsigned int divi_ratio;$/;"	m	struct:tcu_device	file:
+divi_ratio	include/mach/jztcu.h	/^	unsigned int divi_ratio;  \/*  0\/1\/2\/3\/4\/5\/something else------>1\/4\/16\/64\/256\/1024\/mask  *\/$/;"	m	struct:tcu_device
+dma_desc	include/mach/jzdma.h	/^struct dma_desc {$/;"	s
+dma_device	include/mach/jzdma.h	/^	struct dma_device	dma_device;$/;"	m	struct:jzdma_master	typeref:struct:jzdma_master::dma_device
+dma_mode	include/mach/jzssi.h	/^	u8 dma_mode;$/;"	m	struct:sfc_nor_info
+dma_transfer_begin	include/mach/jzfb.h	/^	int (*dma_transfer_begin)(void*);$/;"	m	struct:lcd_callback_ops
+dma_transfer_end	include/mach/jzfb.h	/^	int (*dma_transfer_end)(void*);$/;"	m	struct:lcd_callback_ops
+dmmu_cache_wback	common/libdmmu.c	/^static void dmmu_cache_wback(struct dmmu_handle *h)$/;"	f	file:
+dmmu_dump_handle	common/libdmmu.c	/^static void dmmu_dump_handle(struct seq_file *m, void *v, struct dmmu_handle *h)$/;"	f	file:
+dmmu_dump_vaddr	common/libdmmu.c	/^void dmmu_dump_vaddr(unsigned long vaddr)$/;"	f
+dmmu_free_all	common/libdmmu.c	/^int dmmu_free_all(struct device *dev)$/;"	f
+dmmu_handle	common/libdmmu.c	/^struct dmmu_handle {$/;"	s	file:
+dmmu_make_present	common/libdmmu.c	/^static int dmmu_make_present(unsigned long addr,unsigned long end)$/;"	f	file:
+dmmu_map	common/libdmmu.c	/^unsigned long dmmu_map(struct device *dev,unsigned long vaddr,unsigned long len)$/;"	f
+dmmu_unmap	common/libdmmu.c	/^int dmmu_unmap(struct device *dev,unsigned long vaddr, int len)$/;"	f
+dmmu_unmap_all	common/libdmmu.c	/^int dmmu_unmap_all(struct device *dev)$/;"	f
+dmmu_v2pfn	common/libdmmu.c	/^static unsigned long dmmu_v2pfn(unsigned long vaddr)$/;"	f	file:
+dorado_battery_info	chip-t21/isvp/common/misc.c	/^static struct jz_battery_info  dorado_battery_info = {$/;"	v	typeref:struct:jz_battery_info	file:
+dorado_pca953x_pdata	chip-t21/isvp/common/i2c_bus.c	/^static struct pca953x_platform_data dorado_pca953x_pdata = {$/;"	v	typeref:struct:pca953x_platform_data	file:
+drt	include/mach/jzdma.h	/^	unsigned long drt;$/;"	m	struct:dma_desc
+dsa	include/mach/jzdma.h	/^	dma_addr_t dsa;$/;"	m	struct:dma_desc
+dta	include/mach/jzdma.h	/^	dma_addr_t dta;$/;"	m	struct:dma_desc
+dtc	include/mach/jzdma.h	/^	unsigned long dtc;$/;"	m	struct:dma_desc
+dummy_byte	include/mach/jzssi.h	/^	u8 dummy_byte;$/;"	m	struct:sfc_nor_info
+dummy_byte	include/mach/jzssi.h	/^	u8 dummy_byte;$/;"	m	struct:spi_quad_mode
+dump_out_ddr	common/ddr.c	/^static int dump_out_ddr(struct seq_file *m, void *v)$/;"	f	file:
+dump_tcu_reg	common/tcu.c	/^static inline void dump_tcu_reg(void)$/;"	f	file:
+dwc2_dete_pin	chip-t21/isvp/common/misc.c	/^struct jzdwc_pin dwc2_dete_pin = {$/;"	v	typeref:struct:jzdwc_pin
+dwc2_drvvbus_pin	chip-t21/isvp/common/misc.c	/^struct jzdwc_pin dwc2_drvvbus_pin = {$/;"	v	typeref:struct:jzdwc_pin
+dwidth	include/mach/jzfb.h	/^	enum smart_lcd_dwidth dwidth;$/;"	m	struct:jzfb_smart_config	typeref:enum:jzfb_smart_config::smart_lcd_dwidth
+enable	common/clk/clk.h	/^	int (*enable)(struct clk *,int);$/;"	m	struct:clk_ops
+enable_fops	common/clk/clk.c	/^static const struct file_operations enable_fops ={$/;"	v	typeref:struct:file_operations	file:
+enable_level	include/mach/jzmmc.h	/^	short 				enable_level;$/;"	m	struct:jzmmc_pin
+enable_open	common/clk/clk.c	/^static int enable_open(struct inode *inode, struct file *file)$/;"	f	file:
+enable_show	common/clk/clk.c	/^static int enable_show(struct seq_file *m, void *v)$/;"	f	file:
+enable_write	common/clk/clk.c	/^static int enable_write(struct file *file, const char __user *buffer,size_t count, loff_t *data)$/;"	f	file:
+end_func	include/soc/gpio.h	/^	enum gpio_function	end_func;$/;"	m	struct:jz_gpio_phy_reset	typeref:enum:jz_gpio_phy_reset::gpio_function
+erasesize	include/mach/jzssi.h	/^	u32 erasesize;$/;"	m	struct:spi_nor_platform_data
+es8374_codec_device	common/platform.c	/^struct platform_device es8374_codec_device = {$/;"	v	typeref:struct:platform_device
+evt_action	common/timer_sys_ost.c	/^	struct irqaction evt_action;$/;"	m	struct:jz_timerevent	typeref:struct:jz_timerevent::irqaction	file:
+evt_action	common/timer_tcu.c	/^	struct irqaction evt_action;$/;"	m	struct:jz_timerevent	typeref:struct:jz_timerevent::irqaction	file:
+exit	include/mach/jzsnd.h	/^	int (*exit)(struct platform_device *pdev);$/;"	m	struct:snd_dev_data
+ext_data	include/mach/jzsnd.h	/^	void *ext_data;$/;"	m	struct:snd_dev_data
+fake_cyclic	include/mach/jzdma.h	/^	unsigned short fake_cyclic;$/;"	m	struct:jzdma_channel
+find_handle	common/libdmmu.c	/^static struct dmmu_handle *find_handle(void)$/;"	f	file:
+find_node	common/libdmmu.c	/^static struct pmd_node *find_node(struct dmmu_handle *h,unsigned int vaddr)$/;"	f	file:
+flags	common/clk/clk.h	/^	unsigned long flags;$/;"	m	struct:clk
+flags	include/mach/jzdma.h	/^	unsigned short		flags;$/;"	m	struct:jzdma_channel
+flags_0	include/mach/txx-funcs.h	/^	unsigned int flags_0;			\/\/ The flags must be checked.$/;"	m	struct:jz_driver_common_interfaces
+flags_1	include/mach/txx-funcs.h	/^	unsigned int flags_1;			\/\/ The flags must be checked.$/;"	m	struct:jz_driver_common_interfaces
+flash_block_info	chip-t21/isvp/common/spi_bus.c	/^struct spi_nor_block_info flash_block_info[] = {$/;"	v	typeref:struct:spi_nor_block_info
+flash_quad_mode	chip-t21/isvp/common/spi_bus.c	/^struct spi_quad_mode  flash_quad_mode[] = {$/;"	v	typeref:struct:spi_quad_mode
+fm_headset_route	include/mach/jzsnd.h	/^	struct snd_board_route fm_headset_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+fm_speaker_route	include/mach/jzsnd.h	/^	struct snd_board_route fm_speaker_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+freq_udelay_jiffy	common/clk/clk.h	/^struct  freq_udelay_jiffy {$/;"	s
+freq_udelay_jiffys	common/clk/clk.c	/^struct  freq_udelay_jiffy *freq_udelay_jiffys;$/;"	v	typeref:struct:freq_udelay_jiffy
+frm_md	include/mach/jzfb.h	/^	unsigned int frm_md:1;$/;"	m	struct:jzfb_smart_config
+full_num	common/tcu.c	/^	int full_num;$/;"	m	struct:tcu_device	file:
+full_num	include/mach/jztcu.h	/^	int full_num;$/;"	m	struct:tcu_device
+func	include/soc/gpio.h	/^	int func;$/;"	m	struct:jz_gpio_func_def
+func_num	include/mach/jzfb.h	/^    enum gpio_function func_num;$/;"	m	struct:lcdc_gpio_struct	typeref:enum:lcdc_gpio_struct::gpio_function
+func_pins	include/mach/jzfb.h	/^    unsigned long func_pins;$/;"	m	struct:lcdc_gpio_struct
+func_port	include/mach/jzfb.h	/^    enum gpio_port func_port;$/;"	m	struct:lcdc_gpio_struct	typeref:enum:lcdc_gpio_struct::gpio_port
+g_buffer	common/proc.c	/^char g_buffer[256];$/;"	v
+get_board_type	chip-t21/isvp/common/board_base.c	/^const char *get_board_type(void)$/;"	f
+get_clk_from_id	common/clk/clk_sources.c	/^struct clk *get_clk_from_id(int clk_id)$/;"	f
+get_clk_id	common/clk/clk_sources.c	/^int get_clk_id(struct clk *clk)$/;"	f
+get_clk_sources_size	common/clk/clk_sources.c	/^int get_clk_sources_size(void){$/;"	f
+get_cpccr_div	common/clk/clk_cpccr.c	/^static int get_cpccr_div(unsigned int prate,unsigned int rate)$/;"	f	file:
+get_driver_common_interfaces	common/platform.c	/^EXPORT_SYMBOL(get_driver_common_interfaces);$/;"	v
+get_driver_common_interfaces	common/platform.c	/^void *get_driver_common_interfaces(void)$/;"	f
+get_endpoints	include/mach/jzsnd.h	/^	struct dsp_endpoints * (*get_endpoints)(struct snd_dev_data *dev_data);$/;"	m	struct:snd_dev_data	typeref:struct:snd_dev_data::get_endpoints
+get_isp_priv_mem	common/platform.c	/^static void get_isp_priv_mem(unsigned int *phyaddr, unsigned int *size)$/;"	f	file:
+get_isp_priv_mem	include/mach/txx-funcs.h	/^	void (*get_isp_priv_mem)(unsigned int *phyaddr, unsigned int *size);$/;"	m	struct:jz_driver_common_interfaces
+get_parent	common/clk/clk.h	/^	struct clk* (*get_parent)(struct clk *);$/;"	m	struct:clk_ops	typeref:struct:clk_ops::get_parent
+get_pfn	common/libdmmu.c	/^static unsigned int get_pfn(unsigned int vaddr)$/;"	f	file:
+get_rate	common/clk/clk.h	/^	unsigned long (*get_rate)(struct clk *);$/;"	m	struct:clk_ops
+gpemc_bank_t	include/soc/gpemc.h	/^} gpemc_bank_t;$/;"	t	typeref:struct:__anon16
+gpemc_bank_timing_t	include/soc/gpemc.h	/^} gpemc_bank_timing_t;$/;"	t	typeref:struct:__anon9
+gpio	include/mach/jzmmc.h	/^	struct card_gpio		*gpio;$/;"	m	struct:jzmmc_platform_data	typeref:struct:jzmmc_platform_data::card_gpio
+gpio	include/mach/jzsnd.h	/^	int gpio;			\/* -1: gpio is unavailable*\/$/;"	m	struct:snd_board_gpio
+gpio2jz	common/gpio.c	/^static inline struct jzgpio_chip *gpio2jz(struct gpio_chip *gpio)$/;"	f	file:
+gpio_assign	common/jzfblcd/bm8766.c	/^static struct lcdc_gpio_struct gpio_assign = {$/;"	v	typeref:struct:lcdc_gpio_struct	file:
+gpio_assign	common/jzfblcd/byd9158b.c	/^static struct lcdc_gpio_struct gpio_assign = {$/;"	v	typeref:struct:lcdc_gpio_struct	file:
+gpio_assign	common/jzfblcd/kfm701a21.c	/^static struct lcdc_gpio_struct gpio_assign = {$/;"	v	typeref:struct:lcdc_gpio_struct	file:
+gpio_assign	common/jzfblcd/truly_240_240.c	/^static struct lcdc_gpio_struct gpio_assign = {$/;"	v	typeref:struct:lcdc_gpio_struct	file:
+gpio_assign	include/mach/jzfb.h	/^	struct lcdc_gpio_struct *gpio_assign;$/;"	m	struct:jzfb_platform_data	typeref:struct:jzfb_platform_data::lcdc_gpio_struct
+gpio_buildin_mic_en_stat	include/mach/jzsnd.h	/^	audio_gpio_state_t gpio_buildin_mic_en_stat;$/;"	m	struct:snd_board_route
+gpio_buildin_mic_select	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_buildin_mic_select;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_chip	common/gpio.c	/^	struct gpio_chip gpio_chip;$/;"	m	struct:jzgpio_chip	typeref:struct:jzgpio_chip::gpio_chip	file:
+gpio_for_slcd	include/mach/jzfb.h	/^	int (*gpio_for_slcd) (void);$/;"	m	struct:jzfb_smart_config
+gpio_function	include/soc/gpio.h	/^enum gpio_function {$/;"	g
+gpio_handler	common/gpio.c	/^static irqreturn_t gpio_handler(int irq, void *data)$/;"	f	file:
+gpio_handset_en	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_handset_en;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_handset_en_stat	include/mach/jzsnd.h	/^	audio_gpio_state_t gpio_handset_en_stat;$/;"	m	struct:snd_board_route
+gpio_hp_detect	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_hp_detect;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_hp_mute	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_hp_mute;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_hp_mute_stat	include/mach/jzsnd.h	/^	audio_gpio_state_t gpio_hp_mute_stat;$/;"	m	struct:snd_board_route
+gpio_lock	common/gpio.c	/^	spinlock_t gpio_lock;$/;"	m	struct:jzgpio_chip	file:
+gpio_mask_and_ack_irq	common/gpio.c	/^static void gpio_mask_and_ack_irq(struct irq_data *data)$/;"	f	file:
+gpio_mask_irq	common/gpio.c	/^static void gpio_mask_irq(struct irq_data *data)$/;"	f	file:
+gpio_mic_detect	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_mic_detect;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_mic_detect_en	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_mic_detect_en;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_open	common/gpio.c	/^static int gpio_open(struct inode *inode, struct file *file)$/;"	f	file:
+gpio_phy_reset	chip-t21/isvp/common/misc.c	/^static struct jz_gpio_phy_reset gpio_phy_reset = {$/;"	v	typeref:struct:jz_gpio_phy_reset	file:
+gpio_pin_level	common/gpio.c	/^static inline int gpio_pin_level(struct jzgpio_chip *jz, int pin)$/;"	f	file:
+gpio_pm_ops	common/gpio.c	/^struct syscore_ops gpio_pm_ops = {$/;"	v	typeref:struct:syscore_ops
+gpio_port	include/soc/gpio.h	/^enum gpio_port {$/;"	g
+gpio_proc_show	common/gpio.c	/^static int gpio_proc_show(struct seq_file *m, void *v)$/;"	f	file:
+gpio_reg_func	include/soc/gpio.h	/^struct gpio_reg_func {$/;"	s
+gpio_restore_func	common/gpio.c	/^static void gpio_restore_func(struct jzgpio_chip *chip,$/;"	f	file:
+gpio_resume	common/gpio.c	/^void gpio_resume(void)$/;"	f
+gpio_set_func	common/gpio.c	/^static void gpio_set_func(struct jzgpio_chip *chip,$/;"	f	file:
+gpio_set_type	common/gpio.c	/^static int gpio_set_type(struct irq_data *data, unsigned int flow_type)$/;"	f	file:
+gpio_set_wake	common/gpio.c	/^static int gpio_set_wake(struct irq_data *data, unsigned int on)$/;"	f	file:
+gpio_shutdown_irq	common/gpio.c	/^static void gpio_shutdown_irq(struct irq_data *data)$/;"	f	file:
+gpio_spk_en	include/mach/jzsnd.h	/^	struct snd_board_gpio gpio_spk_en;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_gpio
+gpio_spk_en_stat	include/mach/jzsnd.h	/^	audio_gpio_state_t gpio_spk_en_stat;$/;"	m	struct:snd_board_route
+gpio_ss_check	common/gpio.c	/^int __init gpio_ss_check(void)$/;"	f
+gpio_ss_table	chip-t21/isvp/Turkey/pm.c	/^__initdata int gpio_ss_table[][2] = {$/;"	v
+gpio_startup_irq	common/gpio.c	/^static unsigned int gpio_startup_irq(struct irq_data *data)$/;"	f	file:
+gpio_suspend	common/gpio.c	/^int gpio_suspend(void)$/;"	f
+gpio_suspend_set	common/gpio.c	/^void gpio_suspend_set(struct jzgpio_chip *jz)$/;"	f
+gpio_unmask_irq	common/gpio.c	/^static void gpio_unmask_irq(struct irq_data *data)$/;"	f	file:
+gpio_vddq_en_n	include/mach/jz_efuse.h	/^	int gpio_vddq_en_n;	\/* supply 2.5V to VDDQ *\/$/;"	m	struct:jz_efuse_platform_data
+gpios_proc_fops	common/gpio.c	/^static const struct file_operations gpios_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+grp_id	include/mach/tx_isp.h	/^	unsigned int grp_id;$/;"	m	struct:tx_isp_subdev_platform_data
+half_num	common/tcu.c	/^	int half_num;$/;"	m	struct:tcu_device	file:
+half_num	include/mach/jztcu.h	/^	int half_num;$/;"	m	struct:tcu_device
+handle_add_map	common/libdmmu.c	/^static void handle_add_map(struct device *dev,struct dmmu_handle *h,unsigned long vaddr,unsigned long len)$/;"	f	file:
+handle_list	common/libdmmu.c	/^LIST_HEAD(handle_list);$/;"	v
+height	include/mach/jzfb.h	/^	unsigned int height;$/;"	m	struct:jzfb_platform_data
+hibernate_restart	common/reset.c	/^static void hibernate_restart(void) {$/;"	f	file:
+hook_active_level	include/mach/jzsnd.h	/^    int hook_active_level;   \/* -1: no hook detect,$/;"	m	struct:snd_codec_data
+hpsense_active_level	include/mach/jzsnd.h	/^	int hpsense_active_level;		\/\/no use for the moment ,use menuconfig$/;"	m	struct:snd_codec_data
+id	common/tcu.c	/^	int id;$/;"	m	struct:tcu_device	file:
+id	include/mach/jzdma.h	/^	int 			id;$/;"	m	struct:jzdma_channel
+id	include/mach/jzssi.h	/^	int id;$/;"	m	struct:spi_nor_platform_data
+id	include/mach/jztcu.h	/^	int id;$/;"	m	struct:tcu_device
+id_device	include/mach/jzssi.h	/^	u8 id_device;$/;"	m	struct:jz_spi_support
+id_manufactory	include/mach/jzssi.h	/^	u8 id_manufactory;$/;"	m	struct:jz_spi_support
+index	common/libdmmu.c	/^	unsigned long index;$/;"	m	struct:pmd_node	file:
+init	include/mach/jzfb.h	/^	int (*init) (void);$/;"	m	struct:jzfb_smart_config
+init	include/mach/jzsnd.h	/^	int (*init)(struct platform_device *pdev);$/;"	m	struct:snd_dev_data
+init_all_clk	common/clk/clk.c	/^void __init init_all_clk(void)$/;"	f
+init_all_clk	common/clk/clk_fpga.c	/^arch_initcall(init_all_clk);$/;"	v
+init_all_clk	common/clk/clk_fpga.c	/^int __init init_all_clk(void)$/;"	f
+init_cgu_clk	common/clk/clk_cgu.c	/^void __init init_cgu_clk(struct clk *clk)$/;"	f
+init_cgu_clk	common/clk/clk_fpga.c	/^void __init init_cgu_clk(struct clk *clk)$/;"	f
+init_clk_parent	common/clk/clk.c	/^static void init_clk_parent(struct clk *p) {$/;"	f	file:
+init_clk_proc	common/clk/clk.c	/^module_init(init_clk_proc);$/;"	v
+init_clk_proc	common/clk/clk.c	/^static int __init init_clk_proc(void)$/;"	f	file:
+init_cpccr_clk	common/clk/clk_cpccr.c	/^void __init init_cpccr_clk(struct clk *clk)$/;"	f
+init_cpccr_clk	common/clk/clk_fpga.c	/^void __init init_cpccr_clk(struct clk *clk)$/;"	f
+init_ddr_proc	common/ddr.c	/^module_init(init_ddr_proc);$/;"	v
+init_ddr_proc	common/ddr.c	/^static int __init init_ddr_proc(void)$/;"	f	file:
+init_ext_pll	common/clk/clk_fpga.c	/^void __init init_ext_pll(struct clk *clk)$/;"	f
+init_ext_pll	common/clk/clk_pll.c	/^void __init init_ext_pll(struct clk *clk)$/;"	f
+init_freq_table	common/clk/clk.c	/^EXPORT_SYMBOL(init_freq_table);$/;"	v
+init_freq_table	common/clk/clk.c	/^struct cpufreq_frequency_table *init_freq_table(unsigned int max_freq,$/;"	f
+init_gate_clk	common/clk/clk_fpga.c	/^void __init init_gate_clk(struct clk *clk)$/;"	f
+init_gate_clk	common/clk/clk_gate.c	/^void __init init_gate_clk(struct clk *clk)$/;"	f
+init_gpio_proc	common/gpio.c	/^module_init(init_gpio_proc);$/;"	v
+init_gpio_proc	common/gpio.c	/^static int __init init_gpio_proc(void)$/;"	f	file:
+init_intc_affinity	common/irq.c	/^static inline void init_intc_affinity(void) {$/;"	f	file:
+init_level	common/tcu.c	/^	unsigned int init_level; \/*used in pwm output mode*\/$/;"	m	struct:tcu_device	file:
+init_level	include/mach/jztcu.h	/^	unsigned int init_level; \/*used in pwm output mode*\/$/;"	m	struct:tcu_device
+init_pwc_clk	common/clk/cpm_pwc.c	/^void __init init_pwc_clk(struct clk *clk)$/;"	f
+init_reset	common/reset.c	/^module_init(init_reset);$/;"	v
+init_reset	common/reset.c	/^static int __init init_reset(void)$/;"	f	file:
+init_state	common/clk/clk.h	/^	int init_state;$/;"	m	struct:clk
+inited	common/jzfblcd/byd9158b.c	/^static int inited = 0;$/;"	v	file:
+inited	common/jzfblcd/kfm701a21.c	/^static int inited = 0;$/;"	v	file:
+inited	common/jzfblcd/truly_240_240.c	/^static int inited = 0;$/;"	v	file:
+intc_base	common/irq.c	/^static void __iomem *intc_base;$/;"	v	file:
+intc_irq_ctrl	common/irq.c	/^static void intc_irq_ctrl(struct irq_data *data, int msk, int wkup)$/;"	f	file:
+intc_irq_dispatch	common/irq.c	/^static void intc_irq_dispatch(void)$/;"	f	file:
+intc_irq_mask	common/irq.c	/^static void intc_irq_mask(struct irq_data *data)$/;"	f	file:
+intc_irq_set_wake	common/irq.c	/^static int intc_irq_set_wake(struct irq_data *data, unsigned int on)$/;"	f	file:
+intc_irq_unmask	common/irq.c	/^static void intc_irq_unmask(struct irq_data *data)$/;"	f	file:
+intc_saved	common/irq.c	/^static unsigned long intc_saved[2];$/;"	v	file:
+intc_set_affinity	common/irq.c	/^static int intc_set_affinity(struct irq_data *data, const struct cpumask *dest, bool force) {$/;"	f	file:
+intc_wakeup	common/irq.c	/^static unsigned long intc_wakeup[2];$/;"	v	file:
+io_base	include/soc/gpemc.h	/^	void __iomem *io_base;$/;"	m	struct:__anon16
+io_nand_addr	include/soc/gpemc.h	/^	void __iomem *io_nand_addr;$/;"	m	struct:__anon16
+io_nand_cmd	include/soc/gpemc.h	/^	void __iomem *io_nand_cmd;$/;"	m	struct:__anon16
+io_nand_dat	include/soc/gpemc.h	/^	void __iomem *io_nand_dat;$/;"	m	struct:__anon16
+iomem	include/mach/jzdma.h	/^	void __iomem		*iomem;$/;"	m	struct:jzdma_channel
+iomem	include/mach/jzdma.h	/^	void __iomem   		*iomem;$/;"	m	struct:jzdma_master
+ipi_call_function	common/irq.c	/^static irqreturn_t ipi_call_function(int irq, void *d)$/;"	f	file:
+ipi_reschedule	common/irq.c	/^static irqreturn_t ipi_reschedule(int irq, void *d)$/;"	f	file:
+irq	include/mach/jzdma.h	/^	int 			irq;$/;"	m	struct:jzdma_master
+irq_base	common/gpio.c	/^	int irq_base;$/;"	m	struct:jzgpio_chip	file:
+irq_base	include/mach/jzdma.h	/^	int irq_base;$/;"	m	struct:jzdma_platform_data
+irq_chip	common/gpio.c	/^	struct irq_chip  irq_chip;$/;"	m	struct:jzgpio_chip	typeref:struct:jzgpio_chip::irq_chip	file:
+irq_chip	include/mach/jzdma.h	/^	struct irq_chip		irq_chip;$/;"	m	struct:jzdma_master	typeref:struct:jzdma_master::irq_chip
+irq_end	include/mach/jzdma.h	/^	int irq_end;$/;"	m	struct:jzdma_platform_data
+irq_pdmam	include/mach/jzdma.h	/^	int                     irq_pdmam;   \/* irq_pdmam for PDMAM irq *\/$/;"	m	struct:jzdma_master
+irq_type	common/tcu.c	/^	enum tcu_irq_mode irq_type;$/;"	m	struct:tcu_device	typeref:enum:tcu_device::tcu_irq_mode	file:
+irq_type	include/mach/jztcu.h	/^	enum tcu_irq_mode irq_type;$/;"	m	struct:tcu_device	typeref:enum:tcu_device::tcu_irq_mode
+irqdata2jz	common/gpio.c	/^static inline struct jzgpio_chip *irqdata2jz(struct irq_data *data)$/;"	f	file:
+is_pllclk	include/mach/jzspi.h	/^	unsigned is_pllclk:1;			\/* source clock: 1---pllclk;0---exclk *\/$/;"	m	struct:jz_spi_info
+is_pllclk	include/mach/jzssi.h	/^	unsigned is_pllclk:1;			\/* source clock: 1---pllclk;0---exclk *\/$/;"	m	struct:jz_sfc_info
+is_pllclk	include/mach/jzssi.h	/^	unsigned is_pllclk:1;			\/* source clock: 1---pllclk;0---exclk *\/$/;"	m	struct:jz_spi_info
+is_suspend	common/clk/cpm_pwc.c	/^	unsigned int is_suspend;$/;"	m	struct:cpm_pwc_ctrl	file:
+is_suspend	include/mach/jzsnd.h	/^	bool is_suspend;$/;"	m	struct:snd_dev_data
+ispmem_base	common/platform.c	/^EXPORT_SYMBOL(ispmem_base);$/;"	v
+ispmem_base	common/platform.c	/^unsigned long ispmem_base = 0;$/;"	v
+ispmem_parse	common/platform.c	/^static int __init ispmem_parse(char *str)$/;"	f	file:
+ispmem_size	common/platform.c	/^EXPORT_SYMBOL(ispmem_size);$/;"	v
+ispmem_size	common/platform.c	/^unsigned long ispmem_size = 0;$/;"	v
+jz4780_pm_enter	common/pm.c	/^static int jz4780_pm_enter(suspend_state_t state)$/;"	f	file:
+jz4780_pm_init	common/pm.c	/^arch_initcall(jz4780_pm_init);$/;"	v
+jz4780_pm_init	common/pm.c	/^int __init jz4780_pm_init(void)$/;"	f
+jz4780_spi_gpio_data	chip-t21/isvp/common/spi_bus.c	/^static struct spi_gpio_platform_data jz4780_spi_gpio_data = {$/;"	v	typeref:struct:spi_gpio_platform_data	file:
+jz4780_spi_gpio_device	chip-t21/isvp/common/spi_bus.c	/^static struct platform_device jz4780_spi_gpio_device = {$/;"	v	typeref:struct:platform_device	file:
+jz47xx_tcu	common/tcu.c	/^struct jz47xx_tcu_t *jz47xx_tcu;$/;"	v	typeref:struct:jz47xx_tcu_t
+jz47xx_tcu_t	common/tcu.c	/^struct jz47xx_tcu_t {$/;"	s	file:
+jz_adc_device	common/platform.c	/^struct platform_device jz_adc_device = {$/;"	v	typeref:struct:platform_device
+jz_adc_resources	common/platform.c	/^static struct resource jz_adc_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_aes_device	common/platform.c	/^struct platform_device jz_aes_device = {$/;"	v	typeref:struct:platform_device
+jz_aes_resources	common/platform.c	/^static struct resource jz_aes_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_aic_device	common/platform.c	/^struct platform_device jz_aic_device = {$/;"	v	typeref:struct:platform_device
+jz_aic_dma_device	common/platform.c	/^struct platform_device jz_aic_dma_device = {$/;"	v	typeref:struct:platform_device
+jz_aic_dma_resources	common/platform.c	/^static struct resource jz_aic_dma_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_aic_resources	common/platform.c	/^static struct resource jz_aic_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_alsa_device	common/platform.c	/^struct platform_device jz_alsa_device = {$/;"	v	typeref:struct:platform_device
+jz_asoc_dmamask	common/platform.c	/^static u64 jz_asoc_dmamask =  ~(u64)0;$/;"	v	file:
+jz_button_device	chip-t21/isvp/common/keyboard_gpio.c	/^struct platform_device jz_button_device = {$/;"	v	typeref:struct:platform_device
+jz_clockevent_init	common/timer_sys_ost.c	/^static void jz_clockevent_init(struct jz_timerevent *evt_dev) {$/;"	f	file:
+jz_clockevent_init	common/timer_tcu.c	/^static void jz_clockevent_init(struct jz_timerevent *evt_dev) {$/;"	f	file:
+jz_clocksource_init	common/timer_sys_ost.c	/^void __cpuinit jz_clocksource_init(void)$/;"	f
+jz_clocksource_init	common/timer_tcu.c	/^void __cpuinit jz_clocksource_init(void)$/;"	f
+jz_codec_device	common/platform.c	/^struct platform_device jz_codec_device = {$/;"	v	typeref:struct:platform_device
+jz_codec_resources	common/platform.c	/^static struct resource jz_codec_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_des_device	common/platform.c	/^struct platform_device jz_des_device = {$/;"	v	typeref:struct:platform_device
+jz_des_resources	common/platform.c	/^static struct resource jz_des_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_device_register	common/platform.c	/^int jz_device_register(struct platform_device *pdev, void *pdata)$/;"	f
+jz_dmic_device	common/platform.c	/^struct platform_device jz_dmic_device = {$/;"	v	typeref:struct:platform_device
+jz_dmic_resource	common/platform.c	/^static struct resource jz_dmic_resource[] = {$/;"	v	typeref:struct:resource	file:
+jz_driver_common_interfaces	include/mach/txx-funcs.h	/^struct jz_driver_common_interfaces {$/;"	s
+jz_dwc_otg_device	common/platform.c	/^struct platform_device jz_dwc_otg_device = {$/;"	v	typeref:struct:platform_device
+jz_dwc_otg_resources	common/platform.c	/^static struct resource jz_dwc_otg_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_efuse_device	common/platform.c	/^struct platform_device jz_efuse_device = {$/;"	v	typeref:struct:platform_device
+jz_efuse_pdata	chip-t21/isvp/common/misc.c	/^struct jz_efuse_platform_data jz_efuse_pdata = {$/;"	v	typeref:struct:jz_efuse_platform_data
+jz_efuse_platform_data	include/mach/jz_efuse.h	/^struct jz_efuse_platform_data {$/;"	s
+jz_fb_device	common/platform.c	/^struct platform_device jz_fb_device = {$/;"	v	typeref:struct:platform_device
+jz_fb_resources	common/platform.c	/^static struct resource jz_fb_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_get_cycles	common/timer_sys_ost.c	/^static cycle_t jz_get_cycles(struct clocksource *cs)$/;"	f	file:
+jz_get_cycles	common/timer_tcu.c	/^static cycle_t jz_get_cycles(struct clocksource *cs)$/;"	f	file:
+jz_gpio_chips	common/gpio.c	/^static struct jzgpio_chip jz_gpio_chips[] = {$/;"	v	typeref:struct:jzgpio_chip	file:
+jz_gpio_chips	common/gpio.c	/^static struct jzgpio_chip jz_gpio_chips[];$/;"	v	typeref:struct:jzgpio_chip	file:
+jz_gpio_free	common/gpio.c	/^static void jz_gpio_free(struct gpio_chip *chip, unsigned offset)$/;"	f	file:
+jz_gpio_func_def	include/soc/gpio.h	/^struct jz_gpio_func_def {$/;"	s
+jz_gpio_get	common/gpio.c	/^static int jz_gpio_get(struct gpio_chip *chip, unsigned offset)$/;"	f	file:
+jz_gpio_input	common/gpio.c	/^static int jz_gpio_input(struct gpio_chip *chip, unsigned offset)$/;"	f	file:
+jz_gpio_output	common/gpio.c	/^static int jz_gpio_output(struct gpio_chip *chip,$/;"	f	file:
+jz_gpio_phy_reset	include/soc/gpio.h	/^struct jz_gpio_phy_reset {$/;"	s
+jz_gpio_request	common/gpio.c	/^static int jz_gpio_request(struct gpio_chip *chip, unsigned offset)$/;"	f	file:
+jz_gpio_restore_func	common/gpio.c	/^int jz_gpio_restore_func(enum gpio_port port,$/;"	f
+jz_gpio_save_reset_func	common/gpio.c	/^int jz_gpio_save_reset_func(enum gpio_port port, enum gpio_function dst_func,$/;"	f
+jz_gpio_set	common/gpio.c	/^static void jz_gpio_set(struct gpio_chip *chip,$/;"	f	file:
+jz_gpio_set_func	common/gpio.c	/^int jz_gpio_set_func(int gpio, enum gpio_function func)$/;"	f
+jz_gpio_set_pull	common/gpio.c	/^static int jz_gpio_set_pull(struct gpio_chip *chip,$/;"	f	file:
+jz_gpio_to_irq	common/gpio.c	/^static int jz_gpio_to_irq(struct gpio_chip *chip, unsigned offset)$/;"	f	file:
+jz_gpiolib_init	common/gpio.c	/^static __init int jz_gpiolib_init(void)$/;"	f	file:
+jz_hibernate	common/reset.c	/^void jz_hibernate(void)$/;"	f
+jz_hibernate_restart	common/reset.c	/^void jz_hibernate_restart(char *command)$/;"	f
+jz_i2c0_devs_size	chip-t21/isvp/common/i2c_bus.c	/^int jz_i2c0_devs_size = ARRAY_SIZE(jz_i2c0_devs);$/;"	v
+jz_i2c1_devs_size	chip-t21/isvp/common/i2c_bus.c	/^int jz_i2c1_devs_size = ARRAY_SIZE(jz_i2c1_devs);$/;"	v
+jz_i2c2_devs_size	chip-t21/isvp/common/i2c_bus.c	/^int jz_i2c2_devs_size = ARRAY_SIZE(jz_i2c2_devs);$/;"	v
+jz_i2c_dmamask	common/platform.c	/^static u64 jz_i2c_dmamask = ~(u32) 0;$/;"	v	file:
+jz_i2s_device	common/platform.c	/^struct platform_device jz_i2s_device = {$/;"	v	typeref:struct:platform_device
+jz_i2s_dmamask	common/platform.c	/^static u64 jz_i2s_dmamask = ~(u32) 0;$/;"	v	file:
+jz_i2s_resources	common/platform.c	/^static struct resource jz_i2s_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_ipu_device	common/platform.c	/^struct platform_device jz_ipu_device = {$/;"	v	typeref:struct:platform_device
+jz_ipu_dmamask	common/platform.c	/^static u64 jz_ipu_dmamask = ~(u64) 0;$/;"	v	file:
+jz_ipu_resources	common/platform.c	/^static struct resource jz_ipu_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_li_ion_charger_device	chip-t21/isvp/common/misc.c	/^static struct platform_device jz_li_ion_charger_device = {$/;"	v	typeref:struct:platform_device	file:
+jz_li_ion_charger_pdata	chip-t21/isvp/common/misc.c	/^static struct li_ion_charger_platform_data jz_li_ion_charger_pdata = {$/;"	v	typeref:struct:li_ion_charger_platform_data	file:
+jz_mac_device	chip-t21/isvp/common/misc.c	/^struct platform_device jz_mac_device = {$/;"	v	typeref:struct:platform_device
+jz_mii_bus	chip-t21/isvp/common/misc.c	/^struct platform_device jz_mii_bus = {$/;"	v	typeref:struct:platform_device
+jz_msc_dmamask	common/platform.c	/^static u64 jz_msc_dmamask = ~(u32) 0;$/;"	v	file:
+jz_otg_ctr_reset	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_ctr_reset);$/;"	v
+jz_otg_ctr_reset	common/cpm_usb.c	/^void jz_otg_ctr_reset(void)$/;"	f
+jz_otg_phy_init	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_phy_init);$/;"	v
+jz_otg_phy_init	common/cpm_usb.c	/^void jz_otg_phy_init(otg_mode_t mode)$/;"	f
+jz_otg_phy_is_suspend	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_phy_is_suspend);$/;"	v
+jz_otg_phy_is_suspend	common/cpm_usb.c	/^int jz_otg_phy_is_suspend(void)$/;"	f
+jz_otg_phy_powerdown	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_phy_powerdown);$/;"	v
+jz_otg_phy_powerdown	common/cpm_usb.c	/^void jz_otg_phy_powerdown(void)$/;"	f
+jz_otg_phy_suspend	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_phy_suspend);$/;"	v
+jz_otg_phy_suspend	common/cpm_usb.c	/^void jz_otg_phy_suspend(int suspend)$/;"	f
+jz_otg_sft_id	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_sft_id);$/;"	v
+jz_otg_sft_id	common/cpm_usb.c	/^void jz_otg_sft_id(int level)$/;"	f
+jz_otg_sft_id_off	common/cpm_usb.c	/^EXPORT_SYMBOL(jz_otg_sft_id_off);$/;"	v
+jz_otg_sft_id_off	common/cpm_usb.c	/^void jz_otg_sft_id_off(void)$/;"	f
+jz_pdma_device	common/platform.c	/^struct platform_device jz_pdma_device = {$/;"	v	typeref:struct:platform_device
+jz_pdma_res	common/platform.c	/^static struct resource jz_pdma_res[] = {$/;"	v	typeref:struct:resource	file:
+jz_platform_device	chip-t21/isvp/common/board_base.c	/^struct jz_platform_device$/;"	s	file:
+jz_pwm_device	common/platform.c	/^struct platform_device jz_pwm_device = {$/;"	v	typeref:struct:platform_device
+jz_pwm_lookup	chip-t21/isvp/common/misc.c	/^struct pwm_lookup jz_pwm_lookup[] = {$/;"	v	typeref:struct:pwm_lookup
+jz_pwm_lookup_size	chip-t21/isvp/common/misc.c	/^int jz_pwm_lookup_size = ARRAY_SIZE(jz_pwm_lookup);$/;"	v
+jz_pwm_sdk_device	common/platform.c	/^struct platform_device jz_pwm_sdk_device = {$/;"	v	typeref:struct:platform_device
+jz_rtc_device	common/platform.c	/^struct platform_device jz_rtc_device = {$/;"	v	typeref:struct:platform_device
+jz_rtc_resource	common/platform.c	/^static struct resource jz_rtc_resource[] = {$/;"	v	typeref:struct:resource	file:
+jz_set_mode	common/timer_sys_ost.c	/^static void jz_set_mode(enum clock_event_mode mode,$/;"	f	file:
+jz_set_mode	common/timer_tcu.c	/^static void jz_set_mode(enum clock_event_mode mode,$/;"	f	file:
+jz_set_next_event	common/timer_sys_ost.c	/^static int jz_set_next_event(unsigned long evt,$/;"	f	file:
+jz_set_next_event	common/timer_tcu.c	/^static int jz_set_next_event(unsigned long evt,$/;"	f	file:
+jz_sfc_device	common/platform.c	/^struct platform_device jz_sfc_device = {$/;"	v	typeref:struct:platform_device
+jz_sfc_info	include/mach/jzssi.h	/^struct jz_sfc_info {$/;"	s
+jz_sfc_resources	common/platform.c	/^static struct resource jz_sfc_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_spi0_board_info	chip-t21/isvp/common/spi_bus.c	/^static struct spi_board_info jz_spi0_board_info[] = {$/;"	v	typeref:struct:spi_board_info	file:
+jz_spi1_board_info	chip-t21/isvp/common/spi_bus.c	/^static struct spi_board_info jz_spi1_board_info[] = {$/;"	v	typeref:struct:spi_board_info	file:
+jz_spi_info	include/mach/jzspi.h	/^struct jz_spi_info {$/;"	s
+jz_spi_info	include/mach/jzssi.h	/^struct jz_spi_info {$/;"	s
+jz_spi_nand_platform_data	include/mach/jzssi.h	/^struct jz_spi_nand_platform_data {$/;"	s
+jz_spi_support	include/mach/jzssi.h	/^	struct jz_spi_support *jz_spi_support;$/;"	m	struct:jz_spi_nand_platform_data	typeref:struct:jz_spi_nand_platform_data::jz_spi_support
+jz_spi_support	include/mach/jzssi.h	/^struct jz_spi_support {$/;"	s
+jz_ssi_dmamask	common/platform.c	/^static u64 jz_ssi_dmamask =  ~(u32)0;$/;"	v	file:
+jz_tcu_device	common/platform.c	/^struct platform_device jz_tcu_device = {$/;"	v	typeref:struct:platform_device
+jz_tcu_resources	common/platform.c	/^static struct resource jz_tcu_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_timer_interrupt	common/timer_sys_ost.c	/^static irqreturn_t jz_timer_interrupt(int irq, void *dev_id)$/;"	f	file:
+jz_timer_interrupt	common/timer_tcu.c	/^static irqreturn_t jz_timer_interrupt(int irq, void *dev_id)$/;"	f	file:
+jz_timerevent	common/timer_sys_ost.c	/^struct jz_timerevent {$/;"	s	file:
+jz_timerevent	common/timer_tcu.c	/^struct jz_timerevent {$/;"	s	file:
+jz_trace_proc	common/proc.c	/^module_init(jz_trace_proc);$/;"	v
+jz_trace_proc	common/proc.c	/^static int __init jz_trace_proc(void)$/;"	f	file:
+jz_uart0_device	common/platform.c	/^struct platform_device jz_uart0_device = {$/;"	v	typeref:struct:platform_device
+jz_uart0_resources	common/platform.c	/^static struct resource jz_uart0_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_uart1_device	common/platform.c	/^struct platform_device jz_uart1_device = {$/;"	v	typeref:struct:platform_device
+jz_uart1_resources	common/platform.c	/^static struct resource jz_uart1_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_uart2_device	common/platform.c	/^struct platform_device jz_uart2_device = {$/;"	v	typeref:struct:platform_device
+jz_uart2_resources	common/platform.c	/^static struct resource jz_uart2_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_vpu_dmamask	common/platform.c	/^static u64 jz_vpu_dmamask = ~(u64)0;$/;"	v	file:
+jz_vpu_irq_device	common/platform.c	/^struct platform_device jz_vpu_irq_device = {					\\$/;"	v	typeref:struct:platform_device
+jz_vpu_irq_resources	common/platform.c	/^static struct resource jz_vpu_irq_resources[] = {			\\$/;"	v	typeref:struct:resource	file:
+jz_wdt_device	common/platform.c	/^struct platform_device jz_wdt_device = {$/;"	v	typeref:struct:platform_device
+jz_wdt_resources	common/platform.c	/^static struct resource jz_wdt_resources[] = {$/;"	v	typeref:struct:resource	file:
+jz_wdt_restart	common/reset.c	/^void jz_wdt_restart(char *command)$/;"	f
+jzclockevent	common/timer_sys_ost.c	/^} jzclockevent;$/;"	v	typeref:struct:jz_timerevent
+jzclockevent	common/timer_tcu.c	/^} jzclockevent;$/;"	v	typeref:struct:jz_timerevent
+jzcpu_timer_setup	common/timer_sys_ost.c	/^void __cpuinit jzcpu_timer_setup(void)$/;"	f
+jzcpu_timer_setup	common/timer_tcu.c	/^void __cpuinit jzcpu_timer_setup(void)$/;"	f
+jzdma_channel	include/mach/jzdma.h	/^struct jzdma_channel {$/;"	s
+jzdma_master	include/mach/jzdma.h	/^struct jzdma_master {$/;"	s
+jzdma_pdata	common/platform.c	/^static struct jzdma_platform_data jzdma_pdata = {$/;"	v	typeref:struct:jzdma_platform_data	file:
+jzdma_platform_data	include/mach/jzdma.h	/^struct jzdma_platform_data {$/;"	s
+jzdma_req_type	include/mach/jzdma.h	/^enum jzdma_req_type {$/;"	g
+jzdma_type	include/mach/jzdma.h	/^enum jzdma_type {$/;"	g
+jzfb_bm8766_videomode	common/jzfblcd/bm8766.c	/^static struct fb_videomode jzfb_bm8766_videomode = {$/;"	v	typeref:struct:fb_videomode	file:
+jzfb_byd9158b_videomode	common/jzfblcd/byd9158b.c	/^static struct fb_videomode jzfb_byd9158b_videomode = {$/;"	v	typeref:struct:fb_videomode	file:
+jzfb_data	common/jzfblcd/bm8766.c	/^struct jzfb_platform_data jzfb_data = {$/;"	v	typeref:struct:jzfb_platform_data
+jzfb_data	common/jzfblcd/byd9158b.c	/^struct jzfb_platform_data jzfb_data = {$/;"	v	typeref:struct:jzfb_platform_data
+jzfb_data	common/jzfblcd/kfm701a21.c	/^struct jzfb_platform_data jzfb_data = {$/;"	v	typeref:struct:jzfb_platform_data
+jzfb_data	common/jzfblcd/truly_240_240.c	/^struct jzfb_platform_data jzfb_data = {$/;"	v	typeref:struct:jzfb_platform_data
+jzfb_kfm701a21_1a_videomode	common/jzfblcd/kfm701a21.c	/^static struct fb_videomode jzfb_kfm701a21_1a_videomode = {$/;"	v	typeref:struct:fb_videomode	file:
+jzfb_lcd_type	include/mach/jzfb.h	/^enum jzfb_lcd_type {$/;"	g
+jzfb_platform_data	include/mach/jzfb.h	/^struct jzfb_platform_data {$/;"	s
+jzfb_smart_config	include/mach/jzfb.h	/^struct jzfb_smart_config {$/;"	s
+jzfb_tft_config	include/mach/jzfb.h	/^struct jzfb_tft_config {$/;"	s
+jzfb_truly_240_240_videomode	common/jzfblcd/truly_240_240.c	/^static struct fb_videomode jzfb_truly_240_240_videomode = {$/;"	v	typeref:struct:fb_videomode	file:
+jzgpio_chip	common/gpio.c	/^struct jzgpio_chip {$/;"	s	file:
+jzgpio_ctrl_pull	common/gpio.c	/^EXPORT_SYMBOL(jzgpio_ctrl_pull);$/;"	v
+jzgpio_ctrl_pull	common/gpio.c	/^int jzgpio_ctrl_pull(enum gpio_port port, int enable_pull,unsigned long pins)$/;"	f
+jzgpio_phy_reset	common/gpio.c	/^int jzgpio_phy_reset(struct jz_gpio_phy_reset *gpio_phy_reset)$/;"	f
+jzgpio_set_func	common/gpio.c	/^EXPORT_SYMBOL(jzgpio_set_func);$/;"	v
+jzgpio_set_func	common/gpio.c	/^int jzgpio_set_func(enum gpio_port port,$/;"	f
+jzgpio_state	common/gpio.c	/^struct jzgpio_state {$/;"	s	file:
+jzintc_chip	common/irq.c	/^static struct irq_chip jzintc_chip = {$/;"	v	typeref:struct:irq_chip	file:
+jzmmc_pin	include/mach/jzmmc.h	/^struct jzmmc_pin {$/;"	s
+jzmmc_platform_data	include/mach/jzmmc.h	/^struct jzmmc_platform_data {$/;"	s
+jzpwm_pdata	common/platform.c	/^static struct jzpwm_platform_data jzpwm_pdata = {$/;"	v	typeref:struct:jzpwm_platform_data	file:
+kernel_uses_smartmips_rixi	include/cpu-feature-overrides.h	61;"	d
+kfm701a21_1a_cfg	common/jzfblcd/kfm701a21.c	/^static struct jzfb_smart_config kfm701a21_1a_cfg = {$/;"	v	typeref:struct:jzfb_smart_config	file:
+kfm701a21_1a_data_table	common/jzfblcd/kfm701a21.c	/^static struct smart_lcd_data_table kfm701a21_1a_data_table[] = {$/;"	v	typeref:struct:smart_lcd_data_table	file:
+kfm701a21_1a_ops	common/jzfblcd/kfm701a21.c	/^static struct lcd_callback_ops kfm701a21_1a_ops = {$/;"	v	typeref:struct:lcd_callback_ops	file:
+kfm701a21_1a_power_initialize	common/jzfblcd/kfm701a21.c	/^static int kfm701a21_1a_power_initialize(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+kfm701a21_1a_power_off	common/jzfblcd/kfm701a21.c	/^static int kfm701a21_1a_power_off(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+kfm701a21_1a_power_on	common/jzfblcd/kfm701a21.c	/^static int kfm701a21_1a_power_on(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+kfm701a21_1a_power_reset	common/jzfblcd/kfm701a21.c	/^static int kfm701a21_1a_power_reset(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+kfm701a21_1a_set_gpio_func	common/jzfblcd/kfm701a21.c	/^static int kfm701a21_1a_set_gpio_func(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+l2div_policy	common/clk/clk_cpccr.c	37;"	d	file:
+last_completed	include/mach/jzdma.h	/^	dma_cookie_t		last_completed;$/;"	m	struct:jzdma_channel
+last_good	include/mach/jzdma.h	/^	dma_cookie_t		last_good;$/;"	m	struct:jzdma_channel
+last_sg	include/mach/jzdma.h	/^	unsigned short		last_sg;$/;"	m	struct:jzdma_channel
+lcd_callback_ops	include/mach/jzfb.h	/^	struct lcd_callback_ops *lcd_callback_ops;$/;"	m	struct:jzfb_platform_data	typeref:struct:jzfb_platform_data::lcd_callback_ops
+lcd_callback_ops	include/mach/jzfb.h	/^struct lcd_callback_ops {$/;"	s
+lcd_initialize_begin	include/mach/jzfb.h	/^	int (*lcd_initialize_begin)(void*);$/;"	m	struct:lcd_callback_ops
+lcd_initialize_end	include/mach/jzfb.h	/^	int (*lcd_initialize_end)(void*);$/;"	m	struct:lcd_callback_ops
+lcd_power_off_begin	include/mach/jzfb.h	/^	int (*lcd_power_off_begin)(void*);$/;"	m	struct:lcd_callback_ops
+lcd_power_off_end	include/mach/jzfb.h	/^	int (*lcd_power_off_end)(void*);$/;"	m	struct:lcd_callback_ops
+lcd_power_on_begin	include/mach/jzfb.h	/^	int (*lcd_power_on_begin)(void*);$/;"	m	struct:lcd_callback_ops
+lcd_power_on_end	include/mach/jzfb.h	/^	int (*lcd_power_on_end)(void*);$/;"	m	struct:lcd_callback_ops
+lcd_type	include/mach/jzfb.h	/^	enum jzfb_lcd_type lcd_type;$/;"	m	struct:jzfb_platform_data	typeref:enum:jzfb_platform_data::jzfb_lcd_type
+lcdc_gpio_struct	include/mach/jzfb.h	/^struct lcdc_gpio_struct {$/;"	s
+len	common/libdmmu.c	/^	unsigned long len;$/;"	m	struct:map_node	file:
+len	include/mach/jzmmc.h	/^	unsigned int			len;$/;"	m	struct:mmc_partition_info
+length_cmd	include/mach/jzfb.h	/^	unsigned int length_cmd;$/;"	m	struct:jzfb_smart_config
+length_data_table	include/mach/jzfb.h	/^	unsigned int length_data_table;$/;"	m	struct:jzfb_smart_config
+list	common/libdmmu.c	/^	struct list_head list;$/;"	m	struct:dmmu_handle	typeref:struct:dmmu_handle::list_head	file:
+list	common/libdmmu.c	/^	struct list_head list;$/;"	m	struct:map_node	typeref:struct:map_node::list_head	file:
+list	common/libdmmu.c	/^	struct list_head list;$/;"	m	struct:pmd_node	typeref:struct:pmd_node::list_head	file:
+list	include/mach/jzsnd.h	/^	struct list_head list;$/;"	m	struct:snd_dev_data	typeref:struct:snd_dev_data::list_head
+local_set_watch	common/proc.c	/^static void local_set_watch(void *args) {$/;"	f	file:
+lock	common/libdmmu.c	/^	struct mutex lock;$/;"	m	struct:dmmu_handle	typeref:struct:dmmu_handle::mutex	file:
+lock	common/tcu.c	/^	struct mutex            lock;$/;"	m	struct:jz47xx_tcu_t	typeref:struct:jz47xx_tcu_t::mutex	file:
+lock	common/timer_sys_ost.c	/^	spinlock_t lock;$/;"	m	struct:jz_timerevent	file:
+lock	common/timer_tcu.c	/^	spinlock_t lock;$/;"	m	struct:jz_timerevent	file:
+lock	include/mach/jzdma.h	/^	spinlock_t		lock;$/;"	m	struct:jzdma_channel
+loops_per_jiffy	common/clk/clk.h	/^	unsigned int  loops_per_jiffy;$/;"	m	struct:freq_udelay_jiffy
+m	common/clk/clk_pll.c	/^	int m,n,od,rng;$/;"	m	struct:pll_rate_setting	file:
+map	include/mach/jzdma.h	/^	enum jzdma_type		*map;$/;"	m	struct:jzdma_master	typeref:enum:jzdma_master::jzdma_type
+map	include/mach/jzdma.h	/^	enum jzdma_type map[NR_DMA_CHANNELS];$/;"	m	struct:jzdma_platform_data	typeref:enum:jzdma_platform_data::jzdma_type
+map_list	common/libdmmu.c	/^	struct list_head map_list;$/;"	m	struct:dmmu_handle	typeref:struct:dmmu_handle::list_head	file:
+map_node	common/libdmmu.c	/^static unsigned long map_node(struct pmd_node *n,unsigned int vaddr,unsigned int end)$/;"	f	file:
+map_node	common/libdmmu.c	/^struct map_node {$/;"	s	file:
+master	include/mach/jzdma.h	/^	struct jzdma_master	*master;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::jzdma_master
+max_clk	include/mach/jzspi.h	/^	unsigned long	max_clk;$/;"	m	struct:jz_spi_info
+max_clk	include/mach/jzssi.h	/^	unsigned long	max_clk;$/;"	m	struct:jz_spi_info
+max_freq	include/mach/jzmmc.h	/^	unsigned int			max_freq;$/;"	m	struct:jzmmc_platform_data
+max_num	common/clk/clk.h	/^	unsigned int  max_num;$/;"	m	struct:freq_udelay_jiffy
+mclk_name	include/mach/tx_isp.h	/^	const char *mclk_name;$/;"	m	struct:tx_isp_sensor_board_info
+mcu_gpio_handler	common/gpio.c	/^static irqreturn_t mcu_gpio_handler(int irq, void *data)$/;"	f	file:
+mcu_gpio_reg	common/gpio.c	/^	unsigned int *mcu_gpio_reg;$/;"	m	struct:jzgpio_chip	file:
+mcu_gpio_register	common/gpio.c	/^int mcu_gpio_register(unsigned int reg) {$/;"	f
+mdio_gpio_data	chip-t21/isvp/common/misc.c	/^static struct mdio_gpio_platform_data mdio_gpio_data = {$/;"	v	typeref:struct:mdio_gpio_platform_data	file:
+minor	include/mach/jzsnd.h	/^	int minor;$/;"	m	struct:snd_dev_data
+minor2index	include/mach/jzsnd.h	208;"	d
+mmc_partition_info	include/mach/jzmmc.h	/^struct mmc_partition_info {$/;"	s
+mmc_recovery_info	include/mach/jzmmc.h	/^struct mmc_recovery_info {$/;"	s
+mode	include/mach/jzfb.h	/^	enum tft_lcd_mode mode;$/;"	m	struct:jzfb_tft_config	typeref:enum:jzfb_tft_config::tft_lcd_mode
+modes	include/mach/jzfb.h	/^	struct fb_videomode *modes;$/;"	m	struct:jzfb_platform_data	typeref:struct:jzfb_platform_data::fb_videomode
+msecs	common/reset.c	/^	unsigned msecs;$/;"	m	struct:wdt_reset	file:
+mtd_partition	include/mach/jzssi.h	/^	struct mtd_partition *mtd_partition;$/;"	m	struct:jz_spi_nand_platform_data	typeref:struct:jz_spi_nand_platform_data::mtd_partition
+mtd_partition	include/mach/jzssi.h	/^	struct mtd_partition *mtd_partition;$/;"	m	struct:spi_nor_platform_data	typeref:struct:spi_nor_platform_data::mtd_partition
+n	common/clk/clk_pll.c	/^	int m,n,od,rng;$/;"	m	struct:pll_rate_setting	file:
+name	common/clk/clk.h	/^	const char *name;$/;"	m	struct:clk
+name	common/clk/cpm_pwc.c	/^	const char *name;$/;"	m	struct:cpm_pwc	file:
+name	include/mach/jzmmc.h	/^	char				name[32];$/;"	m	struct:mmc_partition_info
+name	include/mach/jzssi.h	/^	char *name;$/;"	m	struct:spi_nor_platform_data
+name	include/mach/jzssi.h	/^	char name[SIZEOF_NAME];$/;"	m	struct:jz_spi_support
+name	include/mach/tx_isp.h	/^	const char *name;$/;"	m	struct:tx_isp_sensor_board_info
+name	include/mach/tx_isp.h	/^	const char *name;$/;"	m	struct:tx_isp_subdev_clk_info
+name	include/soc/gpio.h	/^	char *name;$/;"	m	struct:jz_gpio_func_def
+num	include/mach/jzmmc.h	/^	short				num;$/;"	m	struct:jzmmc_pin
+num_block_info	include/mach/jzssi.h	/^	int num_block_info;$/;"	m	struct:spi_nor_platform_data
+num_chipselect	include/mach/jzspi.h	/^	u32	 num_chipselect;$/;"	m	struct:jz_spi_info
+num_chipselect	include/mach/jzssi.h	/^	u32	 num_chipselect;$/;"	m	struct:jz_sfc_info
+num_chipselect	include/mach/jzssi.h	/^	u32	 num_chipselect;$/;"	m	struct:jz_spi_info
+num_modes	include/mach/jzfb.h	/^	unsigned int num_modes;$/;"	m	struct:jzfb_platform_data
+num_partition_info	include/mach/jzssi.h	/^	int num_partition_info;$/;"	m	struct:spi_nor_platform_data
+num_partitions	include/mach/jzssi.h	/^	int num_partitions;$/;"	m	struct:jz_spi_nand_platform_data
+num_spi_flash	include/mach/jzssi.h	/^	int num_spi_flash;$/;"	m	struct:jz_spi_nand_platform_data
+ocr_avail	include/mach/jzmmc.h	/^	unsigned int			ocr_avail;$/;"	m	struct:jzmmc_platform_data
+od	common/clk/clk_pll.c	/^	int m,n,od,rng;$/;"	m	struct:pll_rate_setting	file:
+off	common/clk/clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	file:
+off	common/clk/clk_cpccr.c	/^	short off,sel,ce;$/;"	m	struct:cpccr_clk	file:
+oobsize	include/mach/jzssi.h	/^	int oobsize;$/;"	m	struct:jz_spi_support
+open	include/mach/jzsnd.h	/^	int (*open)(struct snd_dev_data *ddata, struct file *file);$/;"	m	struct:snd_dev_data
+ops	common/clk/clk.h	/^	struct clk_ops *ops;$/;"	m	struct:clk	typeref:struct:clk::clk_ops
+ost_readl	common/timer_sys_ost.c	50;"	d	file:
+ost_writel	common/timer_sys_ost.c	51;"	d	file:
+page	common/libdmmu.c	/^	unsigned long page;$/;"	m	struct:pmd_node	file:
+page_num	include/mach/jzssi.h	/^	int page_num;$/;"	m	struct:jz_spi_support
+page_size	include/mach/jzssi.h	/^	int page_size;$/;"	m	struct:jz_spi_support
+pagesize	include/mach/jzssi.h	/^	u32 pagesize;$/;"	m	struct:spi_nor_platform_data
+parent	common/clk/clk.h	/^	struct clk *parent;$/;"	m	struct:clk	typeref:struct:clk::clk
+partition_info	include/mach/jzmmc.h	/^	struct mmc_partition_info	*partition_info;$/;"	m	struct:mmc_recovery_info	typeref:struct:mmc_recovery_info::mmc_partition_info
+partition_num	include/mach/jzmmc.h	/^	unsigned int			partition_num;$/;"	m	struct:mmc_recovery_info
+pdata	chip-t21/isvp/common/board_base.c	/^	void *pdata;$/;"	m	struct:jz_platform_device	file:
+pdevices	chip-t21/isvp/common/board_base.c	/^	struct platform_device *pdevices;$/;"	m	struct:jz_platform_device	typeref:struct:jz_platform_device::platform_device	file:
+pdg	common/libdmmu.c	/^	unsigned long pdg;$/;"	m	struct:dmmu_handle	file:
+permission	include/mach/jzmmc.h	/^	unsigned int			permission;$/;"	m	struct:mmc_recovery_info
+pin	include/soc/gpio.h	/^	unsigned short		pin;$/;"	m	struct:jz_gpio_phy_reset
+pins	include/soc/gpio.h	/^	unsigned long pins;$/;"	m	struct:jz_gpio_func_def
+pins_config	include/mach/jzspi.h	/^	void (*pins_config)(void);		\/* configure spi function pins (CLK,DR,RT) by user if need. *\/$/;"	m	struct:jz_spi_info
+pins_config	include/mach/jzssi.h	/^	void (*pins_config)(void);		\/* configure spi function pins (CLK,DR,RT) by user if need. *\/$/;"	m	struct:jz_spi_info
+pio_mode	include/mach/jzmmc.h	/^	unsigned int			pio_mode;$/;"	m	struct:jzmmc_platform_data
+pix_clk_inv	include/mach/jzfb.h	/^	unsigned int pix_clk_inv:1;$/;"	m	struct:jzfb_tft_config
+pix_fmt	include/mach/jzfb.h	/^	enum smart_lcd_format pix_fmt;$/;"	m	struct:jzfb_smart_config	typeref:enum:jzfb_smart_config::smart_lcd_format
+plat_irq_dispatch	common/irq.c	/^asmlinkage void plat_irq_dispatch(void)$/;"	f
+plat_mem_setup	common/setup.c	/^void __init plat_mem_setup(void)$/;"	f
+plat_time_init	common/setup.c	/^void __init plat_time_init(void)$/;"	f
+platform_devio_array	common/platform.c	/^struct jz_gpio_func_def platform_devio_array[] = {$/;"	v	typeref:struct:jz_gpio_func_def
+platform_devio_array_size	common/platform.c	/^int platform_devio_array_size = ARRAY_SIZE(platform_devio_array);$/;"	v
+pll_get_rate	common/clk/clk_pll.c	/^static unsigned long pll_get_rate(struct clk *clk) {$/;"	f	file:
+pll_rate_setting	common/clk/clk_pll.c	/^struct pll_rate_setting {$/;"	s	file:
+pll_set_rate	common/clk/clk_pll.c	/^static int pll_set_rate(struct clk *clk,unsigned long rate)$/;"	f	file:
+pm_flags	include/mach/jzmmc.h	/^	unsigned int			pm_flags;$/;"	m	struct:jzmmc_platform_data
+pm_ops	common/pm.c	/^struct platform_suspend_ops pm_ops = {$/;"	v	typeref:struct:platform_suspend_ops
+pmd_list	common/libdmmu.c	/^	struct list_head pmd_list;$/;"	m	struct:dmmu_handle	typeref:struct:dmmu_handle::list_head	file:
+pmd_node	common/libdmmu.c	/^struct pmd_node {$/;"	s	file:
+pollen	include/mach/jzssi.h	/^	u8 pollen;$/;"	m	struct:sfc_nor_info
+port	include/soc/gpio.h	/^	enum gpio_port		port;$/;"	m	struct:jz_gpio_phy_reset	typeref:enum:jz_gpio_phy_reset::gpio_port
+port	include/soc/gpio.h	/^	int port;$/;"	m	struct:jz_gpio_func_def
+pp_maxbusy	include/mach/jzssi.h	/^	u32 pp_maxbusy;$/;"	m	struct:spi_nor_platform_data
+priv_capable	include/mach/txx-funcs.h	/^	bool (*priv_capable)(int cap);$/;"	m	struct:jz_driver_common_interfaces
+priv_clk_disable	include/mach/txx-funcs.h	/^	void (*priv_clk_disable)(struct clk *clk);$/;"	m	struct:jz_driver_common_interfaces
+priv_clk_enable	include/mach/txx-funcs.h	/^	int (*priv_clk_enable)(struct clk *clk);$/;"	m	struct:jz_driver_common_interfaces
+priv_clk_get	include/mach/txx-funcs.h	/^	struct clk *(*priv_clk_get)(struct device *dev, const char *id);$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::priv_clk_get
+priv_clk_get_rate	include/mach/txx-funcs.h	/^	unsigned long (*priv_clk_get_rate)(struct clk *clk);$/;"	m	struct:jz_driver_common_interfaces
+priv_clk_is_enabled	include/mach/txx-funcs.h	/^	int (*priv_clk_is_enabled)(struct clk *clk);$/;"	m	struct:jz_driver_common_interfaces
+priv_clk_put	include/mach/txx-funcs.h	/^	void(*priv_clk_put)(struct clk *clk);$/;"	m	struct:jz_driver_common_interfaces
+priv_clk_set_rate	include/mach/txx-funcs.h	/^	int (*priv_clk_set_rate)(struct clk *clk, unsigned long rate);$/;"	m	struct:jz_driver_common_interfaces
+priv_complete	include/mach/txx-funcs.h	/^	void (*priv_complete)(struct completion *x);$/;"	m	struct:jz_driver_common_interfaces
+priv_data	include/mach/jzsnd.h	/^	void *priv_data;$/;"	m	struct:snd_dev_data
+priv_dev_get_drvdata	include/mach/txx-funcs.h	/^	void* (*priv_dev_get_drvdata)(const struct device *dev);$/;"	m	struct:jz_driver_common_interfaces
+priv_dev_set_drvdata	include/mach/txx-funcs.h	/^	int (*priv_dev_set_drvdata)(struct device *dev, void *data);$/;"	m	struct:jz_driver_common_interfaces
+priv_disable_irq	include/mach/txx-funcs.h	/^	void (*priv_disable_irq)(unsigned int irq);$/;"	m	struct:jz_driver_common_interfaces
+priv_enable_irq	include/mach/txx-funcs.h	/^	void (*priv_enable_irq)(unsigned int irq);$/;"	m	struct:jz_driver_common_interfaces
+priv_free_irq	include/mach/txx-funcs.h	/^	void (*priv_free_irq)(unsigned int irq, void *dev_id);$/;"	m	struct:jz_driver_common_interfaces
+priv_gpio_direction_input	include/mach/txx-funcs.h	/^	int (*priv_gpio_direction_input)(unsigned gpio);$/;"	m	struct:jz_driver_common_interfaces
+priv_gpio_direction_output	include/mach/txx-funcs.h	/^	int (*priv_gpio_direction_output)(unsigned gpio, int value);$/;"	m	struct:jz_driver_common_interfaces
+priv_gpio_free	include/mach/txx-funcs.h	/^	void (*priv_gpio_free)(unsigned gpio);$/;"	m	struct:jz_driver_common_interfaces
+priv_gpio_request	include/mach/txx-funcs.h	/^	int (*priv_gpio_request)(unsigned gpio, const char *label);$/;"	m	struct:jz_driver_common_interfaces
+priv_gpio_set_debounce	include/mach/txx-funcs.h	/^	int (*priv_gpio_set_debounce)(unsigned gpio, unsigned debounce);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_del_driver	include/mach/txx-funcs.h	/^	void (*priv_i2c_del_driver)(struct i2c_driver *);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_get_adapter	include/mach/txx-funcs.h	/^	struct i2c_adapter* (*priv_i2c_get_adapter)(int nr);$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::priv_i2c_get_adapter
+priv_i2c_get_clientdata	include/mach/txx-funcs.h	/^	void *(*priv_i2c_get_clientdata)(const struct i2c_client *dev);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_new_device	include/mach/txx-funcs.h	/^	struct i2c_client *(*priv_i2c_new_device)(struct i2c_adapter *adap, struct i2c_board_info const *info);$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::priv_i2c_new_device
+priv_i2c_put_adapter	include/mach/txx-funcs.h	/^	void (*priv_i2c_put_adapter)(struct i2c_adapter *adap);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_register_driver	include/mach/txx-funcs.h	/^	int (*priv_i2c_register_driver)(struct module *, struct i2c_driver *);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_set_clientdata	include/mach/txx-funcs.h	/^	void (*priv_i2c_set_clientdata)(struct i2c_client *dev, void *data);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_transfer	include/mach/txx-funcs.h	/^	int (*priv_i2c_transfer)(struct i2c_adapter *adap, struct i2c_msg *msgs, int num);$/;"	m	struct:jz_driver_common_interfaces
+priv_i2c_unregister_device	include/mach/txx-funcs.h	/^	void (*priv_i2c_unregister_device)(struct i2c_client *client);$/;"	m	struct:jz_driver_common_interfaces
+priv_init_completion	include/mach/txx-funcs.h	/^	void (*priv_init_completion)(struct completion *x);$/;"	m	struct:jz_driver_common_interfaces
+priv_iounmap	include/mach/txx-funcs.h	/^	void (*priv_iounmap)(const volatile void __iomem *addr);$/;"	m	struct:jz_driver_common_interfaces
+priv_jz_proc_mkdir	include/mach/txx-funcs.h	/^	struct proc_dir_entry* (*priv_jz_proc_mkdir)(char *s);$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::priv_jz_proc_mkdir
+priv_jzgpio_ctrl_pull	include/mach/txx-funcs.h	/^	int (*priv_jzgpio_ctrl_pull)(enum gpio_port port, int enable_pull,unsigned long pins);$/;"	m	struct:jz_driver_common_interfaces
+priv_jzgpio_set_func	include/mach/txx-funcs.h	/^	int (*priv_jzgpio_set_func)(enum gpio_port port, enum gpio_function func,unsigned long pins);$/;"	m	struct:jz_driver_common_interfaces
+priv_misc_deregister	include/mach/txx-funcs.h	/^	int (*priv_misc_deregister)(struct miscdevice *mdev);$/;"	m	struct:jz_driver_common_interfaces
+priv_misc_register	include/mach/txx-funcs.h	/^	int (*priv_misc_register)(struct miscdevice *mdev);$/;"	m	struct:jz_driver_common_interfaces
+priv_module_put	include/mach/txx-funcs.h	/^	void (*priv_module_put)(struct module *module);$/;"	m	struct:jz_driver_common_interfaces
+priv_msleep	include/mach/txx-funcs.h	/^	void (*priv_msleep)(unsigned int msecs);$/;"	m	struct:jz_driver_common_interfaces
+priv_mutex_lock	include/mach/txx-funcs.h	/^	void (*priv_mutex_lock)(struct mutex *lock);$/;"	m	struct:jz_driver_common_interfaces
+priv_mutex_unlock	include/mach/txx-funcs.h	/^	void (*priv_mutex_unlock)(struct mutex *lock);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_device_register	include/mach/txx-funcs.h	/^	int (*priv_platform_device_register)(struct platform_device *pdev);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_device_unregister	include/mach/txx-funcs.h	/^	void (*priv_platform_device_unregister)(struct platform_device *pdev);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_driver_register	include/mach/txx-funcs.h	/^	int (*priv_platform_driver_register)(struct platform_driver *drv);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_driver_unregister	include/mach/txx-funcs.h	/^	void (*priv_platform_driver_unregister)(struct platform_driver *drv);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_get_drvdata	include/mach/txx-funcs.h	/^	void *(*priv_platform_get_drvdata)(const struct platform_device *pdev);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_get_irq	include/mach/txx-funcs.h	/^	int (*priv_platform_get_irq)(struct platform_device *dev, unsigned int num);$/;"	m	struct:jz_driver_common_interfaces
+priv_platform_get_resource	include/mach/txx-funcs.h	/^	struct resource *(*priv_platform_get_resource)(struct platform_device *dev,$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::priv_platform_get_resource
+priv_platform_set_drvdata	include/mach/txx-funcs.h	/^	void (*priv_platform_set_drvdata)(struct platform_device *pdev, void *data);$/;"	m	struct:jz_driver_common_interfaces
+priv_proc_create_data	include/mach/txx-funcs.h	/^	struct proc_dir_entry *(*priv_proc_create_data)(const char *name, umode_t mode,$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::priv_proc_create_data
+priv_request_threaded_irq	include/mach/txx-funcs.h	/^	int (*priv_request_threaded_irq)(unsigned int irq, irq_handler_t handler,$/;"	m	struct:jz_driver_common_interfaces
+priv_sched_clock	include/mach/txx-funcs.h	/^	unsigned long long (*priv_sched_clock)(void);$/;"	m	struct:jz_driver_common_interfaces
+priv_seq_lseek	include/mach/txx-funcs.h	/^	loff_t (*priv_seq_lseek)(struct file *file, loff_t offset, int whence);$/;"	m	struct:jz_driver_common_interfaces
+priv_seq_read	include/mach/txx-funcs.h	/^	ssize_t (*priv_seq_read)(struct file *file, char __user *buf, size_t size, loff_t *ppos);$/;"	m	struct:jz_driver_common_interfaces
+priv_single_open_size	include/mach/txx-funcs.h	/^	int (*priv_single_open_size)(struct file *file, int (*show)(struct seq_file *, void *),$/;"	m	struct:jz_driver_common_interfaces
+priv_single_release	include/mach/txx-funcs.h	/^	int (*priv_single_release)(struct inode *inode, struct file *file);$/;"	m	struct:jz_driver_common_interfaces
+priv_spin_unlock_irqrestore	include/mach/txx-funcs.h	/^	void (*priv_spin_unlock_irqrestore)(spinlock_t *lock, unsigned long flags);$/;"	m	struct:jz_driver_common_interfaces
+priv_try_module_get	include/mach/txx-funcs.h	/^	bool (*priv_try_module_get)(struct module *module);$/;"	m	struct:jz_driver_common_interfaces
+priv_wait_for_completion_interruptible	include/mach/txx-funcs.h	/^	int (*priv_wait_for_completion_interruptible)(struct completion *x);$/;"	m	struct:jz_driver_common_interfaces
+private_funcs	common/platform.c	/^static struct jz_driver_common_interfaces private_funcs = {$/;"	v	typeref:struct:jz_driver_common_interfaces	file:
+private_init	include/mach/jzmmc.h	/^	int				(*private_init)(void);$/;"	m	struct:jzmmc_platform_data
+prom_putchar	common/serial.c	/^void prom_putchar(char c)$/;"	f
+prom_putstr	common/serial.c	/^void prom_putstr(char *s)$/;"	f
+protect_boundary	include/mach/jzmmc.h	/^	unsigned int			protect_boundary;$/;"	m	struct:mmc_recovery_info
+putchar	common/serial.c	/^static void putchar(char ch)$/;"	f	file:
+putchar_dummy	common/serial.c	/^static void putchar_dummy(char ch)$/;"	f	file:
+putchar_f	common/serial.c	/^static putchar_f_t putchar_f = check_uart;$/;"	v	file:
+putchar_f_t	common/serial.c	/^typedef void (*putchar_f_t)(char);$/;"	t	file:
+pwc_wakelock	common/clk/cpm_pwc.c	/^	struct  wake_lock  pwc_wakelock;$/;"	m	struct:cpm_pwc_ctrl	typeref:struct:cpm_pwc_ctrl::wake_lock	file:
+pwdn_gpio	include/mach/tx_isp.h	/^	unsigned int pwdn_gpio;$/;"	m	struct:tx_isp_sensor_board_info
+pwm_disable_clk32k	include/mach/jzmmc.h	85;"	d
+pwm_enable_clk32k	include/mach/jzmmc.h	84;"	d
+pwm_flag	common/tcu.c	/^	short pwm_flag;$/;"	m	struct:tcu_device	file:
+pwm_flag	include/mach/jztcu.h	/^	short pwm_flag;$/;"	m	struct:tcu_device
+pwm_shutdown	common/tcu.c	/^	unsigned int pwm_shutdown; \/*0-->graceful shutdown   1-->abrupt shutdown only use in TCU1_MODE*\/$/;"	m	struct:tcu_device	file:
+pwm_shutdown	include/mach/jztcu.h	/^	unsigned int pwm_shutdown; \/*0-->graceful shutdown   1-->abrupt shutdown only use in TCU1_MODE*\/$/;"	m	struct:tcu_device
+pwr	include/mach/jzmmc.h	/^	struct jzmmc_pin 		pwr;$/;"	m	struct:card_gpio	typeref:struct:card_gpio::jzmmc_pin
+pxignore	common/gpio.c	/^	unsigned int pxignore;$/;"	m	struct:jzgpio_state	file:
+pxint	common/gpio.c	/^	unsigned int pxint;$/;"	m	struct:jzgpio_state	file:
+pxmsk	common/gpio.c	/^	unsigned int pxmsk;$/;"	m	struct:jzgpio_state	file:
+pxpat0	common/gpio.c	/^	unsigned int pxpat0;$/;"	m	struct:jzgpio_state	file:
+pxpat1	common/gpio.c	/^	unsigned int pxpat1;$/;"	m	struct:jzgpio_state	file:
+pxpeh	common/gpio.c	/^	unsigned int pxpeh;$/;"	m	struct:jzgpio_state	file:
+pxpel	common/gpio.c	/^	unsigned int pxpel;$/;"	m	struct:jzgpio_state	file:
+quad_mode	include/mach/jzssi.h	/^	struct spi_quad_mode *quad_mode;$/;"	m	struct:spi_nor_platform_data	typeref:struct:spi_nor_platform_data::spi_quad_mode
+rate	common/clk/clk.h	/^	unsigned long rate;$/;"	m	struct:clk
+rate	common/clk/clk_pll.c	/^	unsigned long rate;$/;"	m	struct:pll_rate_setting	file:
+rate	common/timer_sys_ost.c	/^	unsigned int rate;$/;"	m	struct:jz_timerevent	file:
+rate	common/timer_tcu.c	/^	unsigned int rate;$/;"	m	struct:jz_timerevent	file:
+rate	include/mach/tx_isp.h	/^	unsigned long rate;$/;"	m	struct:tx_isp_subdev_clk_info
+rate_fops	common/clk/clk.c	/^static const struct file_operations rate_fops ={$/;"	v	typeref:struct:file_operations	file:
+rate_open	common/clk/clk.c	/^static int rate_open(struct inode *inode, struct file *file)$/;"	f	file:
+rate_show	common/clk/clk.c	/^static int rate_show(struct seq_file *m, void *v)$/;"	f	file:
+rate_write	common/clk/clk.c	/^static int rate_write(struct file *file, const char __user *buffer,size_t count, loff_t *data)$/;"	f	file:
+rd	include/mach/jzfb.h	/^    unsigned long rd;$/;"	m	struct:lcdc_gpio_struct
+rdy_anti_jit	include/mach/jzfb.h	/^	unsigned int rdy_anti_jit:1;$/;"	m	struct:jzfb_smart_config
+rdy_dp	include/mach/jzfb.h	/^	unsigned int rdy_dp:1;$/;"	m	struct:jzfb_smart_config
+rdy_switch	include/mach/jzfb.h	/^	unsigned int rdy_switch:1;$/;"	m	struct:jzfb_smart_config
+read	include/mach/jzsnd.h	/^	ssize_t (*read)(struct snd_dev_data *ddata,$/;"	m	struct:snd_dev_data
+record_buildin_incall_route	include/mach/jzsnd.h	/^	struct snd_board_route record_buildin_incall_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_buildin_mic_route	include/mach/jzsnd.h	/^	struct snd_board_route record_buildin_mic_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_def_route	include/mach/jzsnd.h	/^	struct snd_board_route record_def_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_digital_volume_base	include/mach/jzsnd.h	/^	int record_digital_volume_base;				\/*adc*\/$/;"	m	struct:snd_codec_data
+record_digital_volume_base	include/mach/jzsnd.h	/^	int record_digital_volume_base;		\/\/val: 32(0dB), +1 ~ +23 (dB);$/;"	m	struct:snd_board_route
+record_headset_incall_route	include/mach/jzsnd.h	/^	struct snd_board_route record_headset_incall_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_headset_mic_route	include/mach/jzsnd.h	/^	struct snd_board_route record_headset_mic_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_linein1_route	include/mach/jzsnd.h	/^	struct snd_board_route record_linein1_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_linein2_route	include/mach/jzsnd.h	/^	struct snd_board_route record_linein2_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_linein3_route	include/mach/jzsnd.h	/^	struct snd_board_route record_linein3_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_linein4_route	include/mach/jzsnd.h	/^    struct snd_board_route record_linein4_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_linein_route	include/mach/jzsnd.h	/^	struct snd_board_route record_linein_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+record_volume_base	include/mach/jzsnd.h	/^	int record_volume_base;						\/*mic*\/$/;"	m	struct:snd_codec_data
+record_volume_base	include/mach/jzsnd.h	/^	int record_volume_base;				\/\/val: 32(0dB), +4, +8, +16, +20 (dB);$/;"	m	struct:snd_board_route
+recovery_info	include/mach/jzmmc.h	/^	struct mmc_recovery_info	*recovery_info;$/;"	m	struct:jzmmc_platform_data	typeref:struct:jzmmc_platform_data::mmc_recovery_info
+reg	common/gpio.c	/^	void __iomem *reg;$/;"	m	struct:jzgpio_chip	file:
+reg	common/tcu.c	/^	void __iomem            *reg;$/;"	m	struct:jz47xx_tcu_t	file:
+reg_offset	common/clk/cpm_pwc.c	/^	unsigned int reg_offset;$/;"	m	struct:cpm_pwc	file:
+regr	common/tcu.c	74;"	d	file:
+regulator_name	include/mach/tx_isp.h	/^	const char *regulator_name[TX_SENSOR_MAX_REGULATOR_NUM];$/;"	m	struct:tx_isp_sensor_board_info
+regw	common/tcu.c	75;"	d	file:
+release	include/mach/jzsnd.h	/^	int (*release)(struct snd_dev_data *ddata, struct file *file);$/;"	m	struct:snd_dev_data
+removal	include/mach/jzmmc.h	/^	unsigned short			removal;$/;"	m	struct:jzmmc_platform_data
+replay_def_route	include/mach/jzsnd.h	/^	struct snd_board_route replay_def_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+replay_digital_volume_base	include/mach/jzsnd.h	/^	int replay_digital_volume_base;				\/*dac*\/$/;"	m	struct:snd_codec_data
+replay_digital_volume_base	include/mach/jzsnd.h	/^	int replay_digital_volume_base;		\/\/val: 32(0dB), -1 ~ -31 (dB);$/;"	m	struct:snd_board_route
+replay_headset_and_speaker_route	include/mach/jzsnd.h	/^	struct snd_board_route replay_headset_and_speaker_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+replay_headset_route	include/mach/jzsnd.h	/^	struct snd_board_route replay_headset_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+replay_loop_route	include/mach/jzsnd.h	/^	struct snd_board_route replay_loop_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+replay_speaker_route	include/mach/jzsnd.h	/^	struct snd_board_route replay_speaker_route;$/;"	m	struct:snd_codec_data	typeref:struct:snd_codec_data::snd_board_route
+replay_volume_base	include/mach/jzsnd.h	/^	int replay_volume_base;						\/*hp*\/$/;"	m	struct:snd_codec_data
+replay_volume_base	include/mach/jzsnd.h	/^	int replay_volume_base;				\/\/val: +6 ~ +1, 32(0dB), -1 ~ -25 (dB);$/;"	m	struct:snd_board_route
+reserve_clk	include/mach/txx-funcs.h	/^	unsigned int reserve_clk[8];$/;"	m	struct:jz_driver_common_interfaces
+reserve_platform	include/mach/txx-funcs.h	/^	unsigned int reserve_platform[8];$/;"	m	struct:jz_driver_common_interfaces
+reserved	include/mach/jzdma.h	/^	unsigned long reserved[2];$/;"	m	struct:dma_desc
+reserved_page	common/libdmmu.c	/^static unsigned long reserved_page = 0;$/;"	v	file:
+reserved_pte	common/libdmmu.c	/^static unsigned long reserved_pte = 0;$/;"	v	file:
+reserver_i2c	include/mach/txx-funcs.h	/^	unsigned int reserver_i2c[8];$/;"	m	struct:jz_driver_common_interfaces
+reset_command	common/reset.c	/^static char *reset_command[] = {"wdt","hibernate","recovery"};$/;"	v	file:
+reset_dll	common/pm.c	/^void noinline reset_dll(void)$/;"	f
+reset_gpio	include/mach/tx_isp.h	/^	unsigned int reset_gpio;$/;"	m	struct:tx_isp_sensor_board_info
+reset_init	common/reset.c	/^arch_initcall(reset_init);$/;"	v
+reset_init	common/reset.c	/^int __init reset_init(void)$/;"	f
+reset_keep_power	common/reset.c	/^void inline reset_keep_power(int keep_pwr)$/;"	f
+reset_proc_fops	common/reset.c	/^static const struct file_operations reset_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+reset_proc_open	common/reset.c	/^static int reset_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+reset_proc_show	common/reset.c	/^static int reset_proc_show(struct seq_file *m, void *v)$/;"	f	file:
+reset_task	common/reset.c	/^static int reset_task(void *data) {$/;"	f	file:
+reset_write_proc	common/reset.c	/^static int reset_write_proc(struct file *file, const char __user *buffer,$/;"	f	file:
+resettimer	common/timer_sys_ost.c	/^static inline void resettimer(int count) {$/;"	f	file:
+resettimer	common/timer_tcu.c	/^static inline void resettimer(int count) {$/;"	f	file:
+residue	include/mach/jzdma.h	/^	int 			residue;$/;"	m	struct:jzdma_channel
+restarttimer	common/timer_sys_ost.c	/^static inline void restarttimer(void) {$/;"	f	file:
+restarttimer	common/timer_tcu.c	/^static inline void restarttimer(void) {$/;"	f	file:
+resume	include/mach/jzsnd.h	/^	int (*resume)(struct platform_device *pdev);$/;"	m	struct:snd_dev_data
+rmem_base	common/platform.c	/^EXPORT_SYMBOL(rmem_base);$/;"	v
+rmem_base	common/platform.c	/^unsigned long rmem_base = 0;$/;"	v
+rmem_parse	common/platform.c	/^static int __init rmem_parse(char *str)$/;"	f	file:
+rmem_size	common/platform.c	/^EXPORT_SYMBOL(rmem_size);$/;"	v
+rmem_size	common/platform.c	/^unsigned long rmem_size = 0;$/;"	v
+rng	common/clk/clk_pll.c	/^	int m,n,od,rng;$/;"	m	struct:pll_rate_setting	file:
+route	common/clk/clk_cgu.c	/^	unsigned int route[4];$/;"	m	struct:clk_selectors	file:
+route	include/mach/jzsnd.h	/^	enum snd_codec_route_t route;$/;"	m	struct:snd_board_route	typeref:enum:snd_board_route::snd_codec_route_t
+rst	include/mach/jzfb.h	/^    unsigned long rst;$/;"	m	struct:lcdc_gpio_struct
+rst	include/mach/jzmmc.h	/^	struct jzmmc_pin 		rst;$/;"	m	struct:card_gpio	typeref:struct:card_gpio::jzmmc_pin
+rtc_write_reg	common/reset.c	/^static void inline rtc_write_reg(int reg,int value)$/;"	f	file:
+rx_dcm_def	include/mach/jzdma.h	/^	unsigned long 		rx_dcm_def;$/;"	m	struct:jzdma_channel
+saddr	include/mach/jzmmc.h	/^	unsigned int			saddr;$/;"	m	struct:mmc_partition_info
+save	common/gpio.c	/^	unsigned int save[6];$/;"	m	struct:jzgpio_chip	file:
+save	include/soc/gpio.h	/^	unsigned int save[6];$/;"	m	struct:gpio_reg_func
+save_tcsm	common/pm.c	/^static unsigned int save_tcsm[SAVE_SIZE \/ 4];$/;"	v	file:
+sched_clock	common/timer_sys_ost.c	/^unsigned long long sched_clock(void)$/;"	f
+sched_clock	common/timer_tcu.c	/^unsigned long long sched_clock(void)$/;"	f
+sd	include/mach/jzdma.h	/^	unsigned long sd;$/;"	m	struct:dma_desc
+sdio_clk	include/mach/jzmmc.h	/^	unsigned short			sdio_clk;$/;"	m	struct:jzmmc_platform_data
+sdio_pdata	chip-t21/isvp/common/mmc.c	/^ struct jzmmc_platform_data sdio_pdata = {$/;"	v	typeref:struct:jzmmc_platform_data
+se_maxbusy	include/mach/jzssi.h	/^	u32 se_maxbusy;$/;"	m	struct:spi_nor_platform_data
+search_cpufrq_setting	common/clk/clk_cpccr.c	/^static struct freq_udelay_jiffy* search_cpufrq_setting(unsigned int rate) {$/;"	f	file:
+sector_size	include/mach/jzssi.h	/^	int sector_size;$/;"	m	struct:jz_spi_support
+sectorsize	include/mach/jzssi.h	/^	u32 sectorsize;$/;"	m	struct:spi_nor_platform_data
+segment_id	include/mach/jz_efuse.h	/^enum segment_id {$/;"	g
+sel	common/clk/clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	file:
+sel	common/clk/clk_cpccr.c	/^	short off,sel,ce;$/;"	m	struct:cpccr_clk	file:
+selector	common/clk/clk_cgu.c	/^const struct clk_selectors selector[] = {$/;"	v	typeref:struct:clk_selectors
+serial_put_hex	common/clk/clk_cgu.c	/^static inline void serial_put_hex(unsigned int x) {$/;"	f	file:
+set_cpccr_h0div	common/clk/clk_cpccr.c	/^static inline void set_cpccr_h0div(struct clk *clk,unsigned int rate)$/;"	f	file:
+set_cpccr_h2div	common/clk/clk_cpccr.c	/^static inline void set_cpccr_h2div(struct clk *clk,unsigned int rate)$/;"	f	file:
+set_cpu_freqs	common/clk/clk.c	/^static unsigned long set_cpu_freqs[] = {$/;"	v	file:
+set_cs	include/mach/jzspi.h	/^	void (*set_cs)(struct jz_spi_info *spi, u8 cs, unsigned int pol); \/* be defined by spi devices driver user *\/$/;"	m	struct:jz_spi_info
+set_cs	include/mach/jzssi.h	/^	void (*set_cs)(struct jz_spi_info *spi, u8 cs,unsigned int pol); \/* be defined by spi devices driver user *\/$/;"	m	struct:jz_spi_info
+set_intc_cpu	common/irq.c	/^static inline void set_intc_cpu(unsigned long irq_num,long cpu) {$/;"	f	file:
+set_parent	common/clk/clk.h	/^	int (*set_parent)(struct clk *,struct clk *);$/;"	m	struct:clk_ops
+set_rate	common/clk/clk.h	/^	int (*set_rate)(struct clk *,unsigned long);$/;"	m	struct:clk_ops
+set_round_rate	common/clk/clk.h	/^	int (*set_round_rate)(struct clk *,unsigned long);$/;"	m	struct:clk_ops
+set_tcu_counter_value	common/tcu.c	/^static void set_tcu_counter_value(int id,int count_value)$/;"	f	file:
+set_tcu_full_half_value	common/tcu.c	/^static void set_tcu_full_half_value(int id,unsigned int full_num,unsigned int half_num)$/;"	f	file:
+set_tcu_irq_mode	common/tcu.c	/^static void set_tcu_irq_mode(int id,enum tcu_irq_mode mode)$/;"	f	file:
+setup_gpio_irq	common/gpio.c	/^static int __init setup_gpio_irq(void)$/;"	f	file:
+setup_gpio_pins	common/gpio.c	/^arch_initcall(setup_gpio_pins);$/;"	v
+setup_gpio_pins	common/gpio.c	/^int __init setup_gpio_pins(void)$/;"	f
+setup_init	common/setup.c	/^int __init setup_init(void)$/;"	f
+setup_ipi	common/irq.c	/^static int setup_ipi(void)$/;"	f	file:
+sfc_info_cfg	chip-t21/isvp/common/spi_bus.c	/^struct jz_sfc_info sfc_info_cfg = {$/;"	v	typeref:struct:jz_sfc_info
+sfc_mode	include/mach/jzssi.h	/^	u8 sfc_mode;$/;"	m	struct:spi_quad_mode
+sfc_nor_info	include/mach/jzssi.h	/^struct sfc_nor_info {$/;"	s
+sft_id_set	common/cpm_usb.c	/^static int sft_id_set = false;$/;"	v	file:
+sg_len	include/mach/jzdma.h	/^	unsigned long	 	sg_len;$/;"	m	struct:jzdma_channel
+sgl	include/mach/jzdma.h	/^	struct scatterlist 	*sgl;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::scatterlist
+shadow_reg	common/gpio.c	/^	void __iomem *shadow_reg;$/;"	m	struct:jzgpio_chip	file:
+shutdown	include/mach/jzsnd.h	/^	void (*shutdown)(struct platform_device *pdev);$/;"	m	struct:snd_dev_data
+size	chip-t21/isvp/common/board_base.c	/^	int size;$/;"	m	struct:jz_platform_device	file:
+size	include/mach/jzssi.h	/^	int size;$/;"	m	struct:jz_spi_support
+sleep_state	common/gpio.c	/^	struct jzgpio_state sleep_state;$/;"	m	struct:jzgpio_chip	typeref:struct:jzgpio_chip::jzgpio_state	file:
+smart_config	include/mach/jzfb.h	/^	struct jzfb_smart_config *smart_config;$/;"	m	struct:jzfb_platform_data	typeref:struct:jzfb_platform_data::jzfb_smart_config
+smart_config_type	include/mach/jzfb.h	/^enum smart_config_type {$/;"	g
+smart_lcd_cwidth	include/mach/jzfb.h	/^enum smart_lcd_cwidth {$/;"	g
+smart_lcd_data_table	include/mach/jzfb.h	/^struct smart_lcd_data_table {$/;"	s
+smart_lcd_dwidth	include/mach/jzfb.h	/^enum smart_lcd_dwidth {$/;"	g
+smart_lcd_format	include/mach/jzfb.h	/^enum smart_lcd_format {$/;"	g
+smart_lcd_type	include/mach/jzfb.h	/^enum smart_lcd_type {$/;"	g
+smart_type	include/mach/jzfb.h	/^	enum smart_lcd_type smart_type;$/;"	m	struct:jzfb_smart_config	typeref:enum:jzfb_smart_config::smart_lcd_type
+snd_board_gpio	include/mach/jzsnd.h	/^struct snd_board_gpio {$/;"	s
+snd_board_route	include/mach/jzsnd.h	/^struct snd_board_route {$/;"	s
+snd_codec_data	include/mach/jzsnd.h	/^struct snd_codec_data {$/;"	s
+snd_codec_route_t	include/mach/jzsnd.h	/^enum snd_codec_route_t {$/;"	g
+snd_dev_data	include/mach/jzsnd.h	/^struct snd_dev_data {$/;"	s
+source	common/clk/clk.h	/^	struct clk *source;$/;"	m	struct:clk	typeref:struct:clk::clk
+spi0_info_cfg	chip-t21/isvp/common/misc.c	/^struct jz_spi_info spi0_info_cfg = {$/;"	v	typeref:struct:jz_spi_info
+spi1_info_cfg	chip-t21/isvp/common/misc.c	/^struct jz_spi_info spi1_info_cfg = {$/;"	v	typeref:struct:jz_spi_info
+spi_nor_block_info	include/mach/jzssi.h	/^struct spi_nor_block_info {$/;"	s
+spi_nor_pdata	chip-t21/isvp/common/spi_bus.c	/^struct spi_nor_platform_data spi_nor_pdata[] = {$/;"	v	typeref:struct:spi_nor_platform_data
+spi_nor_platform_data	include/mach/jzssi.h	/^struct spi_nor_platform_data {$/;"	s
+spi_quad_mode	include/mach/jzssi.h	/^struct spi_quad_mode {$/;"	s
+spin_lock	common/clk/cpm_pwc.c	/^	spinlock_t spin_lock;$/;"	m	struct:cpm_pwc_ctrl	file:
+spin_lock	common/tcu.c	/^	spinlock_t		spin_lock;$/;"	m	struct:jz47xx_tcu_t	file:
+sram_timing	include/soc/gpemc.h	/^	} sram_timing;$/;"	m	struct:__anon9	typeref:struct:__anon9::__anon10
+sram_timing_t	include/soc/gpemc.h	/^} sram_timing_t;$/;"	t	typeref:struct:__anon15
+sram_type	include/soc/gpemc.h	/^		sram_type_t sram_type;$/;"	m	struct:__anon9::__anon10
+sram_type_t	include/soc/gpemc.h	/^} sram_type_t;$/;"	t	typeref:enum:__anon8
+st_regnum	include/mach/jzssi.h	/^	int st_regnum;$/;"	m	struct:spi_nor_platform_data
+start	common/libdmmu.c	/^	unsigned long start;$/;"	m	struct:map_node	file:
+start_func	include/soc/gpio.h	/^	enum gpio_function	start_func;$/;"	m	struct:jz_gpio_phy_reset	typeref:enum:jz_gpio_phy_reset::gpio_function
+status	include/mach/jzdma.h	/^	unsigned short		status;$/;"	m	struct:jzdma_channel
+stop	common/reset.c	/^	unsigned stop;$/;"	m	struct:wdt_reset	file:
+stoptimer	common/timer_sys_ost.c	/^static inline void stoptimer(void) {$/;"	f	file:
+stoptimer	common/timer_tcu.c	/^static inline void stoptimer(void) {$/;"	f	file:
+suspend	include/mach/jzsnd.h	/^	int (*suspend)(struct platform_device *pdev, pm_message_t state);$/;"	m	struct:snd_dev_data
+sw_ahb_from_l2cache	common/clk/clk_cpccr.c	/^static inline void sw_ahb_from_l2cache(void)$/;"	f	file:
+sync_dl	include/mach/jzfb.h	/^	unsigned int sync_dl:1;$/;"	m	struct:jzfb_tft_config
+tBERS_maxbusy	include/mach/jzssi.h	/^	u32 tBERS_maxbusy;$/;"	m	struct:jz_spi_support
+tPROG_maxbusy	include/mach/jzssi.h	/^	u32 tPROG_maxbusy;$/;"	m	struct:jz_spi_support
+tRD_maxbusy	include/mach/jzssi.h	/^	u32 tRD_maxbusy;$/;"	m	struct:jz_spi_support
+task	common/reset.c	/^	struct task_struct *task;$/;"	m	struct:wdt_reset	typeref:struct:wdt_reset::task_struct	file:
+tasklet	common/tcu.c	/^	struct tasklet_struct	tasklet;$/;"	m	struct:tcu_device	typeref:struct:tcu_device::tasklet_struct	file:
+tasklet	include/mach/jzdma.h	/^	struct tasklet_struct	tasklet;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::tasklet_struct
+tasklet	include/mach/jztcu.h	/^	struct tasklet_struct	tasklet;$/;"	m	struct:tcu_device	typeref:struct:tcu_device::tasklet_struct
+tcu_as_counter_config	common/tcu.c	/^int tcu_as_counter_config(struct tcu_device *tcu)$/;"	f
+tcu_as_timer_config	common/tcu.c	/^int tcu_as_timer_config(struct tcu_device *tcu)$/;"	f
+tcu_chs	common/tcu.c	/^} tcu_chs[NR_TCU_CH];$/;"	v	typeref:struct:tcu_device
+tcu_clear_counter_to_zero	common/tcu.c	/^static void tcu_clear_counter_to_zero(int id,enum tcu_mode mode)$/;"	f	file:
+tcu_clear_full_match_flags	common/tcu.c	/^static void tcu_clear_full_match_flags(int id)$/;"	f	file:
+tcu_clear_half_match_flags	common/tcu.c	/^static void tcu_clear_half_match_flags(int id)$/;"	f	file:
+tcu_clk_mode	common/tcu.c	/^enum tcu_clk_mode {$/;"	g	file:
+tcu_clk_mode	include/mach/jztcu.h	/^enum tcu_clk_mode {$/;"	g
+tcu_counter_read	common/tcu.c	/^int tcu_counter_read(struct tcu_device *tcu)$/;"	f
+tcu_device	common/tcu.c	/^struct tcu_device {$/;"	s	file:
+tcu_device	include/mach/jztcu.h	/^struct tcu_device {$/;"	s
+tcu_disable	common/tcu.c	/^void tcu_disable(struct tcu_device *tcu)$/;"	f
+tcu_disable_counter	common/tcu.c	/^void tcu_disable_counter(int id)$/;"	f
+tcu_enable	common/tcu.c	/^int tcu_enable(struct tcu_device *tcu)$/;"	f
+tcu_enable_counter	common/tcu.c	/^void tcu_enable_counter(int id)$/;"	f
+tcu_free	common/tcu.c	/^void tcu_free(struct tcu_device *tcu)$/;"	f
+tcu_init	common/tcu.c	/^arch_initcall(tcu_init);$/;"	v
+tcu_init	common/tcu.c	/^int __init tcu_init(void)$/;"	f
+tcu_irq_mode	common/tcu.c	/^enum tcu_irq_mode {$/;"	g	file:
+tcu_irq_mode	include/mach/jztcu.h	/^enum tcu_irq_mode {$/;"	g
+tcu_mask_full_match_irq	common/tcu.c	/^static void tcu_mask_full_match_irq(int id)$/;"	f	file:
+tcu_mask_half_match_irq	common/tcu.c	/^static void tcu_mask_half_match_irq(int id)$/;"	f	file:
+tcu_mode	common/tcu.c	/^enum tcu_mode {$/;"	g	file:
+tcu_mode	include/mach/jztcu.h	/^enum tcu_mode {$/;"	g
+tcu_pwm_input_disable	common/tcu.c	/^void tcu_pwm_input_disable(int id)$/;"	f
+tcu_pwm_input_enable	common/tcu.c	/^void tcu_pwm_input_enable(int id)$/;"	f
+tcu_pwm_output_disable	common/tcu.c	/^void tcu_pwm_output_disable(int id)$/;"	f
+tcu_pwm_output_enable	common/tcu.c	/^void tcu_pwm_output_enable(int id)$/;"	f
+tcu_readl	common/timer_tcu.c	51;"	d	file:
+tcu_request	common/tcu.c	/^struct tcu_device *tcu_request(int channel_num,void (*channel_handler)(unsigned long))$/;"	f
+tcu_select_clk	common/tcu.c	/^static void tcu_select_clk(int id,int clock)$/;"	f	file:
+tcu_select_division_ratio	common/tcu.c	/^static void tcu_select_division_ratio(int id, unsigned int ratio)$/;"	f	file:
+tcu_set_close_state	common/tcu.c	/^static void tcu_set_close_state(struct tcu_device *tcu)$/;"	f	file:
+tcu_set_full_match_flags	common/tcu.c	/^void tcu_set_full_match_flags(int id)$/;"	f
+tcu_set_half_match_flags	common/tcu.c	/^void tcu_set_half_match_flags(int id)$/;"	f
+tcu_set_pwm_output_init_level	common/tcu.c	/^static void tcu_set_pwm_output_init_level(int id,int level)$/;"	f	file:
+tcu_set_pwm_shutdown	common/tcu.c	/^void tcu_set_pwm_shutdown(int id,unsigned int shutdown)\/*only use in TCU1_MODE*\/$/;"	f
+tcu_set_start_state	common/tcu.c	/^static void tcu_set_start_state(struct tcu_device *tcu)$/;"	f	file:
+tcu_shutdown_counter	common/tcu.c	/^void tcu_shutdown_counter(struct tcu_device *tcu)$/;"	f
+tcu_start_clock	common/tcu.c	/^void tcu_start_clock(int id)$/;"	f
+tcu_stop_clock	common/tcu.c	/^void tcu_stop_clock(int id)$/;"	f
+tcu_unmask_full_match_irq	common/tcu.c	/^static void tcu_unmask_full_match_irq(int id)$/;"	f	file:
+tcu_unmask_half_match_irq	common/tcu.c	/^static void tcu_unmask_half_match_irq(int id)$/;"	f	file:
+tcu_writel	common/timer_tcu.c	52;"	d	file:
+tcumode	common/tcu.c	/^	enum tcu_mode tcumode;$/;"	m	struct:tcu_device	typeref:enum:tcu_device::tcu_mode	file:
+tcumode	include/mach/jztcu.h	/^	enum tcu_mode tcumode;$/;"	m	struct:tcu_device	typeref:enum:tcu_device::tcu_mode
+te_anti_jit	include/mach/jzfb.h	/^	unsigned int te_anti_jit:1;$/;"	m	struct:jzfb_smart_config
+te_dp	include/mach/jzfb.h	/^	unsigned int te_dp:1;$/;"	m	struct:jzfb_smart_config
+te_md	include/mach/jzfb.h	/^	unsigned int te_md:1;$/;"	m	struct:jzfb_smart_config
+te_switch	include/mach/jzfb.h	/^	unsigned int te_switch:1;$/;"	m	struct:jzfb_smart_config
+tf_gpio	chip-t21/isvp/common/mmc.c	/^static struct card_gpio tf_gpio = {$/;"	v	typeref:struct:card_gpio	file:
+tf_pdata	chip-t21/isvp/common/mmc.c	/^struct jzmmc_platform_data tf_pdata = {$/;"	v	typeref:struct:jzmmc_platform_data
+tft_config	include/mach/jzfb.h	/^	struct jzfb_tft_config *tft_config;$/;"	m	struct:jzfb_platform_data	typeref:struct:jzfb_platform_data::jzfb_tft_config
+tft_lcd_color_even	include/mach/jzfb.h	/^enum tft_lcd_color_even {$/;"	g
+tft_lcd_color_odd	include/mach/jzfb.h	/^enum tft_lcd_color_odd {$/;"	g
+tft_lcd_mode	include/mach/jzfb.h	/^enum tft_lcd_mode {$/;"	g
+tgid	common/libdmmu.c	/^	pid_t tgid;$/;"	m	struct:dmmu_handle	file:
+timer	common/clk/cpm_pwc.c	/^	struct timer_list timer;$/;"	m	struct:cpm_pwc	typeref:struct:cpm_pwc::timer_list	file:
+timer	common/ddr.c	/^static struct timer_list timer;$/;"	v	typeref:struct:timer_list	file:
+timer_flag	common/ddr.c	/^static int  timer_flag = 0;$/;"	v	file:
+timercount1	common/ddr.c	/^static void timercount1(unsigned long data)$/;"	f	file:
+timercount2	common/ddr.c	/^static void timercount2(unsigned long data)$/;"	f	file:
+timercount3	common/ddr.c	/^static void timercount3(unsigned long data)$/;"	f	file:
+tmr_src	common/timer_sys_ost.c	/^static struct tmr_src tmr_src ={$/;"	v	typeref:struct:tmr_src	file:
+tmr_src	common/timer_sys_ost.c	/^struct tmr_src {$/;"	s	file:
+tmr_src	common/timer_tcu.c	/^static struct tmr_src tmr_src ={$/;"	v	typeref:struct:tmr_src	file:
+tmr_src	common/timer_tcu.c	/^struct tmr_src {$/;"	s	file:
+tmr_src_disable	common/timer_sys_ost.c	/^static 	void tmr_src_disable(struct clocksource *cs)$/;"	f	file:
+tmr_src_disable	common/timer_tcu.c	/^static 	void tmr_src_disable(struct clocksource *cs)$/;"	f	file:
+tmr_src_enable	common/timer_sys_ost.c	/^static int tmr_src_enable(struct clocksource *cs)$/;"	f	file:
+tmr_src_enable	common/timer_tcu.c	/^static int tmr_src_enable(struct clocksource *cs)$/;"	f	file:
+tmr_src_resume	common/timer_sys_ost.c	/^static void tmr_src_resume(struct clocksource *cs)$/;"	f	file:
+tmr_src_resume	common/timer_tcu.c	/^static void tmr_src_resume(struct clocksource *cs)$/;"	f	file:
+tmr_src_suspend	common/timer_sys_ost.c	/^static	void tmr_src_suspend(struct clocksource *cs)$/;"	f	file:
+tmr_src_suspend	common/timer_tcu.c	/^static	void tmr_src_suspend(struct clocksource *cs)$/;"	f	file:
+to_jzdma_chan	include/mach/jzdma.h	/^static inline struct jzdma_channel *to_jzdma_chan(struct dma_chan *chan)$/;"	f
+toggle_nand_timing_t	include/soc/gpemc.h	/^} toggle_nand_timing_t;$/;"	t	typeref:struct:__anon14
+toggle_timing	include/soc/gpemc.h	/^	} toggle_timing;$/;"	m	struct:__anon9	typeref:struct:__anon9::__anon11
+trace_get_task_struct	common/proc.c	/^static struct task_struct *trace_get_task_struct(pid_t pid)$/;"	f	file:
+truly_240_240_cfg	common/jzfblcd/truly_240_240.c	/^static struct jzfb_smart_config truly_240_240_cfg = {$/;"	v	typeref:struct:jzfb_smart_config	file:
+truly_slcd240240_data_table	common/jzfblcd/truly_240_240.c	/^static struct smart_lcd_data_table truly_slcd240240_data_table[] = {$/;"	v	typeref:struct:smart_lcd_data_table	file:
+truly_slcd240240_ops	common/jzfblcd/truly_240_240.c	/^static struct lcd_callback_ops truly_slcd240240_ops = {$/;"	v	typeref:struct:lcd_callback_ops	file:
+truly_slcd240240_power_initialize	common/jzfblcd/truly_240_240.c	/^static int truly_slcd240240_power_initialize(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+truly_slcd240240_power_off	common/jzfblcd/truly_240_240.c	/^static int truly_slcd240240_power_off(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+truly_slcd240240_power_on	common/jzfblcd/truly_240_240.c	/^static int truly_slcd240240_power_on(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+truly_slcd240240_power_reset	common/jzfblcd/truly_240_240.c	/^static int truly_slcd240240_power_reset(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+truly_slcd240240_set_gpio_func	common/jzfblcd/truly_240_240.c	/^static int truly_slcd240240_set_gpio_func(struct lcdc_gpio_struct *gpio)$/;"	f	file:
+tx_dcm_def	include/mach/jzdma.h	/^	unsigned long 		tx_dcm_def;$/;"	m	struct:jzdma_channel
+tx_desc	include/mach/jzdma.h	/^	struct dma_async_tx_descriptor	tx_desc;$/;"	m	struct:jzdma_channel	typeref:struct:jzdma_channel::dma_async_tx_descriptor
+tx_ioremap	include/mach/txx-funcs.h	/^	void __iomem *(*tx_ioremap)(phys_addr_t offset, unsigned long size);$/;"	m	struct:jz_driver_common_interfaces
+tx_isp_sensor_board_info	include/mach/tx_isp.h	/^struct tx_isp_sensor_board_info{$/;"	s
+tx_isp_subdev_clk_info	include/mach/tx_isp.h	/^struct tx_isp_subdev_clk_info{$/;"	s
+tx_isp_subdev_group_index	include/mach/tx_isp.h	/^enum tx_isp_subdev_group_index {$/;"	g
+tx_isp_subdev_platform_data	include/mach/tx_isp.h	/^struct tx_isp_subdev_platform_data {$/;"	s
+tx_mutex_init	include/mach/txx-funcs.h	/^	void (*tx_mutex_init)(struct mutex *mutex);$/;"	m	struct:jz_driver_common_interfaces
+tx_release_mem_region	include/mach/txx-funcs.h	/^	void (*tx_release_mem_region)(resource_size_t start, resource_size_t n);$/;"	m	struct:jz_driver_common_interfaces
+tx_request_mem_region	include/mach/txx-funcs.h	/^	struct resource * (*tx_request_mem_region)(resource_size_t start, resource_size_t n,$/;"	m	struct:jz_driver_common_interfaces	typeref:struct:jz_driver_common_interfaces::tx_request_mem_region
+tx_request_module	include/mach/txx-funcs.h	/^	int (*tx_request_module)(bool wait, const char *fmt, char *s);$/;"	m	struct:jz_driver_common_interfaces
+tx_spin_lock_init	include/mach/txx-funcs.h	/^	void (*tx_spin_lock_init)(spinlock_t *lock);$/;"	m	struct:jz_driver_common_interfaces
+tx_spin_lock_irqsave	include/mach/txx-funcs.h	/^	void (*tx_spin_lock_irqsave)(spinlock_t *lock, unsigned long *flags);$/;"	m	struct:jz_driver_common_interfaces
+type	include/mach/jzdma.h	/^	enum jzdma_type		type;$/;"	m	struct:jzdma_channel	typeref:enum:jzdma_channel::jzdma_type
+type	include/mach/jzfb.h	/^	enum smart_config_type type;$/;"	m	struct:smart_lcd_data_table	typeref:enum:smart_lcd_data_table::smart_config_type
+type	include/mach/jzmmc.h	/^	int				type;$/;"	m	struct:mmc_partition_info
+type	include/mach/jzmmc.h	/^	unsigned int type;$/;"	m	struct:jzmmc_platform_data
+uart_base	common/serial.c	/^static volatile u8 *uart_base;$/;"	v	file:
+udelay_val	common/clk/clk.h	/^	unsigned int  udelay_val;$/;"	m	struct:freq_udelay_jiffy
+unmap_node	common/libdmmu.c	/^static unsigned long unmap_node(struct pmd_node *n,unsigned long vaddr,unsigned long end,int check)$/;"	f	file:
+using	common/tcu.c	/^	short using;$/;"	m	struct:tcu_device	file:
+value	include/mach/jzfb.h	/^	unsigned int value;$/;"	m	struct:smart_lcd_data_table
+wait_bit	common/clk/cpm_pwc.c	/^	unsigned int wait_bit;$/;"	m	struct:cpm_pwc	file:
+wake_map	common/gpio.c	/^	unsigned int wake_map;$/;"	m	struct:jzgpio_chip	file:
+watch_proc_fops	common/proc.c	/^static const struct file_operations watch_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+watch_proc_open	common/proc.c	/^static int watch_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+watch_proc_show	common/proc.c	/^static int watch_proc_show(struct seq_file *m, void *v)$/;"	f	file:
+watch_struct	common/proc.c	/^struct watch_struct$/;"	s	file:
+watch_write_proc	common/proc.c	/^static int watch_write_proc(struct file *file, const char __user *buffer,$/;"	f	file:
+watchhi	common/proc.c	/^	unsigned int watchhi;$/;"	m	struct:watch_struct	file:
+watchlo	common/proc.c	/^	unsigned int watchlo;$/;"	m	struct:watch_struct	file:
+wdt_control_proc_fops	common/reset.c	/^static const struct file_operations wdt_control_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+wdt_control_proc_open	common/reset.c	/^static int wdt_control_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+wdt_control_proc_show	common/reset.c	/^static int wdt_control_proc_show(struct seq_file *m, void *v)$/;"	f	file:
+wdt_control_write_proc	common/reset.c	/^static int wdt_control_write_proc(struct file *file, const char __user *buffer,$/;"	f	file:
+wdt_pdev	common/reset.c	/^static struct platform_device wdt_pdev = {$/;"	v	typeref:struct:platform_device	file:
+wdt_pdrv	common/reset.c	/^static struct platform_driver wdt_pdrv = {$/;"	v	typeref:struct:platform_driver	file:
+wdt_probe	common/reset.c	/^static int wdt_probe(struct platform_device *pdev)$/;"	f	file:
+wdt_reset	common/reset.c	/^struct wdt_reset {$/;"	s	file:
+wdt_resume	common/reset.c	/^int wdt_resume(struct platform_device *pdev)$/;"	f
+wdt_shutdown	common/reset.c	/^void wdt_shutdown(struct platform_device *pdev)$/;"	f
+wdt_start_count	common/reset.c	/^static void wdt_start_count(int msecs)$/;"	f	file:
+wdt_stop_count	common/reset.c	/^static void wdt_stop_count(void)$/;"	f	file:
+wdt_suspend	common/reset.c	/^int wdt_suspend(struct platform_device *pdev, pm_message_t state)$/;"	f
+wdt_time_proc_fops	common/reset.c	/^static const struct file_operations wdt_time_proc_fops ={$/;"	v	typeref:struct:file_operations	file:
+wdt_time_proc_open	common/reset.c	/^static int wdt_time_proc_open(struct inode *inode, struct file *file)$/;"	f	file:
+wdt_time_proc_show	common/reset.c	/^static int wdt_time_proc_show(struct seq_file *m, void *v)$/;"	f	file:
+wdt_time_write_proc	common/reset.c	/^static int wdt_time_write_proc(struct file *file, const char __user *buffer,$/;"	f	file:
+width	include/mach/jzfb.h	/^	unsigned int width;$/;"	m	struct:jzfb_platform_data
+wifi_data	chip-t21/isvp/common/bcm_power_control.c	/^struct wifi_data {$/;"	s	file:
+wifi_reset	chip-t21/isvp/common/bcm_power_control.c	/^	int                             wifi_reset;$/;"	m	struct:wifi_data	file:
+wifi_wake_lock	chip-t21/isvp/common/bcm_power_control.c	/^	struct wake_lock                wifi_wake_lock;$/;"	m	struct:wifi_data	typeref:struct:wifi_data::wake_lock	file:
+wlan_device	chip-t21/isvp/common/bcm_power_control.c	/^struct platform_device wlan_device = {$/;"	v	typeref:struct:platform_device
+wlan_resources	chip-t21/isvp/common/bcm_power_control.c	/^struct resource wlan_resources[] = {$/;"	v	typeref:struct:resource
+wp	include/mach/jzmmc.h	/^	struct jzmmc_pin 		wp;$/;"	m	struct:card_gpio	typeref:struct:card_gpio::jzmmc_pin
+wr_md	include/mach/jzfb.h	/^	unsigned int wr_md:1;$/;"	m	struct:jzfb_smart_config
+write_gram_cmd	include/mach/jzfb.h	/^	unsigned long write_gram_cmd;$/;"	m	struct:jzfb_smart_config

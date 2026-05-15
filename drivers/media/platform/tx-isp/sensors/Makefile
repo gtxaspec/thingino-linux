@@ -1,0 +1,9 @@
+# Makefile for sensor drivers
+
+obj-$(CONFIG_SENSOR_DVP_OV9732) += ov9732.o
+obj-$(CONFIG_SENSOR_DVP_SC1135) += sc1135.o
+obj-$(CONFIG_SENSOR_DVP_PS5250) += ps5250.o
+obj-$(CONFIG_SENSOR_DVP_JXH62) += jxh62.o
+obj-$(CONFIG_SENSOR_DVP_IMX291) += imx291.o
+obj-$(CONFIG_SENSOR_DVP_SC2235) += sc2235.o
+obj-$(CONFIG_SENSOR_DVP_GC2033) += gc2033.o

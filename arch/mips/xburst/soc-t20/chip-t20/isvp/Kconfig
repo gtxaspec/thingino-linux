@@ -1,0 +1,19 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_T20_ISVP
+	default BOARD_BULL
+
+config BOARD_BULL
+       bool "Bull"
+       depends on PLATFORM_T20_ISVP
+
+config BOARD_INDUS
+       bool "Indus"
+       depends on PLATFORM_T20_ISVP
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "bull" if BOARD_BULL
+	default "indus" if BOARD_INDUS
