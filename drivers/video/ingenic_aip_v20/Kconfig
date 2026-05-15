@@ -1,0 +1,33 @@
+menuconfig JZ_AIP
+	bool "JZ AIP Driver"
+	default y
+
+config JZ_AIP_VER
+	tristate "JZ AIP Driver"
+	depends on JZ_AIP
+	default y
+	choice
+		prompt "aip version"
+		depends on JZ_AIP_VER
+		config JZ_AIP_V10
+			bool "jz aip driver ver1.0"
+		config JZ_AIP_V20
+			bool "jz aip driver ver2.0"
+	endchoice
+
+config AIP_V20_DEBUG
+	bool "AIP debug messages"
+	depends on JZ_AIP && JZ_AIP_V20
+	default n
+	help
+		Say Y here to enable jz_aip_v2.0 debug.
+
+
+config AIP_V20_REPAIR_A1
+	bool "Adapt AIP to A1"
+	depends on JZ_AIP && JZ_AIP_V20
+	default n
+	help
+		Say Y here to fix chain issue in A1.
+
+
