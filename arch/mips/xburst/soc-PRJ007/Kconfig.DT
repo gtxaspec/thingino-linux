@@ -1,0 +1,22 @@
+choice
+	prompt "device tree select"
+	default DT_PRJ007_GOAT
+
+config DT_PRJ007_GOAT
+	bool "GOAT"
+	depends on SOC_PRJ007
+
+config DT_PRJ007_VELA
+	bool "VELA"
+	depends on SOC_PRJ007
+
+config DT_PRJ007_ZERATUL
+	bool "ZERATUL"
+	depends on SOC_PRJ007
+
+config DT_PRJ007_ATLAS
+	bool "Atlas"
+	depends on SOC_PRJ007
+	help
+		Device tree supporting Atlas features
+endchoice
