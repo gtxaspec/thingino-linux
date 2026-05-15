@@ -1,0 +1,31 @@
+#
+# tx-isp config states
+#
+
+config TX_ISP_CORE
+	bool "Config isp module"
+	depends on VIDEO_TX_ISP
+        default y
+choice
+	prompt "select isp controller"
+    depends on TX_ISP_CORE
+	default INGENIC_ISP
+
+config  INGENIC_ISP
+    bool 'use ingenic isp'
+	depends on (SOC_T40) && TX_ISP_CORE
+    help
+    use the ingenic isp controller.
+
+endchoice
+
+#
+# sensor driver configuration
+#
+
+config BUILT_IN_SENSOR_SETTING
+	  bool "built-in sensor setting"
+	  depends on VIDEO_TX_ISP && TX_ISP_CORE
+	  default n
+	  ---help---
+	  used for faster bootup.
