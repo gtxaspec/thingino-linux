@@ -1,0 +1,38 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_T31_ISVP
+	default BOARD_SWAN
+
+config BOARD_SWAN
+       bool "Swan"
+       depends on PLATFORM_T31_ISVP
+
+config BOARD_INDUS_T31_BGA
+       bool "Indus T31 BGA"
+       depends on PLATFORM_T31_ISVP
+
+config BOARD_INDUS_T31_QFN
+       bool "Indus T31 QFN V1.0"
+       depends on PLATFORM_T31_ISVP
+
+config BOARD_INDUS_T31_QFN_V2
+       bool "Indus T31 QFN V2.0"
+       depends on PLATFORM_T31_ISVP
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "Swan" if BOARD_SWAN
+
+config BOARD_NAME
+	string
+	default "Indus_T31_BGA" if BOARD_INDUS_T31_BGA
+
+config BOARD_NAME
+	string
+	default "Indus_T31_QFN" if BOARD_INDUS_T31_QFN
+
+config BOARD_NAME
+	string
+	default "Indus_T31_QFN_V2" if BOARD_INDUS_T31_QFN_V2

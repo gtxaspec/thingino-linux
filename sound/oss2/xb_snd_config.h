@@ -1,0 +1,11 @@
+#define XB_SND_FAST_START 1
+
+#ifdef CONFIG_SOC_T30
+#define XB_SND_CGU_I2S_CLK_BOOT_INIT 1
+#else
+#define XB_SND_CGU_I2S_CLK_BOOT_INIT 0
+#endif
+
+#define XB_SND_DEFAULT_SAMPLE_RATE 8000
+
+
