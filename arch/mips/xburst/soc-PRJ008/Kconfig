@@ -1,0 +1,23 @@
+
+choice
+	prompt "Chip type"
+	depends on SOC_PRJ008
+	default CHIP_PRJ008
+
+config CHIP_PRJ008
+	bool "chip-PRJ008"
+	#TRACEPOINTS are enabled for ISVP and disabled for Zeratul. Differentiate using board-level files.
+	#select TRACEPOINTS
+	select SYS_SUPPORTS_HIGHMEM
+	select GENERIC_CLOCKEVENTS_BROADCAST
+
+endchoice
+
+config KERNEL_3_10
+	depends on SOC_PRJ008
+	bool "kernel3.10 version"
+	default y
+
+if CHIP_PRJ008
+source "arch/mips/xburst/soc-PRJ008/chip-PRJ008/Kconfig"
+endif

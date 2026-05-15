@@ -1,0 +1,14 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_PRJ007_ZERATUL
+	default BOARD_ZERATUL_PRJ007
+
+config BOARD_ZERATUL_PRJ007
+	bool "Zeratul PRJ007"
+	depends on PLATFORM_PRJ007_ZERATUL
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "Zeratul" if BOARD_ZERATUL_PRJ007
