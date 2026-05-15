@@ -1,0 +1,38 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_T23_ISVP
+	default BOARD_INDUS_T23_QFN
+
+config BOARD_PIKE
+       bool "Pike"
+       depends on PLATFORM_T23_ISVP
+
+config BOARD_INDUS_T23_BGA
+       bool "Indus T23 BGA"
+       depends on PLATFORM_T23_ISVP
+
+config BOARD_INDUS_T23_QFN
+       bool "Indus T23 QFN V1.0"
+       depends on PLATFORM_T23_ISVP
+
+config BOARD_INDUS_T23_QFN_V2
+       bool "Indus T23 QFN V2.0"
+       depends on PLATFORM_T23_ISVP
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "Pike" if BOARD_PIKE
+
+config BOARD_NAME
+	string
+	default "Indus_T23_BGA" if BOARD_INDUS_T23_BGA
+
+config BOARD_NAME
+	string
+	default "Indus_T23_QFN" if BOARD_INDUS_T23_QFN
+
+config BOARD_NAME
+	string
+	default "Indus_T23_QFN_V2" if BOARD_INDUS_T23_QFN_V2

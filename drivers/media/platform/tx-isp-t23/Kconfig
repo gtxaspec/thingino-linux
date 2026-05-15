@@ -1,0 +1,35 @@
+#
+# tx-isp config states
+#
+
+config TX_ISP_CORE
+	bool "Config isp module"
+	depends on VIDEO_TX_ISP
+	default y
+
+config INGENIC_ISP_T23
+	bool "use ingenic isp"
+	depends on (SOC_T23) && TX_ISP_CORE
+	depends on VIDEO_TX_ISP
+	default y
+
+#
+# sensor driver configuration
+#
+
+config BUILT_IN_SENSOR_SETTING
+	  bool "built-in sensor setting"
+	  depends on VIDEO_TX_ISP && TX_ISP_CORE
+	  default n
+	  ---help---
+	  used for faster bootup.
+
+config INGENIC_ZRT_DUAL_MODE
+	  bool "enable zrt platform dual sensorm mode"
+	  depends on VIDEO_TX_ISP && TX_ISP_CORE
+	  default n
+	  ---help---
+	  used for faster bootup.
+
+
+
