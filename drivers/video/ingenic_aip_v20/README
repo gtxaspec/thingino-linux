@@ -1,0 +1,36 @@
+Before opening aipv20, it is necessary to configure
+other contents in menuconfig.
+
+1. Kernel type  --->
+	(11) Maximum zone order
+	[*] Contiguous Memory Allocator
+
+The maximum management range supported by the
+partner algorithm cannot be opened for CMA without
+setting it.
+After selecting 'Contiguous Memory Allocator',
+you can use A to allocate continuous memory.
+
+
+2. Device Drivers  --->
+	Generic Driver Options  --->
+		[*] DMA Contiguous Memory Allocator
+		(64)Size in Mega Bytes
+		(4)Maximum PAGE_SIZE order of ...
+
+After opening 'DMA Contiguous Memory Allocator',
+configure the size and page allocation method of
+CMA, and recommended sizes are provided here.
+The area size of 'Size in Mega Bytes' cannot exceed
+the size of MEM and must be an integer multiple of
+'Maximum PAGE_SIZE', such as 8, 16, 32, 64.
+
+
+3. Device Drivers  --->
+	Graphics support  --->
+		Graphics support  --->
+			[ ] jz aip driver
+			[*] jz aip ver2 driver
+
+The old AIP and AIPV2 will crash, so it is necessary
+to close the old AIP before using AIP_v2.
