@@ -1,0 +1,6 @@
+# Aliases extracted from modules themselves.
+alias fs-squashfs squashfs
+alias fs-nfs nfs
+alias fs-jffs2 jffs2
+alias rpc_pipefs sunrpc
+alias fs-rpc_pipefs sunrpc

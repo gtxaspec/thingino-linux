@@ -1,0 +1,9 @@
+kernel/fs/nfs_common/grace.ko:
+kernel/fs/squashfs/squashfs.ko:
+kernel/fs/nfs/nfs.ko: kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko
+kernel/fs/nfs/nfsv2.ko: kernel/fs/nfs/nfs.ko kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko
+kernel/fs/nfs/nfsv3.ko: kernel/fs/nfs/nfs.ko kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko
+kernel/fs/lockd/lockd.ko: kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko
+kernel/fs/jffs2/jffs2.ko: kernel/lib/zlib_deflate/zlib_deflate.ko
+kernel/net/sunrpc/sunrpc.ko:
+kernel/lib/zlib_deflate/zlib_deflate.ko:
