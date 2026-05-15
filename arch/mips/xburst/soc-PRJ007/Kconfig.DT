@@ -1,0 +1,5 @@
+config DT_PRJ007
+	bool "PRJ007"
+
+config DT_ZERATUL
+	bool "ZERATUL"
