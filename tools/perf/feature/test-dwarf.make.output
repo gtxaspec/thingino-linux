@@ -1,0 +1,4 @@
+test-dwarf.c:1:10: fatal error: dwarf.h: No such file or directory
+ #include <dwarf.h>
+          ^~~~~~~~~
+compilation terminated.
