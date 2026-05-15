@@ -1,0 +1,103 @@
+menuconfig SOC_TYPE
+	tristate "SOC type"
+	depends on MACH_XBURST
+	default y
+
+if SOC_TYPE
+choice
+	prompt "SOC types"
+	depends on MACH_XBURST
+	default SOC_T31
+
+config SOC_T31
+	bool "t31"
+	select IRQ_INGENIC_CPU
+	select CLK_T31
+	select INGENIC_INTC
+	select PINCTRL
+	select PINCTRL_INGENIC
+	select CLKSRC_OF
+	select CLKDEV_LOOKUP
+	select CLKSRC_INGENIC_SYS_OST
+	select XBURST_MXUV2
+
+config SOC_PRJ007
+	bool "PRJ007"
+	select IRQ_INGENIC_CPU
+	select CLK_PRJ007
+	select INGENIC_INTC
+	select PINCTRL
+	select PINCTRL_INGENIC
+	select CLKSRC_OF
+	select CLKDEV_LOOKUP
+	select CLKSRC_INGENIC_SYS_OST
+	select XBURST_MXUV2
+
+config SOC_PRJ008
+	bool "PRJ008"
+	select IRQ_INGENIC_CPU
+	select CLK_PRJ008
+	select INGENIC_INTC
+	select PINCTRL
+	select PINCTRL_INGENIC
+	select CLKSRC_OF
+	select CLKDEV_LOOKUP
+	select CLKSRC_INGENIC_SYS_OST
+	select XBURST_MXUV2
+
+endchoice
+
+config INGENIC_BUILTIN_DTB
+	select BUILTIN_DTB
+	depends on MACH_XBURST
+	bool "Ingenic Device Tree build into Kernel."
+	default y
+
+if SOC_T31
+source "arch/mips/xburst/soc-t31/Kconfig.DT"
+endif
+
+if SOC_PRJ007
+source "arch/mips/xburst/soc-PRJ007/Kconfig.DT"
+endif
+
+if SOC_PRJ008
+source "arch/mips/xburst/soc-PRJ008/Kconfig.DT"
+endif
+
+source "arch/mips/xburst/core/Kconfig"
+
+
+config RAW_BOOT
+	bool "Raw Boot Kernel"
+	select BOOT_RAW
+	default n
+
+config KERNEL_5_15
+	bool "kernel version 5.15"
+	default y
+
+config EXTAL_CLOCK
+	depends on MACH_XBURST
+	int "extal clock in MHz"
+	default 24
+
+config INGENIC_GPT_CHECK
+	depends on MACH_XBURST
+	bool "The physical space is larger than the virtual space"
+	default y
+
+config SUSPEND_TEST
+	bool "auto suspend test"
+	default n
+
+config SUSPEND_ALARM_TIME
+	int "suspend alarm time(second)"
+	depends on SUSPEND_TEST
+	default 2
+
+config XBURST_MXUV2
+	bool
+	default n
+
+endif

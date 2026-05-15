@@ -1,0 +1,29 @@
+config COMMON_CLK_INGENIC
+	bool
+	depends on MACH_XBURST || MACH_XBURST2
+	select MFD_SYSCON
+	select INGENIC_CLK_DEBUG_FS
+
+config INGENIC_CLK_DEBUG_FS
+	bool
+	select DEBUG_FS
+	help
+	  enable ingenic common clock debugfs
+
+config CLK_T31
+	bool "Clock driver for Ingenic T31"
+	depends on SOC_T31
+	help
+	  build the ingenic t31 soc clock driver.
+
+config CLK_PRJ007
+	bool "Clock driver for Ingenic PRJ007"
+	depends on SOC_PRJ007
+	help
+	  build the ingenic PRJ007 soc clock driver.
+
+config CLK_PRJ008
+	bool "Clock driver for Ingenic PRJ008"
+	depends on SOC_PRJ008
+	help
+	  build the ingenic PRJ008 soc clock driver.

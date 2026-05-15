@@ -1,0 +1,3 @@
+config DT_T31_SWAN
+	bool "t31 swan"
+	depends on SOC_T31
