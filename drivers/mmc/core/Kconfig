@@ -1,0 +1,10 @@
+#
+# MMC core configuration
+#
+
+config MMC_OP_COND_RETRIES_CNT
+	int "MMC mmc_wait_for_app_cmd count"
+	default 100
+	help
+	 The mmc_wait_for_app_cmd number of waiting times,
+	 The default value is 100.
