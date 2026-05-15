@@ -1,0 +1,2 @@
+config DT_C100_SWAN
+	bool "c100 swan"
