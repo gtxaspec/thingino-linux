@@ -1,0 +1,12 @@
+obj-y += setup.o
+obj-y += serial.o
+obj-y += early_printk.o
+
+obj-y += pm.o
+obj-y += regs_save_restore.o
+obj-y += libdmmu.o
+obj-y += gpio.o
+obj-y += reset.o
+obj-y += platform.o
+
+

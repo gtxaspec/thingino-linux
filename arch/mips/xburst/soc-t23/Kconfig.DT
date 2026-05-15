@@ -1,0 +1,2 @@
+config DT_T23_PIKE
+	bool "t23 pike"
