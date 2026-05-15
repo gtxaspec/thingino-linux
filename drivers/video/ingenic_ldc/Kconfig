@@ -1,0 +1,13 @@
+menuconfig JZ_LDC
+    bool "JZ LDC Driver"
+    default y
+    help
+        Support for Ingenic ldc Driver
+
+config INGENIC_LDC
+	bool "Ingenic LDC Driver"
+    depends on JZ_LDC
+    default y
+	help
+	  Support for Ingenic LDC  operations.
+
