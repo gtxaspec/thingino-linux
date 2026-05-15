@@ -1,0 +1,16 @@
+
+choice
+	prompt "Chip type"
+	depends on SOC_T10
+	default CHIP_T10
+
+config CHIP_T10
+       bool "chip-t10"
+       select SYS_SUPPORTS_HIGHMEM
+       select GENERIC_CLOCKEVENTS_BROADCAST
+
+endchoice
+
+if CHIP_T10
+source "arch/mips/xburst/soc-t10/chip-t10/Kconfig"
+endif
