@@ -1,0 +1,11 @@
+config VPU_HELIX
+    depends on JZ_VPU
+    bool "vpu helix client device of jz_vpu"
+    default y
+
+if VPU_HELIX
+config VPU_HELIX_NUM
+    depends on VPU_HELIX
+    int "vpu helix node number"
+    default 1
+endif

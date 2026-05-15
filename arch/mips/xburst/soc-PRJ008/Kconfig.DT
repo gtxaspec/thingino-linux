@@ -1,0 +1,11 @@
+config DT_GOAT_PRJ008
+	bool "GOAT PRJ008"
+
+config DT_VELA_PRJ008
+	bool "VELA PRJ008"
+
+config DT_ZERATUL_PRJ008
+	bool "ZERATUL PRJ008"
+
+config DT_ATLAS_PRJ008
+	bool "ATLAS PRJ008"

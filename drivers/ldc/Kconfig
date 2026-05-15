@@ -1,0 +1,18 @@
+menuconfig LDC
+	bool "Ingenic LDC Support"
+	help
+	  Ingenic (LDC) support.
+
+if LDC
+
+
+config INGENIC_LDC
+	tristate "Ingenic LDC support"
+	depends on MACH_XBURST
+	help
+	  Generic LDC framework driver for Ingenic soc based
+	  machines.
+
+
+
+endif
