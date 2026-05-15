@@ -1,0 +1,40 @@
+
+choice
+	prompt "Platform type"
+	depends on CHIP_PRJ008
+	default PLATFORM_PRJ008_ISVP
+
+config PLATFORM_PRJ008_ISVP
+	bool "isvp"
+
+config PLATFORM_PRJ008_ZERATUL
+	bool "zeratul"
+
+config PLATFORM_PRJ008_ATLAS
+	bool "atlas"
+
+endchoice
+
+config PRODUCT_NAME
+	string
+	default "isvp" if PLATFORM_PRJ008_ISVP
+
+config PRODUCT_NAME
+	string
+	default "zeratul" if PLATFORM_PRJ008_ZERATUL
+
+config PRODUCT_NAME
+	string
+	default "atlas" if PLATFORM_PRJ008_ATLAS
+
+if PLATFORM_PRJ008_ISVP
+source "arch/mips/xburst/soc-PRJ008/chip-PRJ008/isvp/Kconfig"
+endif
+
+if PLATFORM_PRJ008_ZERATUL
+source "arch/mips/xburst/soc-PRJ008/chip-PRJ008/zeratul/Kconfig"
+endif
+
+if PLATFORM_PRJ008_ATLAS
+source "arch/mips/xburst/soc-PRJ008/chip-PRJ008/atlas/Kconfig"
+endif

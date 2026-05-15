@@ -1,0 +1,14 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_PRJ008_ATLAS
+	default PRJ008_BOARD_TAURUS_V1
+
+config PRJ008_BOARD_TAURUS_V1
+	bool "Taurus_v1"
+	depends on PLATFORM_PRJ008_ATLAS
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "Taurus_v1" if PRJ008_BOARD_TAURUS_V1

@@ -1,0 +1,21 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_PRJ008_ISVP
+	default PRJ008_BOARD_GOAT
+
+config PRJ008_BOARD_GOAT
+	bool "Goat"
+	select TRACEPOINTS
+	depends on PLATFORM_PRJ008_ISVP
+
+config PRJ008_BOARD_VELA
+	bool "Vela"
+	select TRACEPOINTS
+	depends on PLATFORM_PRJ008_ISVP
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "Goat" if PRJ008_BOARD_GOAT
+	default "Vela" if PRJ008_BOARD_VELA

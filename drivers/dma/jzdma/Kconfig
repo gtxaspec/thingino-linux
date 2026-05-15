@@ -1,0 +1,58 @@
+menu "PRJ008 PDMA Channel Select Configuration"
+
+config AIC_DMA_MODE
+	bool "use aic dma mode"
+	default y
+
+config SSLV_DMA_MODE
+	bool "use sslv dma mode"
+	default n
+
+config UART0_DMA_MODE
+	bool "use uart0 dma mode"
+	default n
+
+config UART1_DMA_MODE
+	bool "use uart1 dma mode"
+	default n
+
+config UART2_DMA_MODE
+	bool "use uart2 dma mode"
+	default n
+
+config SSI0_DMA_MODE
+	bool "use ssi0 dma mode"
+	default y
+
+config I2C0_DMA_MODE
+	bool "use i2c0 dma mode"
+	default y
+
+config I2C1_DMA_MODE
+	bool "use i2c1 dma mode"
+	default y
+
+config I2C2_DMA_MODE
+	bool "use i2c2 dma mode"
+	default y
+
+config AES0_DMA_MODE
+	bool "use aes0 dma mode"
+	default y
+
+config AES1_DMA_MODE
+	bool "use aes1 dma mode"
+	default y
+
+config HASH_DMA_MODE
+	bool "use hash dma mode"
+	default y
+
+config AUTO_DMA_MODE
+	bool "use auto dma mode"
+	default y
+
+config SADC_DMA_MODE
+	bool "use sadc dma mode"
+	default n
+endmenu

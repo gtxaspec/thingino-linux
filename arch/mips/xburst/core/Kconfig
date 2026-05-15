@@ -1,0 +1,14 @@
+choice
+    prompt "Select cache refresh mode"
+    default CACHE_REFRESH_NON_LINKED
+
+    config CACHE_REFRESH_LINKED
+        bool "Linked cache refresh"
+        help
+            Refresh multiple caches together.
+
+    config CACHE_REFRESH_NON_LINKED
+        bool "Non-linked cache refresh"
+        help
+            Refresh each cache independently.
+endchoice
