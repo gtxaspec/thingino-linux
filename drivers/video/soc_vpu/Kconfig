@@ -1,0 +1,41 @@
+#
+# jz_vpu configuration
+#
+menuconfig SOC_VPU
+    bool "soc vpu driver"
+    default y
+    help
+        jz vpu platform dirver
+
+if SOC_VPU
+config CHANNEL_NODE_NUM
+    int "channel node number"
+    default 16
+
+config VPU_NODE_NUM
+    depends on SOC_VPU
+    int "vpu node number"
+    default 2
+
+config JZ_VPU_KERN_ENCODE
+    bool "soc vpu kernel encode"
+    default n
+
+if JZ_VPU_KERN_ENCODE
+config JZ_VPU_KERN_ENCODE_H264
+    bool "soc vpu h264 kernel encode"
+    default y
+
+config JZ_VPU_KERN_ENCODE_H265
+    bool "soc vpu h265 kernel encode"
+    default y
+
+config JZ_VPU_KERN_ENCODE_JPEG
+    bool "soc vpu jpeg kernel encode"
+    default y
+endif
+
+source "drivers/video/soc_vpu/helix/Kconfig"
+source "drivers/video/soc_vpu/radix/Kconfig"
+
+endif

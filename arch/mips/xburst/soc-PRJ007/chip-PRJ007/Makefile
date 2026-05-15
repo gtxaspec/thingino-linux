@@ -1,0 +1,2 @@
+obj-$(CONFIG_PLATFORM_PRJ007_ISVP)		+= isvp/
+obj-$(CONFIG_PLATFORM_PRJ007_ZERATUL)		+= zeratul/

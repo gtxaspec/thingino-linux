@@ -1,0 +1,5 @@
+config COMPILE_JZSOUND_OSS3_INTO_KO
+	tristate "Compile jzsound oss3 driver into ko"
+	default y
+	help
+		Say 'Y' to compile driver into kernel, 'M' to compile driver into ko.

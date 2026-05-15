@@ -1,0 +1,29 @@
+
+choice
+	prompt "Platform type"
+	depends on CHIP_PRJ007
+	default PLATFORM_PRJ007_ISVP
+
+config PLATFORM_PRJ007_ISVP
+	bool "isvp"
+
+config PLATFORM_PRJ007_ZERATUL
+	bool "zeratul"
+
+endchoice
+
+config PRODUCT_NAME
+	string
+	default "isvp" if PLATFORM_PRJ007_ISVP
+
+config PRODUCT_NAME
+	string
+	default "zeratul" if PLATFORM_PRJ007_ZERATUL
+
+if PLATFORM_PRJ007_ISVP
+source "arch/mips/xburst/soc-PRJ007/chip-PRJ007/isvp/Kconfig"
+endif
+
+if PLATFORM_PRJ007_ZERATUL
+source "arch/mips/xburst/soc-PRJ007/chip-PRJ007/zeratul/Kconfig"
+endif
