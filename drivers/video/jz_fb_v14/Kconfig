@@ -1,0 +1,8 @@
+config FB_JZ_V14
+	tristate "JZ LCDC framebuffer V1.4"
+	depends on FB
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	  Framebuffer support for the T30 SoC.
