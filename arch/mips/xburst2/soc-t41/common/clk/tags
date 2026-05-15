@@ -1,0 +1,412 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	//
+AHB_MIN	clk_cpccr.c	/^#define AHB_MIN	/;"	d	file:
+CDIV	clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon0f3b80750303
+CGU	clk_sources.c	/^#define CGU(/;"	d	file:
+CGU_BT0	clk.h	/^	CGU_LDC,CGU_BT0, CGU_PWM,$/;"	e	enum:__anon0f3b80750203
+CGU_CIM	clk.h	/^	CGU_ISPM, CGU_ISPA, CGU_ISPS, CGU_CIM, CGU_MSC_MUX,  CGU_SSI,$/;"	e	enum:__anon0f3b80750203
+CGU_DDR	clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,CGU_RSA,CGU_SFC0,CGU_SFC1,$/;"	e	enum:__anon0f3b80750203
+CGU_I2S_MIC	clk.h	/^	CGU_I2S_SPK, CGU_I2S_MIC,CGU_MSC1,CGU_MSC0,CGU_LCD,$/;"	e	enum:__anon0f3b80750203
+CGU_I2S_SPK	clk.h	/^	CGU_I2S_SPK, CGU_I2S_MIC,CGU_MSC1,CGU_MSC0,CGU_LCD,$/;"	e	enum:__anon0f3b80750203
+CGU_ISPA	clk.h	/^	CGU_ISPM, CGU_ISPA, CGU_ISPS, CGU_CIM, CGU_MSC_MUX,  CGU_SSI,$/;"	e	enum:__anon0f3b80750203
+CGU_ISPM	clk.h	/^	CGU_ISPM, CGU_ISPA, CGU_ISPS, CGU_CIM, CGU_MSC_MUX,  CGU_SSI,$/;"	e	enum:__anon0f3b80750203
+CGU_ISPS	clk.h	/^	CGU_ISPM, CGU_ISPA, CGU_ISPS, CGU_CIM, CGU_MSC_MUX,  CGU_SSI,$/;"	e	enum:__anon0f3b80750203
+CGU_LCD	clk.h	/^	CGU_I2S_SPK, CGU_I2S_MIC,CGU_MSC1,CGU_MSC0,CGU_LCD,$/;"	e	enum:__anon0f3b80750203
+CGU_LDC	clk.h	/^	CGU_LDC,CGU_BT0, CGU_PWM,$/;"	e	enum:__anon0f3b80750203
+CGU_MACPHY	clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,CGU_RSA,CGU_SFC0,CGU_SFC1,$/;"	e	enum:__anon0f3b80750203
+CGU_MSC0	clk.h	/^	CGU_I2S_SPK, CGU_I2S_MIC,CGU_MSC1,CGU_MSC0,CGU_LCD,$/;"	e	enum:__anon0f3b80750203
+CGU_MSC1	clk.h	/^	CGU_I2S_SPK, CGU_I2S_MIC,CGU_MSC1,CGU_MSC0,CGU_LCD,$/;"	e	enum:__anon0f3b80750203
+CGU_MSC_MUX	clk.h	/^	CGU_ISPM, CGU_ISPA, CGU_ISPS, CGU_CIM, CGU_MSC_MUX,  CGU_SSI,$/;"	e	enum:__anon0f3b80750203
+CGU_PWM	clk.h	/^	CGU_LDC,CGU_BT0, CGU_PWM,$/;"	e	enum:__anon0f3b80750203
+CGU_RSA	clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,CGU_RSA,CGU_SFC0,CGU_SFC1,$/;"	e	enum:__anon0f3b80750203
+CGU_SFC0	clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,CGU_RSA,CGU_SFC0,CGU_SFC1,$/;"	e	enum:__anon0f3b80750203
+CGU_SFC1	clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,CGU_RSA,CGU_SFC0,CGU_SFC1,$/;"	e	enum:__anon0f3b80750203
+CGU_SSI	clk.h	/^	CGU_ISPM, CGU_ISPA, CGU_ISPS, CGU_CIM, CGU_MSC_MUX,  CGU_SSI,$/;"	e	enum:__anon0f3b80750203
+CGU_VPU	clk.h	/^	CGU_MACPHY,CGU_VPU, CGU_DDR,CGU_RSA,CGU_SFC0,CGU_SFC1,$/;"	e	enum:__anon0f3b80750203
+CLK	clk_cgu.c	/^#define CLK(/;"	d	file:
+CLK_CGU_NO	clk.h	/^#define CLK_CGU_NO(/;"	d
+CLK_CPCCR_NO	clk.h	/^#define CLK_CPCCR_NO(/;"	d
+CLK_FLG_CGU	clk.h	/^#define CLK_FLG_CGU	/;"	d
+CLK_FLG_CPCCR	clk.h	/^#define CLK_FLG_CPCCR	/;"	d
+CLK_FLG_ENABLE	clk.h	/^#define CLK_FLG_ENABLE	/;"	d
+CLK_FLG_GATE	clk.h	/^#define CLK_FLG_GATE	/;"	d
+CLK_FLG_NOALLOC	clk.h	/^#define CLK_FLG_NOALLOC	/;"	d
+CLK_FLG_PARENT	clk.h	/^#define CLK_FLG_PARENT	/;"	d
+CLK_FLG_PLL	clk.h	/^#define CLK_FLG_PLL	/;"	d
+CLK_FLG_PWC	clk.h	/^#define CLK_FLG_PWC	/;"	d
+CLK_FLG_RELATIVE	clk.h	/^#define CLK_FLG_RELATIVE /;"	d
+CLK_GATE_BIT	clk.h	/^#define CLK_GATE_BIT(/;"	d
+CLK_ID	clk.h	/^	unsigned int CLK_ID;$/;"	m	struct:clk	typeref:typename:unsigned int
+CLK_ID_AES	clk.h	/^	CLK_ID_AES,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_AHB0	clk.h	/^	CLK_ID_AHB0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_AIC	clk.h	/^	CLK_ID_AIC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_APB0	clk.h	/^	CLK_ID_APB0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_APLL	clk.h	/^	CLK_ID_APLL,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_AVPU	clk.h	/^	CLK_ID_AVPU,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_BUSMON	clk.h	/^	CLK_ID_BUSMON,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CCLK	clk.h	/^	CLK_ID_CCLK,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU	clk.h	/^	CLK_ID_CGU,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_BT0	clk.h	/^	CLK_ID_CGU_BT0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_CIM	clk.h	/^	CLK_ID_CGU_CIM,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_DDR	clk.h	/^	CLK_ID_CGU_DDR,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_I2S_MIC	clk.h	/^	CLK_ID_CGU_I2S_MIC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_I2S_SPK	clk.h	/^	CLK_ID_CGU_I2S_SPK,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_ISPA	clk.h	/^	CLK_ID_CGU_ISPA,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_ISPM	clk.h	/^	CLK_ID_CGU_ISPM,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_ISPS	clk.h	/^	CLK_ID_CGU_ISPS,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_LCD	clk.h	/^	CLK_ID_CGU_LCD,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_LDC	clk.h	/^	CLK_ID_CGU_LDC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_MACPHY	clk.h	/^	CLK_ID_CGU_MACPHY,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_MSC0	clk.h	/^	CLK_ID_CGU_MSC0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_MSC1	clk.h	/^	CLK_ID_CGU_MSC1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_MSC_MUX	clk.h	/^	CLK_ID_CGU_MSC_MUX,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_PWM	clk.h	/^	CLK_ID_CGU_PWM,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_RSA	clk.h	/^	CLK_ID_CGU_RSA,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_SFC0	clk.h	/^	CLK_ID_CGU_SFC0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_SFC1	clk.h	/^	CLK_ID_CGU_SFC1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_SSI	clk.h	/^	CLK_ID_CGU_SSI,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CGU_VPU	clk.h	/^	CLK_ID_CGU_VPU,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CPPCR	clk.h	/^	CLK_ID_CPPCR,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CPU	clk.h	/^	CLK_ID_CPU,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_CSI	clk.h	/^	CLK_ID_CSI,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_DBOX	clk.h	/^	CLK_ID_DBOX,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_DDR	clk.h	/^	CLK_ID_DDR,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_DES	clk.h	/^	CLK_ID_DES,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_DEVICES	clk.h	/^	CLK_ID_DEVICES,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_DMIC	clk.h	/^	CLK_ID_DMIC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_DTRNG	clk.h	/^	CLK_ID_DTRNG,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_EFUSE	clk.h	/^	CLK_ID_EFUSE,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_EXT	clk.h	/^	CLK_ID_EXT     = 0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_EXT0	clk.h	/^	CLK_ID_EXT0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_EXT1	clk.h	/^	CLK_ID_EXT1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_GMAC	clk.h	/^	CLK_ID_GMAC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_H0CLK	clk.h	/^	CLK_ID_H0CLK,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_H2CLK	clk.h	/^	CLK_ID_H2CLK,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_HASH	clk.h	/^	CLK_ID_HASH,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_I2C0	clk.h	/^	CLK_ID_I2C0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_I2C1	clk.h	/^	CLK_ID_I2C1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_I2C2	clk.h	/^	CLK_ID_I2C2,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_I2D	clk.h	/^	CLK_ID_I2D,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_INVALID	clk.h	/^	CLK_ID_INVALID,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_IPU	clk.h	/^	CLK_ID_IPU,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_ISP	clk.h	/^	CLK_ID_ISP,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_IVDC	clk.h	/^	CLK_ID_IVDC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_JPEG	clk.h	/^	CLK_ID_JPEG,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_L2CLK	clk.h	/^	CLK_ID_L2CLK,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_LCD	clk.h	/^	CLK_ID_LCD,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_LDC	clk.h	/^	CLK_ID_LDC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_LZMA	clk.h	/^	CLK_ID_LZMA,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_MPLL	clk.h	/^	CLK_ID_MPLL,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_MSC	clk.h	/^	CLK_ID_MSC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_MSC0	clk.h	/^	CLK_ID_MSC0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_MSC1	clk.h	/^	CLK_ID_MSC1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_NEMC	clk.h	/^	CLK_ID_NEMC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_OTG	clk.h	/^	CLK_ID_OTG,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_OTGPHY	clk.h	/^	CLK_ID_OTGPHY,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_PCLK	clk.h	/^	CLK_ID_PCLK,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_PDMA	clk.h	/^	CLK_ID_PDMA,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_PLL	clk.h	/^	CLK_ID_PLL,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_PWM	clk.h	/^	CLK_ID_PWM,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_RSA	clk.h	/^	CLK_ID_RSA,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_RTC	clk.h	/^	CLK_ID_RTC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SADC	clk.h	/^	CLK_ID_SADC,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SCLKA	clk.h	/^	CLK_ID_SCLKA,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SFC0	clk.h	/^	CLK_ID_SFC0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SFC1	clk.h	/^	CLK_ID_SFC1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SSI0	clk.h	/^	CLK_ID_SSI0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SSI1	clk.h	/^	CLK_ID_SSI1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SSI_SLV	clk.h	/^	CLK_ID_SSI_SLV,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_STOP	clk.h	/^	CLK_ID_STOP,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_SYS_OST	clk.h	/^	CLK_ID_SYS_OST,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_TCU	clk.h	/^	CLK_ID_TCU,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_UART0	clk.h	/^	CLK_ID_UART0,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_UART1	clk.h	/^	CLK_ID_UART1,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_UART2	clk.h	/^	CLK_ID_UART2,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_UART3	clk.h	/^	CLK_ID_UART3,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_UART4	clk.h	/^	CLK_ID_UART4,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_UART5	clk.h	/^	CLK_ID_UART5,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_VO	clk.h	/^	CLK_ID_VO,$/;"	e	enum:__anon0f3b80750103
+CLK_ID_VPLL	clk.h	/^	CLK_ID_VPLL,$/;"	e	enum:__anon0f3b80750103
+CLK_NAME_AES	clk.h	/^#define CLK_NAME_AES	/;"	d
+CLK_NAME_AHB0	clk.h	/^#define CLK_NAME_AHB0	/;"	d
+CLK_NAME_AIC	clk.h	/^#define CLK_NAME_AIC	/;"	d
+CLK_NAME_APB0	clk.h	/^#define CLK_NAME_APB0	/;"	d
+CLK_NAME_APLL	clk.h	/^#define CLK_NAME_APLL	/;"	d
+CLK_NAME_AVPU	clk.h	/^#define CLK_NAME_AVPU	/;"	d
+CLK_NAME_BUSMON	clk.h	/^#define CLK_NAME_BUSMON	/;"	d
+CLK_NAME_CCLK	clk.h	/^#define CLK_NAME_CCLK	/;"	d
+CLK_NAME_CGU_BT0	clk.h	/^#define CLK_NAME_CGU_BT0	/;"	d
+CLK_NAME_CGU_CIM	clk.h	/^#define CLK_NAME_CGU_CIM	/;"	d
+CLK_NAME_CGU_DDR	clk.h	/^#define CLK_NAME_CGU_DDR	/;"	d
+CLK_NAME_CGU_I2S_MIC	clk.h	/^#define CLK_NAME_CGU_I2S_MIC	/;"	d
+CLK_NAME_CGU_I2S_SPK	clk.h	/^#define CLK_NAME_CGU_I2S_SPK	/;"	d
+CLK_NAME_CGU_ISPA	clk.h	/^#define CLK_NAME_CGU_ISPA	/;"	d
+CLK_NAME_CGU_ISPM	clk.h	/^#define CLK_NAME_CGU_ISPM	/;"	d
+CLK_NAME_CGU_ISPS	clk.h	/^#define CLK_NAME_CGU_ISPS	/;"	d
+CLK_NAME_CGU_LCD	clk.h	/^#define CLK_NAME_CGU_LCD	/;"	d
+CLK_NAME_CGU_LDC	clk.h	/^#define CLK_NAME_CGU_LDC	/;"	d
+CLK_NAME_CGU_MACPHY	clk.h	/^#define CLK_NAME_CGU_MACPHY	/;"	d
+CLK_NAME_CGU_MSC0	clk.h	/^#define CLK_NAME_CGU_MSC0	/;"	d
+CLK_NAME_CGU_MSC1	clk.h	/^#define CLK_NAME_CGU_MSC1	/;"	d
+CLK_NAME_CGU_MSC_MUX	clk.h	/^#define CLK_NAME_CGU_MSC_MUX	/;"	d
+CLK_NAME_CGU_PWM	clk.h	/^#define CLK_NAME_CGU_PWM	/;"	d
+CLK_NAME_CGU_RSA	clk.h	/^#define CLK_NAME_CGU_RSA	/;"	d
+CLK_NAME_CGU_SFC0	clk.h	/^#define CLK_NAME_CGU_SFC0	/;"	d
+CLK_NAME_CGU_SFC1	clk.h	/^#define CLK_NAME_CGU_SFC1	/;"	d
+CLK_NAME_CGU_SSI	clk.h	/^#define CLK_NAME_CGU_SSI	/;"	d
+CLK_NAME_CGU_VPU	clk.h	/^#define CLK_NAME_CGU_VPU	/;"	d
+CLK_NAME_CPU	clk.h	/^#define CLK_NAME_CPU	/;"	d
+CLK_NAME_CSI	clk.h	/^#define CLK_NAME_CSI	/;"	d
+CLK_NAME_DBOX	clk.h	/^#define CLK_NAME_DBOX	/;"	d
+CLK_NAME_DDR	clk.h	/^#define CLK_NAME_DDR	/;"	d
+CLK_NAME_DES	clk.h	/^#define CLK_NAME_DES	/;"	d
+CLK_NAME_DMIC	clk.h	/^#define CLK_NAME_DMIC	/;"	d
+CLK_NAME_DTRNG	clk.h	/^#define CLK_NAME_DTRNG	/;"	d
+CLK_NAME_EFUSE	clk.h	/^#define CLK_NAME_EFUSE	/;"	d
+CLK_NAME_EXT0	clk.h	/^#define CLK_NAME_EXT0	/;"	d
+CLK_NAME_EXT1	clk.h	/^#define CLK_NAME_EXT1	/;"	d
+CLK_NAME_GMAC	clk.h	/^#define CLK_NAME_GMAC	/;"	d
+CLK_NAME_H0CLK	clk.h	/^#define CLK_NAME_H0CLK	/;"	d
+CLK_NAME_H2CLK	clk.h	/^#define CLK_NAME_H2CLK	/;"	d
+CLK_NAME_HASH	clk.h	/^#define CLK_NAME_HASH	/;"	d
+CLK_NAME_I2C0	clk.h	/^#define CLK_NAME_I2C0	/;"	d
+CLK_NAME_I2C1	clk.h	/^#define CLK_NAME_I2C1	/;"	d
+CLK_NAME_I2C2	clk.h	/^#define CLK_NAME_I2C2	/;"	d
+CLK_NAME_I2D	clk.h	/^#define CLK_NAME_I2D	/;"	d
+CLK_NAME_IPU	clk.h	/^#define CLK_NAME_IPU	/;"	d
+CLK_NAME_ISP	clk.h	/^#define CLK_NAME_ISP	/;"	d
+CLK_NAME_IVDC	clk.h	/^#define CLK_NAME_IVDC	/;"	d
+CLK_NAME_JPEG	clk.h	/^#define CLK_NAME_JPEG	/;"	d
+CLK_NAME_L2CLK	clk.h	/^#define CLK_NAME_L2CLK	/;"	d
+CLK_NAME_LCD	clk.h	/^#define CLK_NAME_LCD	/;"	d
+CLK_NAME_LDC	clk.h	/^#define CLK_NAME_LDC	/;"	d
+CLK_NAME_LZMA	clk.h	/^#define CLK_NAME_LZMA	/;"	d
+CLK_NAME_MPLL	clk.h	/^#define CLK_NAME_MPLL	/;"	d
+CLK_NAME_MSC	clk.h	/^#define CLK_NAME_MSC	/;"	d
+CLK_NAME_MSC0	clk.h	/^#define CLK_NAME_MSC0	/;"	d
+CLK_NAME_MSC1	clk.h	/^#define CLK_NAME_MSC1	/;"	d
+CLK_NAME_NEMC	clk.h	/^#define CLK_NAME_NEMC	/;"	d
+CLK_NAME_OTG	clk.h	/^#define CLK_NAME_OTG	/;"	d
+CLK_NAME_OTGPHY	clk.h	/^#define CLK_NAME_OTGPHY	/;"	d
+CLK_NAME_PCLK	clk.h	/^#define CLK_NAME_PCLK	/;"	d
+CLK_NAME_PDMA	clk.h	/^#define CLK_NAME_PDMA	/;"	d
+CLK_NAME_PWM	clk.h	/^#define CLK_NAME_PWM	/;"	d
+CLK_NAME_RSA	clk.h	/^#define CLK_NAME_RSA	/;"	d
+CLK_NAME_RTC	clk.h	/^#define CLK_NAME_RTC	/;"	d
+CLK_NAME_SADC	clk.h	/^#define CLK_NAME_SADC	/;"	d
+CLK_NAME_SCLKA	clk.h	/^#define CLK_NAME_SCLKA	/;"	d
+CLK_NAME_SFC0	clk.h	/^#define CLK_NAME_SFC0	/;"	d
+CLK_NAME_SFC1	clk.h	/^#define CLK_NAME_SFC1	/;"	d
+CLK_NAME_SSI0	clk.h	/^#define CLK_NAME_SSI0	/;"	d
+CLK_NAME_SSI1	clk.h	/^#define CLK_NAME_SSI1 /;"	d
+CLK_NAME_SSI_SLV	clk.h	/^#define CLK_NAME_SSI_SLV	/;"	d
+CLK_NAME_SYS_OST	clk.h	/^#define CLK_NAME_SYS_OST	/;"	d
+CLK_NAME_TCU	clk.h	/^#define CLK_NAME_TCU	/;"	d
+CLK_NAME_UART0	clk.h	/^#define CLK_NAME_UART0	/;"	d
+CLK_NAME_UART1	clk.h	/^#define CLK_NAME_UART1	/;"	d
+CLK_NAME_UART2	clk.h	/^#define CLK_NAME_UART2	/;"	d
+CLK_NAME_UART3	clk.h	/^#define CLK_NAME_UART3	/;"	d
+CLK_NAME_UART4	clk.h	/^#define CLK_NAME_UART4	/;"	d
+CLK_NAME_UART5	clk.h	/^#define CLK_NAME_UART5	/;"	d
+CLK_NAME_VO	clk.h	/^#define CLK_NAME_VO	/;"	d
+CLK_NAME_VPLL	clk.h	/^#define CLK_NAME_VPLL	/;"	d
+CLK_PARENT	clk.h	/^#define CLK_PARENT(/;"	d
+CLK_PLL_NO	clk.h	/^#define CLK_PLL_NO(/;"	d
+CLK_PWC_NO	clk.h	/^#define CLK_PWC_NO(/;"	d
+CLK_RELATIVE	clk.h	/^#define CLK_RELATIVE(/;"	d
+CONVERT_DDR_RATE	clk_cgu.c	/^#define CONVERT_DDR_RATE /;"	d	file:
+CPCCR	clk_sources.c	/^#define CPCCR(/;"	d	file:
+CPCCR_CLK	clk_cpccr.c	/^#define CPCCR_CLK(/;"	d	file:
+DEF_CLK	clk_sources.c	/^#define DEF_CLK(/;"	d	file:
+DOWN_DIV	clk_cgu.c	/^#define DOWN_DIV /;"	d	file:
+GATE	clk_sources.c	/^#define GATE(/;"	d	file:
+H0DIV	clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon0f3b80750303
+H2DIV	clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon0f3b80750303
+IS_CGU_CLK	clk_cgu.c	/^#define IS_CGU_CLK(/;"	d	file:
+L2CDIV	clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon0f3b80750303
+LSR_TDRQ	clk_cgu.c	/^#define LSR_TDRQ /;"	d	file:
+LSR_TEMT	clk_cgu.c	/^#define LSR_TEMT /;"	d	file:
+MHz	clk_cpccr.c	/^#define MHz /;"	d	file:
+OFF_LCR	clk_cgu.c	/^#define OFF_LCR /;"	d	file:
+OFF_LSR	clk_cgu.c	/^#define OFF_LSR /;"	d	file:
+OFF_TDR	clk_cgu.c	/^#define OFF_TDR /;"	d	file:
+PARENT	clk_sources.c	/^#define PARENT(/;"	d	file:
+PDIV	clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon0f3b80750303
+PLL	clk_sources.c	/^#define PLL(/;"	d	file:
+PLL_RATE	clk_pll.h	/^#define PLL_RATE(/;"	d
+PWC	clk_sources.c	/^#define PWC(/;"	d	file:
+PWC_SRC	cpm_pwc.c	/^#define PWC_SRC(/;"	d	file:
+REG32	clk_cgu.c	/^#define REG32(/;"	d	file:
+RELATIVE	clk_sources.c	/^#define RELATIVE(/;"	d	file:
+SCLKA	clk.h	/^	CDIV = 0,L2CDIV,H0DIV,H2DIV,PDIV,SCLKA,$/;"	e	enum:__anon0f3b80750303
+SELECTOR_A	clk_cgu.c	/^	SELECTOR_A = 0,$/;"	e	enum:__anonbb6d724e0103	file:
+SELECTOR_B	clk_cgu.c	/^	SELECTOR_B,$/;"	e	enum:__anonbb6d724e0103	file:
+SELECTOR_C	clk_cgu.c	/^	SELECTOR_C,$/;"	e	enum:__anonbb6d724e0103	file:
+SELECTOR_D	clk_cgu.c	/^	SELECTOR_D,$/;"	e	enum:__anonbb6d724e0103	file:
+SELECTOR_E	clk_cgu.c	/^	SELECTOR_E,$/;"	e	enum:__anonbb6d724e0103	file:
+SELECTOR_MSC_MUX	clk_cgu.c	/^    SELECTOR_MSC_MUX,$/;"	e	enum:__anonbb6d724e0103	file:
+TCSM_PCHAR	clk_cgu.c	/^#define TCSM_PCHAR(/;"	d	file:
+U1_IOBASE	clk_cgu.c	/^#define U1_IOBASE /;"	d	file:
+UP_DIV	clk_cgu.c	/^#define UP_DIV /;"	d	file:
+USE_PLL	clk_cpccr.c	/^#define USE_PLL$/;"	d	file:
+_CLK_H_	clk.h	/^#define _CLK_H_$/;"	d
+__INGENIC_CLK_PLLV_H__	clk_pll.h	/^#define __INGENIC_CLK_PLLV_H__$/;"	d
+__anon0f3b80750103	clk.h	/^enum {$/;"	g
+__anon0f3b80750203	clk.h	/^enum {	\/\/SHOULD BE CHECKED!!$/;"	g
+__anon0f3b80750303	clk.h	/^enum {$/;"	g
+__anonbb6d724e0103	clk_cgu.c	/^enum {$/;"	g	file:
+after_change_udelay_hz	clk_cpccr.c	/^#define after_change_udelay_hz(/;"	d	file:
+ahb_change	clk_cpccr.c	/^static struct jz_notifier ahb_change;$/;"	v	typeref:struct:jz_notifier	file:
+ahb_change_notify	clk_cpccr.c	/^static int ahb_change_notify(struct jz_notifier *notify,void *v)$/;"	f	typeref:typename:int	file:
+before_change_udelay_hz	clk_cpccr.c	/^#define before_change_udelay_hz(/;"	d	file:
+cache	clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	typeref:typename:int	file:
+cal_pll_setting	clk_pll.c	/^struct pll_rate_setting* cal_pll_setting(unsigned long rate)$/;"	f	typeref:struct:pll_rate_setting *
+cclk_set_rate_nopll	clk_cpccr.c	/^static int cclk_set_rate_nopll(struct clk *clk,unsigned long rate,struct clk *parentclk,unsigned/;"	f	typeref:typename:int	file:
+ce	clk_cpccr.c	/^	short off,sel,ce;$/;"	m	struct:cpccr_clk	typeref:typename:short	file:
+ce_busy_stop	clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	typeref:typename:int	file:
+cgu_clk	clk_cgu.c	/^struct cgu_clk {$/;"	s	file:
+cgu_clks	clk_cgu.c	/^static struct cgu_clk cgu_clks[] = {$/;"	v	typeref:struct:cgu_clk[]	file:
+cgu_enable	clk_cgu.c	/^static int cgu_enable(struct clk *clk,int on)$/;"	f	typeref:typename:int	file:
+cgu_get_parent	clk_cgu.c	/^static struct clk * cgu_get_parent(struct clk *clk)$/;"	f	typeref:struct:clk *	file:
+cgu_get_rate	clk_cgu.c	/^static unsigned long cgu_get_rate(struct clk *clk)$/;"	f	typeref:typename:unsigned long	file:
+cgu_is_enabled	clk_cgu.c	/^static int cgu_is_enabled(struct clk *clk) {$/;"	f	typeref:typename:int	file:
+cgu_set_parent	clk_cgu.c	/^static int cgu_set_parent(struct clk *clk, struct clk *parent)$/;"	f	typeref:typename:int	file:
+cgu_set_rate	clk_cgu.c	/^static int cgu_set_rate(struct clk *clk, unsigned long rate)$/;"	f	typeref:typename:int	file:
+child	clk.h	/^	struct clk *child;$/;"	m	struct:clk	typeref:struct:clk *
+clk	clk.h	/^struct clk {$/;"	s
+clk_cgu_ops	clk_cgu.c	/^static struct clk_ops clk_cgu_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_cpccr_ops	clk_cpccr.c	/^static struct clk_ops clk_cpccr_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_ddr_ops	clk_cgu.c	/^static struct clk_ops clk_ddr_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_disable	clk.c	/^void clk_disable(struct clk *clk)$/;"	f	typeref:typename:void
+clk_enable	clk.c	/^int clk_enable(struct clk *clk)$/;"	f	typeref:typename:int
+clk_gate_ops	clk_gate.c	/^static struct clk_ops clk_gate_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_get	clk.c	/^struct clk *clk_get(struct device *dev, const char *id)$/;"	f	typeref:struct:clk *
+clk_get_parent	clk.c	/^struct clk *clk_get_parent(struct clk *clk)$/;"	f	typeref:struct:clk *
+clk_get_rate	clk.c	/^unsigned long clk_get_rate(struct clk *clk)$/;"	f	typeref:typename:unsigned long
+clk_is_enabled	clk.c	/^int clk_is_enabled(struct clk *clk)$/;"	f	typeref:typename:int
+clk_ops	clk.h	/^struct clk_ops {$/;"	s
+clk_pll_ops	clk_pll.c	/^static struct clk_ops clk_pll_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_pm_ops	clk.c	/^struct syscore_ops clk_pm_ops = {$/;"	v	typeref:struct:syscore_ops
+clk_put	clk.c	/^void clk_put(struct clk *clk)$/;"	f	typeref:typename:void
+clk_pwc_ops	cpm_pwc.c	/^static struct clk_ops clk_pwc_ops = {$/;"	v	typeref:struct:clk_ops	file:
+clk_resume	clk.c	/^static void clk_resume(void)$/;"	f	typeref:typename:void	file:
+clk_selectors	clk_cgu.c	/^struct clk_selectors {$/;"	s	file:
+clk_set_parent	clk.c	/^int clk_set_parent(struct clk *clk, struct clk *parent)$/;"	f	typeref:typename:int
+clk_set_rate	clk.c	/^int clk_set_rate(struct clk *clk, unsigned long rate)$/;"	f	typeref:typename:int
+clk_sleep_pm_callback	clk.c	/^static int clk_sleep_pm_callback(struct notifier_block *nfb,unsigned long action,void *ignored)$/;"	f	typeref:typename:int	file:
+clk_sleep_pm_notifier	clk.c	/^static struct notifier_block clk_sleep_pm_notifier = {$/;"	v	typeref:struct:notifier_block	file:
+clk_srcs	clk_sources.c	/^static struct clk clk_srcs[] = {$/;"	v	typeref:struct:clk[]	file:
+clk_suspend	clk.c	/^static int clk_suspend(void)$/;"	f	typeref:typename:int	file:
+clocks_open	clk.c	/^static int clocks_open(struct inode *inode, struct file *file)$/;"	f	typeref:typename:int	file:
+clocks_proc_fops	clk.c	/^static const struct file_operations clocks_proc_fops ={$/;"	v	typeref:typename:const struct file_operations	file:
+clocks_show	clk.c	/^static int clocks_show(struct seq_file *m, void *v)$/;"	f	typeref:typename:int	file:
+coe	clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	typeref:typename:int	file:
+count	clk.h	/^	atomic_t count;$/;"	m	struct:clk	typeref:typename:atomic_t
+cpccr_clk	clk_cpccr.c	/^struct cpccr_clk {$/;"	s	file:
+cpccr_clks	clk_cpccr.c	/^static struct cpccr_clk cpccr_clks[] = {$/;"	v	typeref:struct:cpccr_clk[]	file:
+cpccr_get_rate	clk_cpccr.c	/^static unsigned long cpccr_get_rate(struct clk *clk)$/;"	f	typeref:typename:unsigned long	file:
+cpccr_selector	clk_cpccr.c	/^static unsigned int cpccr_selector[4] = {0,CLK_ID_SCLKA,CLK_ID_MPLL,0};$/;"	v	typeref:typename:unsigned int[4]	file:
+cpccr_set_rate	clk_cpccr.c	/^static int cpccr_set_rate(struct clk *clk,unsigned long rate) {$/;"	f	typeref:typename:int	file:
+cpm_gate_enable	clk_gate.c	/^static int cpm_gate_enable(struct clk *clk,int on){$/;"	f	typeref:typename:int	file:
+cpm_pwc	cpm_pwc.c	/^struct cpm_pwc$/;"	s	file:
+cpm_pwc_ctrl	cpm_pwc.c	/^struct cpm_pwc_ctrl {$/;"	s	file:
+cpm_pwc_ctrl	cpm_pwc.c	/^}cpm_pwc_ctrl;$/;"	v	typeref:struct:cpm_pwc_ctrl
+cpm_pwc_dev_init	cpm_pwc.c	/^static int __init cpm_pwc_dev_init(void)$/;"	f	typeref:typename:int __init	file:
+cpm_pwc_enable	cpm_pwc.c	/^static int cpm_pwc_enable(struct clk *clk,int on) {$/;"	f	typeref:typename:int	file:
+cpm_pwc_enable_ctrl	cpm_pwc.c	/^int cpm_pwc_enable_ctrl(struct clk *clk,int on) {$/;"	f	typeref:typename:int
+cpm_pwc_init	cpm_pwc.c	/^void __init cpm_pwc_init(void)$/;"	f	typeref:typename:void __init
+cpm_pwc_is_enabled	cpm_pwc.c	/^int cpm_pwc_is_enabled(struct cpm_pwc * pwc) {$/;"	f	typeref:typename:int
+cpm_pwc_poweroff	cpm_pwc.c	/^static void cpm_pwc_poweroff(unsigned long data)$/;"	f	typeref:typename:void	file:
+cpm_pwc_poweron	cpm_pwc.c	/^static void cpm_pwc_poweron(unsigned long data)$/;"	f	typeref:typename:void	file:
+cpm_pwc_resume	cpm_pwc.c	/^void cpm_pwc_resume(void)$/;"	f	typeref:typename:void
+cpm_pwc_srcs	cpm_pwc.c	/^static struct cpm_pwc cpm_pwc_srcs[] = {$/;"	v	typeref:struct:cpm_pwc[]	file:
+cpm_pwc_suspend	cpm_pwc.c	/^void cpm_pwc_suspend(void)$/;"	f	typeref:typename:void
+cpufreq	clk.h	/^	unsigned int  cpufreq;$/;"	m	struct:freq_udelay_jiffy	typeref:typename:unsigned int
+cpufreq_setting_cmp	clk_cpccr.c	/^static int cpufreq_setting_cmp(const void *key,const void *elt) {$/;"	f	typeref:typename:int	file:
+ctrl_bit	cpm_pwc.c	/^	unsigned int ctrl_bit;$/;"	m	struct:cpm_pwc	typeref:typename:unsigned int	file:
+ddr_set_rate	clk_cgu.c	/^static int ddr_set_rate(struct clk *clk, unsigned long rate)$/;"	f	typeref:typename:int	file:
+delay_ms	cpm_pwc.c	/^	unsigned int delay_ms;$/;"	m	struct:cpm_pwc	typeref:typename:unsigned int	file:
+div	clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	typeref:typename:int	file:
+enable	clk.h	/^	int (*enable)(struct clk *,int);$/;"	m	struct:clk_ops	typeref:typename:int (*)(struct clk *,int)
+enable_fops	clk.c	/^static const struct file_operations enable_fops ={$/;"	v	typeref:typename:const struct file_operations	file:
+enable_open	clk.c	/^static int enable_open(struct inode *inode, struct file *file)$/;"	f	typeref:typename:int	file:
+enable_show	clk.c	/^static int enable_show(struct seq_file *m, void *v)$/;"	f	typeref:typename:int	file:
+enable_write	clk.c	/^static int enable_write(struct file *file, const char __user *buffer,size_t count, loff_t *data)$/;"	f	typeref:typename:int	file:
+flags	clk.h	/^	unsigned long flags;$/;"	m	struct:clk	typeref:typename:unsigned long
+frac_to_value	clk_pll.c	/^static u32 frac_to_value(u32 frac)$/;"	f	typeref:typename:u32	file:
+freq_udelay_jiffy	clk.h	/^struct  freq_udelay_jiffy {$/;"	s
+freq_udelay_jiffys	clk.c	/^struct  freq_udelay_jiffy *freq_udelay_jiffys;$/;"	v	typeref:struct:freq_udelay_jiffy *
+get_clk_from_id	clk_sources.c	/^struct clk *get_clk_from_id(int clk_id)$/;"	f	typeref:struct:clk *
+get_clk_id	clk_sources.c	/^int get_clk_id(struct clk *clk)$/;"	f	typeref:typename:int
+get_clk_sources_size	clk_sources.c	/^int get_clk_sources_size(void){$/;"	f	typeref:typename:int
+get_cpccr_div	clk_cpccr.c	/^static int get_cpccr_div(unsigned int prate,unsigned int rate)$/;"	f	typeref:typename:int	file:
+get_parent	clk.h	/^	struct clk* (*get_parent)(struct clk *);$/;"	m	struct:clk_ops	typeref:struct:clk * (*)(struct clk *)
+get_rate	clk.h	/^	unsigned long (*get_rate)(struct clk *);$/;"	m	struct:clk_ops	typeref:typename:unsigned long (*)(struct clk *)
+ingenic_pll_rate_table	clk_pll.h	/^struct ingenic_pll_rate_table {$/;"	s
+init_all_clk	clk.c	/^void __init init_all_clk(void)$/;"	f	typeref:typename:void __init
+init_cgu_clk	clk_cgu.c	/^void __init init_cgu_clk(struct clk *clk)$/;"	f	typeref:typename:void __init
+init_clk_parent	clk.c	/^static void init_clk_parent(struct clk *p) {$/;"	f	typeref:typename:void	file:
+init_clk_proc	clk.c	/^static int __init init_clk_proc(void)$/;"	f	typeref:typename:int __init	file:
+init_cpccr_clk	clk_cpccr.c	/^void __init init_cpccr_clk(struct clk *clk)$/;"	f	typeref:typename:void __init
+init_ext_pll	clk_pll.c	/^void __init init_ext_pll(struct clk *clk)$/;"	f	typeref:typename:void __init
+init_freq_table	clk.c	/^struct cpufreq_frequency_table *init_freq_table(unsigned int max_freq,$/;"	f	typeref:struct:cpufreq_frequency_table *
+init_freq_udelay_jiffys	clk.c	/^static void init_freq_udelay_jiffys(struct clk *cpu_clk, unsigned int num)$/;"	f	typeref:typename:void	file:
+init_gate_clk	clk_gate.c	/^void __init init_gate_clk(struct clk *clk)$/;"	f	typeref:typename:void __init
+init_pwc_clk	cpm_pwc.c	/^void __init init_pwc_clk(struct clk *clk)$/;"	f	typeref:typename:void __init
+init_state	clk.h	/^	int init_state;$/;"	m	struct:clk	typeref:typename:int
+is_suspend	cpm_pwc.c	/^	unsigned int is_suspend;$/;"	m	struct:cpm_pwc_ctrl	typeref:typename:unsigned int	file:
+l2div_policy	clk_cpccr.c	/^#define l2div_policy(/;"	d	file:
+loops_per_jiffy	clk.h	/^	unsigned int  loops_per_jiffy;$/;"	m	struct:freq_udelay_jiffy	typeref:typename:unsigned int
+m	clk_pll.c	/^	int m,n,od1,od0,rg;$/;"	m	struct:pll_rate_setting	typeref:typename:int	file:
+m	clk_pll.h	/^	unsigned int m;$/;"	m	struct:ingenic_pll_rate_table	typeref:typename:unsigned int
+max_num	clk.h	/^	unsigned int  max_num;$/;"	m	struct:freq_udelay_jiffy	typeref:typename:unsigned int
+n	clk_pll.c	/^	int m,n,od1,od0,rg;$/;"	m	struct:pll_rate_setting	typeref:typename:int	file:
+n	clk_pll.h	/^	unsigned int n;$/;"	m	struct:ingenic_pll_rate_table	typeref:typename:unsigned int
+name	clk.h	/^	const char *name;$/;"	m	struct:clk	typeref:typename:const char *
+name	cpm_pwc.c	/^	const char *name;$/;"	m	struct:cpm_pwc	typeref:typename:const char *	file:
+od0	clk_pll.c	/^	int m,n,od1,od0,rg;$/;"	m	struct:pll_rate_setting	typeref:typename:int	file:
+od0	clk_pll.h	/^	unsigned int od0;$/;"	m	struct:ingenic_pll_rate_table	typeref:typename:unsigned int
+od1	clk_pll.c	/^	int m,n,od1,od0,rg;$/;"	m	struct:pll_rate_setting	typeref:typename:int	file:
+od1	clk_pll.h	/^	unsigned int od1;$/;"	m	struct:ingenic_pll_rate_table	typeref:typename:unsigned int
+off	clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	typeref:typename:int	file:
+off	clk_cpccr.c	/^	short off,sel,ce;$/;"	m	struct:cpccr_clk	typeref:typename:short	file:
+ops	clk.h	/^	struct clk_ops *ops;$/;"	m	struct:clk	typeref:struct:clk_ops *
+parent	clk.h	/^	struct clk *parent;$/;"	m	struct:clk	typeref:struct:clk *
+pll_get_rate	clk_pll.c	/^static unsigned long pll_get_rate(struct clk *clk) {$/;"	f	typeref:typename:unsigned long	file:
+pll_rate_setting	clk_pll.c	/^struct pll_rate_setting {$/;"	s	file:
+pll_set_rate	clk_pll.c	/^static int pll_set_rate(struct clk *clk,unsigned long rate)$/;"	f	typeref:typename:int	file:
+pwc_wakelock	cpm_pwc.c	/^	struct  wake_lock  pwc_wakelock;$/;"	m	struct:cpm_pwc_ctrl	typeref:struct:wake_lock	file:
+rate	clk.h	/^	unsigned long rate;$/;"	m	struct:clk	typeref:typename:unsigned long
+rate	clk_pll.c	/^	unsigned long rate;$/;"	m	struct:pll_rate_setting	typeref:typename:unsigned long	file:
+rate	clk_pll.h	/^	unsigned int rate;$/;"	m	struct:ingenic_pll_rate_table	typeref:typename:unsigned int
+rate_fops	clk.c	/^static const struct file_operations rate_fops ={$/;"	v	typeref:typename:const struct file_operations	file:
+rate_open	clk.c	/^static int rate_open(struct inode *inode, struct file *file)$/;"	f	typeref:typename:int	file:
+rate_show	clk.c	/^static int rate_show(struct seq_file *m, void *v)$/;"	f	typeref:typename:int	file:
+rate_write	clk.c	/^static int rate_write(struct file *file, const char __user *buffer,size_t count, loff_t *data)$/;"	f	typeref:typename:int	file:
+reg_offset	cpm_pwc.c	/^	unsigned int reg_offset;$/;"	m	struct:cpm_pwc	typeref:typename:unsigned int	file:
+rg	clk_pll.c	/^	int m,n,od1,od0,rg;$/;"	m	struct:pll_rate_setting	typeref:typename:int	file:
+rg	clk_pll.h	/^	unsigned int rg;$/;"	m	struct:ingenic_pll_rate_table	typeref:typename:unsigned int
+route	clk_cgu.c	/^	unsigned int route[4];$/;"	m	struct:clk_selectors	typeref:typename:unsigned int[4]	file:
+search_cpufrq_setting	clk_cpccr.c	/^static struct freq_udelay_jiffy* search_cpufrq_setting(unsigned int rate) {$/;"	f	typeref:struct:freq_udelay_jiffy *	file:
+sel	clk_cgu.c	/^	int off,ce_busy_stop,coe,div,sel,cache;$/;"	m	struct:cgu_clk	typeref:typename:int	file:
+sel	clk_cpccr.c	/^	short off,sel,ce;$/;"	m	struct:cpccr_clk	typeref:typename:short	file:
+selector	clk_cgu.c	/^const struct clk_selectors selector[] = {$/;"	v	typeref:typename:const struct clk_selectors[]
+serial_put_hex	clk_cgu.c	/^static inline void serial_put_hex(unsigned int x) {$/;"	f	typeref:typename:void	file:
+set_cpccr_h0div	clk_cpccr.c	/^static inline void set_cpccr_h0div(struct clk *clk,unsigned int rate)$/;"	f	typeref:typename:void	file:
+set_cpccr_h2div	clk_cpccr.c	/^static inline void set_cpccr_h2div(struct clk *clk,unsigned int rate)$/;"	f	typeref:typename:void	file:
+set_cpu_freqs	clk.c	/^static unsigned long set_cpu_freqs[] = {$/;"	v	typeref:typename:unsigned long[]	file:
+set_parent	clk.h	/^	int (*set_parent)(struct clk *,struct clk *);$/;"	m	struct:clk_ops	typeref:typename:int (*)(struct clk *,struct clk *)
+set_rate	clk.h	/^	int (*set_rate)(struct clk *,unsigned long);$/;"	m	struct:clk_ops	typeref:typename:int (*)(struct clk *,unsigned long)
+set_round_rate	clk.h	/^	int (*set_round_rate)(struct clk *,unsigned long);$/;"	m	struct:clk_ops	typeref:typename:int (*)(struct clk *,unsigned long)
+source	clk.h	/^	struct clk *source;$/;"	m	struct:clk	typeref:struct:clk *
+spin_lock	cpm_pwc.c	/^	spinlock_t spin_lock;$/;"	m	struct:cpm_pwc_ctrl	typeref:typename:spinlock_t	file:
+sw_ahb_from_l2cache	clk_cpccr.c	/^static inline void sw_ahb_from_l2cache(void)$/;"	f	typeref:typename:void	file:
+t41_pll_rate_table	clk_pll.c	/^static struct ingenic_pll_rate_table t41_pll_rate_table[] = {$/;"	v	typeref:struct:ingenic_pll_rate_table[]	file:
+timer	cpm_pwc.c	/^	struct timer_list timer;$/;"	m	struct:cpm_pwc	typeref:struct:timer_list	file:
+udelay_val	clk.h	/^	unsigned int  udelay_val;$/;"	m	struct:freq_udelay_jiffy	typeref:typename:unsigned int
+wait_bit	cpm_pwc.c	/^	unsigned int wait_bit;$/;"	m	struct:cpm_pwc	typeref:typename:unsigned int	file:
