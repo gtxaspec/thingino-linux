@@ -642,6 +642,8 @@ endif
 # address gcc12+ warnings
 KBUILD_CFLAGS += $(call cc-option,-Wno-error=array-bounds)
 KBUILD_CFLAGS += $(call cc-option,-Wno-error=array-compare)
+KBUILD_CFLAGS += $(call cc-option,-Wno-error=int-conversion)
+KBUILD_CFLAGS += $(call cc-option,-Wno-error=incompatible-pointer-types)
 KBUILD_CFLAGS += $(call cc-option,-Wno-attributes)
 KBUILD_CFLAGS += $(call cc-option,-Wno-attribute-alias)
 KBUILD_CFLAGS += $(call cc-option,-Wno-unused-variable)
