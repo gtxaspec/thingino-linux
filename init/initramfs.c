@@ -27,7 +27,7 @@
 #define TNPU_DIV_OFFSET_ADDR 0x98
 #define CLK_BASE 0x10000000
 static void writel_tnpu_clk(u32 value, unsigned long addr){
-	writel(value, (CLK_BASE | 0xa0000000) + addr);
+	writel(value, (void __iomem *)((CLK_BASE | 0xa0000000) + addr));
 }
 #endif
 

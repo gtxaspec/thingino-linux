@@ -1,4 +1,4 @@
-#ifndef __SDJCI_JZ_H
+#ifndef __SDHCI_JZ_H
 #define __SDHCI_JZ_H
 typedef unsigned int mmc_pm_flag_t;
 
