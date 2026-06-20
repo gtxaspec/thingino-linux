@@ -54,6 +54,7 @@
 #include <linux/mtd/partitions.h>
 #include <linux/module.h>
 #include <linux/err.h>
+#include <linux/ctype.h>
 
 /* error message prefix */
 #define ERRP "mtd: "
@@ -170,8 +171,15 @@ static struct mtd_partition * newpart(char *s,
 	/* test if more partitions are following */
 	if (*s == ',') {
 		if (size == SIZE_REMAINING) {
-			printk(KERN_ERR ERRP "no partitions allowed after a fill-up partition\n");
-			return ERR_PTR(-EINVAL);
+			/* Advance to the next character that is neither whitespace, numeric, nor size suffix */
+			char *next_char = s + 1;
+			while (*next_char && (isspace(*next_char) || isdigit(*next_char) || isalpha(*next_char))) {
+				next_char++;
+			}
+			if (*next_char != '@') {
+				printk(KERN_ERR ERRP "no partitions allowed after a fill-up partition without an offset\n");
+				return ERR_PTR(-EINVAL);
+			}
 		}
 		/* more partitions follow, parse them */
 		parts = newpart(s + 1, &s, num_parts, this_part + 1,
