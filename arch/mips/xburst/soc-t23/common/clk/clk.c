@@ -125,6 +125,26 @@ void __init init_all_clk(void)
 			clk_srcs[CLK_ID_H2CLK].rate/1000/1000,
 			clk_srcs[CLK_ID_PCLK].rate/1000/1000);
 }
+
+/*
+ * T23 quirk: the AHB0 bus gate clock (CLKGR1 bit 10) is dropped to usecount 0
+ * when the ISP closes (IMP_System_Exit), gating the entire AHB0 bus -- which
+ * carries the HARB0 chip-id register @0x1300002c, plus LCD and IPU. A bare read
+ * of the chip-id register (libimp's get_cpu_id, or the `soc` script's devmem)
+ * then hard-hangs the AHB bus on a warm system, tripping the watchdog. This is
+ * T23-specific: T31/T30/T20 do not gate the AHB0 bus on ISP close. Hold one
+ * permanent reference so the gate never reaches 0. Enabling AHB0 also enables
+ * its parent H0CLK via the clk framework, so the whole bus path stays up.
+ */
+static int __init t23_ahb0_keepalive(void)
+{
+	struct clk *c = clk_get(NULL, CLK_NAME_AHB0);
+	if (!IS_ERR_OR_NULL(c))
+		clk_enable(c);
+	return 0;
+}
+late_initcall(t23_ahb0_keepalive);
+
 struct clk *clk_get(struct device *dev, const char *id)
 {
 	int i;
