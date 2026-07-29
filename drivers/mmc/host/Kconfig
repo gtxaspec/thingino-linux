@@ -75,6 +75,18 @@ config JZMMC_V12_MMC1_PC_4BIT
 	bool "GPIO C, Data width 4 bit"
 endchoice
 
+config JZMMC_V12_MMC1_FORCE_1BIT
+    bool "Restrict MSC1 to 1 bit bus width"
+    depends on JZMMC_V12_MMC1
+    default n
+    help
+      Some devices (Jooan S7-U T23ZN, SDIO WiFi+MCU) only wire DAT0
+      (and optionally DAT1) on MSC1, so 4-bit transfers fail with
+      write-CRC errors. Enabling this option restricts MSC1 to
+      1-bit data transfers, the same way JZMMC_V12_MMC0_1BIT does
+      for MSC0.
+      If unsure, say N.
+
 config MMC1_MAX_FREQ
 	int "MSC1 max frequency"
 	depends on JZMMC_V12_MMC1
