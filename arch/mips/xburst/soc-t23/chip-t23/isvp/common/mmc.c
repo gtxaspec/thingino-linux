@@ -82,7 +82,11 @@ struct jzmmc_platform_data tf_pdata = {
 	 .removal  			= MANUAL,
 	 .sdio_clk			= 1,
 	 .ocr_avail			= MMC_VDD_29_30 | MMC_VDD_30_31,
+#ifdef CONFIG_JZMMC_V12_MMC1_FORCE_1BIT
+	 .capacity  			= MMC_CAP_SDIO_IRQ,
+#else
 	 .capacity  			= MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ,
+#endif
 	 .max_freq                       = CONFIG_MMC1_MAX_FREQ,
 	 .recovery_info			= NULL,
 	 .gpio				= NULL,
