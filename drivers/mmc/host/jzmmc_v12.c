@@ -1280,14 +1280,22 @@ static inline void jzmmc_power_on(struct jzmmc_host *host)
 		set_pin_status(&host->pdata->gpio->pwr, 1);
 	}
 	msleep(10);
-	jzgpio_set_func(GPIO_PORT_B, GPIO_FUNC_0, 0x3f);
+	/*
+	 * PB0-5 is the MSC0 pin group (MSC0_PORTB_4BIT). Only mmc0 may mux it;
+	 * mmc1 lives on a different group and must not touch these pins, or a
+	 * power transition on mmc1 tears down the mmc0 bus.
+	 */
+	if (host->index == 0)
+		jzgpio_set_func(GPIO_PORT_B, GPIO_FUNC_0, 0x3f);
 }
 
 static inline void jzmmc_power_off(struct jzmmc_host *host)
 {
 	dev_vdbg(host->dev, "power_off\n");
 
-	jzgpio_set_func(GPIO_PORT_B, GPIO_OUTPUT0, 0x3f);
+	/* MSC0 pin group, mmc0 only. See jzmmc_power_on(). */
+	if (host->index == 0)
+		jzgpio_set_func(GPIO_PORT_B, GPIO_OUTPUT0, 0x3f);
 	if (!IS_ERR(host->power)) {
 		if(regulator_is_enabled(host->power))
 			regulator_disable(host->power);
