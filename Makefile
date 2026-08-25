@@ -769,6 +769,9 @@ KBUILD_CFLAGS += $(call cc-option,-Wno-attributes)
 KBUILD_CFLAGS += $(call cc-option,-Wno-attribute-alias)
 KBUILD_CFLAGS += $(call cc-option,-Wno-unused-variable)
 KBUILD_CFLAGS += $(call cc-option,-Wno-incompatible-pointer-types)
+KBUILD_CFLAGS += $(call cc-option,-Wno-array-compare)
+KBUILD_CFLAGS += $(call cc-option,-Wno-stringop-overread)
+KBUILD_CFLAGS += $(call cc-option,-Wno-array-bounds)
 # We trigger additional mismatches with less inlining
 ifdef CONFIG_DEBUG_SECTION_MISMATCH
 KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
