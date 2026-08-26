@@ -869,6 +869,12 @@ choice
 config I2C2_PC27_PC28
 	depends on SOC_T30
 	bool "GPIO_PC27 & GPIO_PC28"
+config I2C2_PB20_PB21
+	depends on SOC_T23
+	bool "GPIO_PB20 & GPIO_PB21"
+config I2C2_PB27_PB28
+	depends on SOC_T23
+	bool "GPIO_PB27 & GPIO_PB28"
 endchoice
 
 config I2C2_SPEED

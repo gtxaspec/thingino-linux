@@ -75,6 +75,8 @@
 	{ .name = "i2c1-pc", .port = GPIO_PORT_C, .func = GPIO_FUNC_3, .pins = 0x3 << 8, }
 #define I2C2_PORTB                          \
 	{ .name = "i2c2-pb", .port = GPIO_PORT_B, .func = GPIO_FUNC_2, .pins = 0x3 << 20, }
+#define I2C2_PORTB_2                          \
+	{ .name = "i2c2-pb_2", .port = GPIO_PORT_B, .func = GPIO_FUNC_3, .pins = 0x3 << 27, }
 
 /*******************************************************************************************************************/
 
