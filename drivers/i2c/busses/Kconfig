@@ -834,6 +834,9 @@ choice
 config I2C1_PB25_PB26
 	depends on SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T23 || SOC_T31
 	bool "GPIO_PB25 & GPIO_PB26"
+config I2C1_PA16_PA17
+	depends on SOC_T23
+	bool "GPIO_PA16 & GPIO_PA17"
 config I2C1_PC08_PC09
 	depends on SOC_T31
 	bool "GPIO_PC08 & GPIO_PC09"
