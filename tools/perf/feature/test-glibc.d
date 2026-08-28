@@ -1,0 +1,25 @@
+/home_a/jszhang/workspace/isvp/opensource/kernel-4.4.94/tools/perf/feature/test-glibc.bin: \
+ test-glibc.c \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/stdlib.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/features.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/uClibc_config.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sys/cdefs.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/lib/gcc/mips-linux-gnu/7.2.0/include/stddef.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sys/types.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/types.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/wordsize.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/typesizes.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/pthreadtypes.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/endian.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/endian.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/byteswap.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/byteswap.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/byteswap-common.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sgidefs.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/time.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sys/select.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/select.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/sigset.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/time.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sys/sysmacros.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/alloca.h

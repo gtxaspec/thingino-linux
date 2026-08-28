@@ -1,0 +1,33 @@
+/home_a/jszhang/workspace/isvp/opensource/kernel-4.4.94/tools/perf/feature/test-stackprotector-all.bin: \
+ test-stackprotector-all.c \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/stdio.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/features.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/uClibc_config.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sys/cdefs.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/lib/gcc/mips-linux-gnu/7.2.0/include/stddef.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/types.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/wordsize.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/typesizes.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/pthreadtypes.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/endian.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/endian.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/byteswap.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/byteswap.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/byteswap-common.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sgidefs.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/uClibc_stdio.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/wchar.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/wchar.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/uClibc_mutex.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/pthread.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/sched.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/time.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/sched.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/time.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/uClibc_clk_tck.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/signal.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/sigset.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/setjmp.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/uClibc_pthread.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/lib/gcc/mips-linux-gnu/7.2.0/include/stdarg.h \
+ /opt/mips-gcc720-glibc226-r4.1.9/mips-linux-gnu/libc/uclibc/usr/include/bits/stdio_lim.h

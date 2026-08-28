@@ -1,0 +1,4 @@
+/tmp/ccDyHHge.o: In function `main':
+test-sync-compare-and-swap.c:(.text+0x50): undefined reference to `__sync_val_compare_and_swap_8'
+test-sync-compare-and-swap.c:(.text+0x80): undefined reference to `__sync_bool_compare_and_swap_8'
+collect2: error: ld returned 1 exit status
