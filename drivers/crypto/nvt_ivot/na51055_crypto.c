@@ -21,6 +21,8 @@
 #include <linux/of.h>
 #include <linux/clk.h>
 #include <linux/crypto.h>
+#include <linux/seq_file.h>
+#include <linux/proc_fs.h>
 
 #include <crypto/internal/skcipher.h>
 #include <crypto/internal/aead.h>
@@ -34,12 +36,14 @@
 #include <plat/efuse_protected.h>
 #include "na51055_crypto.h"
 
-#define DRV_VERSION                         "1.01.00"
+#define DRV_VERSION                         "1.02.00"
 
 //#define NA51055_CRYPTO_GCM_SOFTWARE_GHASH   1
 //#define NA51055_CRYPTO_PIO_SUPPORT          1
 #define NA51055_CRYPTO_DMA_TIMEOUT_DBG      1
 #define NA51055_CRYPTO_DMA_DESC_CV_CHECK    1
+#define NA51055_CRYPTO_DMA_ALIGN_SIZE	    4
+#define NA51055_CRYPTO_CACHE_ALIGN_SIZE     32			///< platform cache line size => CA9:32 byte
 
 #define ALIGN_UP(x, align_to)               (((x) + ((align_to)-1)) & ~((align_to)-1))
 #define ALIGN_DN(x, align_to)               ((x) & ~((align_to)-1))
@@ -59,6 +63,12 @@ typedef enum {
     NA51055_CRYPTO_TBUF_ALLOC_MAX
 } NA51055_CRYPTO_TBUF_ALLOC_T;
 
+typedef enum {
+    NA51055_CRYPTO_ALIGN_MODE_DMA = 0,      ///< dma word alignment mode
+    NA51055_CRYPTO_ALIGN_MODE_CACHE,        ///< cache line alignment mode
+    NA51055_CRYPTO_ALIGN_MODE_MAX
+} NA51055_CRYPTO_ALIGN_MODE_T;
+
 static int tbuf_alloc = NA51055_CRYPTO_TBUF_ALLOC_NONE;
 module_param(tbuf_alloc, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(tbuf_alloc, "Crypto temporarily buffer allocator => 0:None 1:Buddy");
@@ -70,6 +80,10 @@ MODULE_PARM_DESC(tbuf_size, "Crypto temporarily buffer size => Bytes");
 static int mclk = -1;
 module_param(mclk, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(mclk, "Crypto master clock => 0:240MHz 1:320MHz 2:Reserved 3:PLL9, -1 means from device tree");
+
+static int align_mode = NA51055_CRYPTO_ALIGN_MODE_CACHE;
+module_param(align_mode, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(align_mode, "Crypto buffer align check mode => 0:DMA_ALIGN 1:CACHE_ALIGN");
 
 struct na51055_ekey_hdr {
     u32     magic;              ///< must be 'ekey', to enable key load from efuse secure key section
@@ -236,6 +250,7 @@ struct na51055_crypto_dev {
 	struct device                    *dev;
 	struct clk                       *clk;
 	void __iomem                     *iobase;
+	int                              dbg_mode;
 	int                              irq;
 	spinlock_t                       lock;
 	spinlock_t                       pio_lock;
@@ -256,6 +271,14 @@ struct na51055_crypto_dev {
 	struct tasklet_struct            hash_tasklet;
 #endif
 	struct tasklet_struct            payload_tasklet;
+
+	struct {
+		struct proc_dir_entry *root;
+		struct proc_dir_entry *version;
+		struct proc_dir_entry *dbg_mode;
+		struct proc_dir_entry *param;
+		struct proc_dir_entry *dump_reg;
+	} proc;
 };
 
 static struct na51055_crypto_dev *na51055_cdev = NULL;
@@ -338,25 +361,36 @@ static void na51055_crypto_complete(struct na51055_crypto_dev *dev, NA51055_CRYP
 	dev->dma_ch[ch].state = NA51055_CRYPTO_STATE_IDLE;
 }
 
-static bool na51055_crypto_is_sg_aligned(struct scatterlist *sg, int align_size, int align_last, int chk_size)
+static bool na51055_crypto_is_sg_aligned(struct scatterlist *sg, int align_size, int align_last, int chk_size, int mode)
 {
 	int count = 0;
+	int leng_align_size;
+	int addr_align_size;
+
+	if (mode == NA51055_CRYPTO_ALIGN_MODE_DMA) {
+		leng_align_size = align_size;
+		addr_align_size = NA51055_CRYPTO_DMA_ALIGN_SIZE;
+	}
+	else {
+		leng_align_size = NA51055_CRYPTO_CACHE_ALIGN_SIZE;
+		addr_align_size = NA51055_CRYPTO_CACHE_ALIGN_SIZE;
+	}
 
 	while (sg && (count < chk_size)) {
 		if (((sg_phys(sg) + sg->length) & (~NA51055_CRYPTO_DMA_ADDR_MASK))) {
 			return false;
 		}
 		else if ((count + sg->length) < chk_size) {
-			if (!IS_ALIGNED(sg->length, align_size) || !IS_ALIGNED(sg_phys(sg), 4))	///< DMA address must word alignment
+			if (!IS_ALIGNED(sg->length, leng_align_size) || !IS_ALIGNED(sg_phys(sg), addr_align_size))	///< DMA address must word alignment
 				return false;
 		}
 		else {
-			if (align_last == 0) {
-				if(!IS_ALIGNED(sg_phys(sg), 4))	///< last sg length not require to alignment for hardware
+			if ((align_last == 0) && (mode == NA51055_CRYPTO_ALIGN_MODE_DMA)) {
+				if(!IS_ALIGNED(sg_phys(sg), addr_align_size))	///< last sg length not require to alignment for hardware
 					return false;
 			}
 			else {
-				if (!IS_ALIGNED((chk_size-count), align_size) || !IS_ALIGNED(sg_phys(sg), 4))	///< DMA address must word alignment
+				if (!IS_ALIGNED((chk_size-count), leng_align_size) || !IS_ALIGNED(sg_phys(sg), addr_align_size))	///< DMA address must word alignment
 					return false;
 			}
 		}
@@ -596,10 +630,12 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 		err         = 0;
 		align_last  = (reqctx->opmode == NA51055_CRYPTO_OPMODE_GCM || reqctx->opmode == NA51055_CRYPTO_OPMODE_CTR || reqctx->opmode == NA51055_CRYPTO_OPMODE_CFB) ? 0 : 1;
 
-        dev_dbg(dev->dev, "DMA#%d Cryp => mode:%d opmode:%d type:%d block_size:%d keylen:%d ivsize:%d\n", i, reqctx->mode, reqctx->opmode, reqctx->type, ctx->block_size, ctx->keylen, ivsize);
-		dev_dbg(dev->dev, "DMA#%d Sg   => orignal src_nents :%d dst_nents:%d req_nbytes:%d auth_size:%d\n", i, (src_sg ? sg_nents(src_sg) : 0), (dst_sg ? sg_nents(dst_sg) : 0), dma_ch->req_nbytes, auth_size);
-		dev_dbg(dev->dev, "DMA#%d Src  => orignal pa:0x%08x va:0x%08x size:%d\n", i, (src_sg ? (u32)sg_phys(src_sg) : 0), (src_sg ? (u32)sg_virt(src_sg) : 0), (src_sg ? src_sg->length : 0));
-		dev_dbg(dev->dev, "DMA#%d Dst  => orignal pa:0x%08x va:0x%08x size:%d\n", i, (dst_sg ? (u32)sg_phys(dst_sg) : 0), (dst_sg ? (u32)sg_virt(dst_sg) : 0), (dst_sg ? dst_sg->length : 0));
+		if (dev->dbg_mode >= 2) {
+			dev_info(dev->dev, "DMA#%d Cryp => mode:%d opmode:%d type:%d block_size:%d keylen:%d ivsize:%d\n", i, reqctx->mode, reqctx->opmode, reqctx->type, ctx->block_size, ctx->keylen, ivsize);
+			dev_info(dev->dev, "DMA#%d Sg   => orignal src_nents :%d dst_nents:%d req_nbytes:%d auth_size:%d\n", i, (src_sg ? sg_nents(src_sg) : 0), (dst_sg ? sg_nents(dst_sg) : 0), dma_ch->req_nbytes, auth_size);
+			dev_info(dev->dev, "DMA#%d Src  => orignal pa:0x%08x va:0x%08x size:%d\n", i, (src_sg ? (u32)sg_phys(src_sg) : 0), (src_sg ? (u32)sg_virt(src_sg) : 0), (src_sg ? src_sg->length : 0));
+			dev_info(dev->dev, "DMA#%d Dst  => orignal pa:0x%08x va:0x%08x size:%d\n", i, (dst_sg ? (u32)sg_phys(dst_sg) : 0), (dst_sg ? (u32)sg_virt(dst_sg) : 0), (dst_sg ? dst_sg->length : 0));
+		}
 
 		/* source length alignment check */
 		if (src_sg && dma_ch->req_nbytes) {
@@ -608,7 +644,10 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				err = -EINVAL;
 				goto error;
 			}
-			if (!na51055_crypto_is_sg_aligned(src_sg, ctx->block_size, align_last, dma_ch->req_nbytes)) {
+			if (!na51055_crypto_is_sg_aligned(src_sg, ctx->block_size, align_last, dma_ch->req_nbytes, NA51055_CRYPTO_ALIGN_MODE_DMA)) {
+				if (dev->dbg_mode >= 1)
+					dev_warn_ratelimited(dev->dev, "crypto dma#%d source buffer addr/length alignment is not preferred!\n", i);
+
 				if (dma_ch->tbuf_src && tbuf_size) {
 					if (dma_ch->req_nbytes > tbuf_size) {
 						if (reqctx->opmode == NA51055_CRYPTO_OPMODE_GCM) {
@@ -616,12 +655,16 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 							err = -EINVAL;
 							goto error;
 						}
-						dev_dbg(dev->dev, "crypto dma#%d copy %d bytes from original offset 0 to temp buffer\n", i, tbuf_size);
+						if (dev->dbg_mode >= 3)
+						    dev_info(dev->dev, "crypto dma#%d copy %d bytes from original offset 0 to temp buffer\n", i, tbuf_size);
+
 						scatterwalk_map_and_copy(dma_ch->tbuf_src, src_sg, 0, tbuf_size, 0);
 						sg_init_one(&dma_ch->sg_src_cpy, dma_ch->tbuf_src, tbuf_size);
 					}
 					else {
-					    dev_dbg(dev->dev, "crypto dma#%d copy %d bytes from original offset 0 to temp buffer\n", i, dma_ch->req_nbytes);
+					    if (dev->dbg_mode >= 3)
+					        dev_info(dev->dev, "crypto dma#%d copy %d bytes from original offset 0 to temp buffer\n", i, dma_ch->req_nbytes);
+
 						scatterwalk_map_and_copy(dma_ch->tbuf_src, src_sg, 0, dma_ch->req_nbytes, 0);
 						sg_init_one(&dma_ch->sg_src_cpy, dma_ch->tbuf_src, dma_ch->req_nbytes);
 					}
@@ -664,7 +707,10 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				err = -EINVAL;
 				goto error;
 			}
-			if (!na51055_crypto_is_sg_aligned(dst_sg, ctx->block_size, align_last, dma_ch->req_nbytes) || !IS_ALIGNED(dma_ch->req_nbytes, 4)) {
+			if (!na51055_crypto_is_sg_aligned(dst_sg, ctx->block_size, align_last, dma_ch->req_nbytes, align_mode) || !IS_ALIGNED(dma_ch->req_nbytes, 4)) {
+				if (dev->dbg_mode >= 1)
+				    dev_warn_ratelimited(dev->dev, "crypto dma#%d destination buffer addr/length alignment is not preferred!\n", i);
+
 				if (dma_ch->tbuf_dst && tbuf_size) {
 					if (dma_ch->req_nbytes > tbuf_size) {
 						if (reqctx->opmode == NA51055_CRYPTO_OPMODE_GCM) {
@@ -719,7 +765,10 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				err = -EINVAL;
 				goto error;
 			}
-			if (!na51055_crypto_is_sg_aligned(ass_sg, ctx->block_size, align_last, dma_ch->ass_nbytes)) {
+			if (!na51055_crypto_is_sg_aligned(ass_sg, ctx->block_size, align_last, dma_ch->ass_nbytes, NA51055_CRYPTO_ALIGN_MODE_DMA)) {
+				if (dev->dbg_mode >= 1)
+					dev_warn_ratelimited(dev->dev, "crypto dma#%d associated buffer addr/length alignment is not preferred!\n", i);
+
 				if (dma_ch->tbuf_ass && tbuf_size) {
 					if (dma_ch->ass_nbytes > tbuf_size) {
 						dev_err(dev->dev, "crypto dma#%d associated temp buffer size is small than request size\n", i);
@@ -809,13 +858,15 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 		else
 			dma_ch->sg_same = 0;
 
-		dev_dbg(dev->dev, "DMA#%d Sg   => src_nents :%d dst_nents:%d req_nbytes:%d auth_size:%d\n", i, (dma_ch->sg_src ? sg_nents(dma_ch->sg_src) : 0), (dma_ch->sg_dst ? sg_nents(dma_ch->sg_dst) : 0), dma_ch->req_nbytes, auth_size);
-		dev_dbg(dev->dev, "DMA#%d Sg   => src_copied:%d dst_copied:%d same:%d\n", i, dma_ch->src_copied, dma_ch->dst_copied, dma_ch->sg_same);
-		dev_dbg(dev->dev, "DMA#%d Src  => pa:0x%08x va:0x%08x size:%d\n", i, (dma_ch->sg_src ? (u32)sg_dma_address(dma_ch->sg_src) : 0), (dma_ch->sg_src ? (u32)sg_virt(dma_ch->sg_src) : 0), (dma_ch->sg_src ? dma_ch->sg_src->length : 0));
-		dev_dbg(dev->dev, "DMA#%d Dst  => pa:0x%08x va:0x%08x size:%d\n", i, (dma_ch->sg_dst ? (u32)sg_dma_address(dma_ch->sg_dst) : 0), (dma_ch->sg_dst ? (u32)sg_virt(dma_ch->sg_dst) : 0), (dma_ch->sg_dst ? dma_ch->sg_dst->length : 0));
-		dev_dbg(dev->dev, "DMA#%d Ass  => ass_nents:%d ass_nbytes:%d ass_copied:%d\n", i, (dma_ch->sg_ass ? sg_nents_for_len(dma_ch->sg_ass, dma_ch->ass_nbytes) : 0), dma_ch->ass_nbytes, dma_ch->ass_copied);
-		dev_dbg(dev->dev, "DMA#%d Ass  => pa:0x%08x va:0x%08x size:%d\n", i, (dma_ch->sg_ass ? (u32)sg_dma_address(dma_ch->sg_ass) : 0), (dma_ch->sg_ass ? (u32)sg_virt(dma_ch->sg_ass) : 0), (dma_ch->sg_ass ? dma_ch->sg_ass->length : 0));
-		dev_dbg(dev->dev, "DMA#%d Desc => pa:0x%08x va:0x%08x\n", i, (u32)dma_ch->desc_paddr, (u32)dma_ch->desc);
+		if (dev->dbg_mode >= 2) {
+			dev_info(dev->dev, "DMA#%d Sg   => src_nents :%d dst_nents:%d req_nbytes:%d auth_size:%d\n", i, (dma_ch->sg_src ? sg_nents(dma_ch->sg_src) : 0), (dma_ch->sg_dst ? sg_nents(dma_ch->sg_dst) : 0), dma_ch->req_nbytes, auth_size);
+			dev_info(dev->dev, "DMA#%d Sg   => src_copied:%d dst_copied:%d same:%d\n", i, dma_ch->src_copied, dma_ch->dst_copied, dma_ch->sg_same);
+			dev_info(dev->dev, "DMA#%d Src  => pa:0x%08x va:0x%08x size:%d\n", i, (dma_ch->sg_src ? (u32)sg_dma_address(dma_ch->sg_src) : 0), (dma_ch->sg_src ? (u32)sg_virt(dma_ch->sg_src) : 0), (dma_ch->sg_src ? dma_ch->sg_src->length : 0));
+			dev_info(dev->dev, "DMA#%d Dst  => pa:0x%08x va:0x%08x size:%d\n", i, (dma_ch->sg_dst ? (u32)sg_dma_address(dma_ch->sg_dst) : 0), (dma_ch->sg_dst ? (u32)sg_virt(dma_ch->sg_dst) : 0), (dma_ch->sg_dst ? dma_ch->sg_dst->length : 0));
+			dev_info(dev->dev, "DMA#%d Ass  => ass_nents:%d ass_nbytes:%d ass_copied:%d\n", i, (dma_ch->sg_ass ? sg_nents_for_len(dma_ch->sg_ass, dma_ch->ass_nbytes) : 0), dma_ch->ass_nbytes, dma_ch->ass_copied);
+			dev_info(dev->dev, "DMA#%d Ass  => pa:0x%08x va:0x%08x size:%d\n", i, (dma_ch->sg_ass ? (u32)sg_dma_address(dma_ch->sg_ass) : 0), (dma_ch->sg_ass ? (u32)sg_virt(dma_ch->sg_ass) : 0), (dma_ch->sg_ass ? dma_ch->sg_ass->length : 0));
+			dev_info(dev->dev, "DMA#%d Desc => pa:0x%08x va:0x%08x\n", i, (u32)dma_ch->desc_paddr, (u32)dma_ch->desc);
+		}
 
 		/* clear old IV */
 		memset(dma_ch->iv, 0,  sizeof(dma_ch->iv));
@@ -863,7 +914,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 			}
 			else {
 				reqctx->key_src = NA51055_CRYPTO_KEY_SRC_MANAGAMENT;
-				dev_dbg(dev->dev, "DMA#%d Key  => from efuse secure section offset:%d\n", i, ekey_hdr->offset);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d Key  => from efuse secure section offset:%d\n", i, ekey_hdr->offset);
 			}
 		}
 
@@ -874,14 +926,16 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 			if (iv && ivsize) {
 				desc->iv[0] = dma_ch->iv[0];
 				desc->iv[1] = dma_ch->iv[1];
-				dev_dbg(dev->dev, "DMA#%d IV   => %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d IV   => %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1]);
 			}
 
 			/* set key */
 			if (reqctx->key_src == NA51055_CRYPTO_KEY_SRC_DESC0) {
 				desc->key[0] = ctx->key[0];
 				desc->key[1] = ctx->key[1];
-				dev_dbg(dev->dev, "DMA#%d Key  => %08x %08x\n", i, ctx->key[0], ctx->key[1]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d Key  => %08x %08x\n", i, ctx->key[0], ctx->key[1]);
 			}
 			break;
 		case NA51055_CRYPTO_MODE_3DES:		/* key => 192 bit, IV => 64 bits, data => 64 bits, DES-EDE3 */
@@ -889,7 +943,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 			if (iv && ivsize) {
 				desc->iv[0] = dma_ch->iv[0];
 				desc->iv[1] = dma_ch->iv[1];
-				dev_dbg(dev->dev, "DMA#%d IV   => %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d IV   => %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1]);
 			}
 
 			/* set key */
@@ -900,7 +955,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				desc->key[3] = ctx->key[3];
 				desc->key[4] = ctx->key[4];
 				desc->key[5] = ctx->key[5];
-				dev_dbg(dev->dev, "DMA#%d Key  => %08x %08x %08x %08x %08x %08x\n", i, ctx->key[0], ctx->key[1], ctx->key[2], ctx->key[3], ctx->key[4], ctx->key[5]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d Key  => %08x %08x %08x %08x %08x %08x\n", i, ctx->key[0], ctx->key[1], ctx->key[2], ctx->key[3], ctx->key[4], ctx->key[5]);
 			}
 			break;
 		case NA51055_CRYPTO_MODE_AES_128:	/* key => 128 bits, IV => 128 bits, data => 128 bits*/
@@ -910,7 +966,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				desc->iv[1] = dma_ch->iv[1];
 				desc->iv[2] = dma_ch->iv[2];
 				desc->iv[3] = dma_ch->iv[3];
-				dev_dbg(dev->dev, "DMA#%d IV   => %08x %08x %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1], dma_ch->iv[2], dma_ch->iv[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d IV   => %08x %08x %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1], dma_ch->iv[2], dma_ch->iv[3]);
 			}
 
 			/* set key */
@@ -919,7 +976,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				desc->key[1] = ctx->key[1];
 				desc->key[2] = ctx->key[2];
 				desc->key[3] = ctx->key[3];
-				dev_dbg(dev->dev, "DMA#%d Key  => %08x %08x %08x %08x\n", i, ctx->key[0], ctx->key[1], ctx->key[2], ctx->key[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d Key  => %08x %08x %08x %08x\n", i, ctx->key[0], ctx->key[1], ctx->key[2], ctx->key[3]);
 			}
 			break;
 		case NA51055_CRYPTO_MODE_AES_256:	/* key => 256 bits, IV => 128 bits, data => 128 bits*/
@@ -929,7 +987,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				desc->iv[1] = dma_ch->iv[1];
 				desc->iv[2] = dma_ch->iv[2];
 				desc->iv[3] = dma_ch->iv[3];
-				dev_dbg(dev->dev, "DMA#%d IV   => %08x %08x %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1], dma_ch->iv[2], dma_ch->iv[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d IV   => %08x %08x %08x %08x\n", i, dma_ch->iv[0], dma_ch->iv[1], dma_ch->iv[2], dma_ch->iv[3]);
 			}
 
 			/* set key */
@@ -942,7 +1001,8 @@ static void na51055_crypto_start(struct na51055_crypto_dev *dev)
 				desc->key[5] = ctx->key[5];
 				desc->key[6] = ctx->key[6];
 				desc->key[7] = ctx->key[7];
-				dev_dbg(dev->dev, "DMA#%d Key  => %08x %08x %08x %08x %08x %08x %08x %08x\n", i, ctx->key[0], ctx->key[1], ctx->key[2], ctx->key[3], ctx->key[4], ctx->key[5], ctx->key[6], ctx->key[7]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "DMA#%d Key  => %08x %08x %08x %08x %08x %08x %08x %08x\n", i, ctx->key[0], ctx->key[1], ctx->key[2], ctx->key[3], ctx->key[4], ctx->key[5], ctx->key[6], ctx->key[7]);
 			}
 			break;
 		default:
@@ -1262,7 +1322,8 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 		goto exit;
 	}
 
-	dev_dbg(dev->dev, "PIO        => mode:%d type:%d\n", mode, type);
+	if (dev->dbg_mode >= 2)
+		dev_info(dev->dev, "PIO        => mode:%d type:%d\n", mode, type);
 
 	/* set key */
 	if ((ekey_hdr->magic == NA51055_CRYPTO_EKEY_HDR_MAGIC) &&
@@ -1295,7 +1356,8 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 			goto exit;
 		}
 		else {
-			dev_dbg(dev->dev, "PIO Key    => from efuse secure section offset:%d\n", ekey_hdr->offset);
+			if (dev->dbg_mode >= 3)
+				dev_info(dev->dev, "PIO Key    => from efuse secure section offset:%d\n", ekey_hdr->offset);
 		}
 	}
 	else {
@@ -1303,7 +1365,8 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 		case NA51055_CRYPTO_MODE_DES:
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY0_REG, key[0]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY1_REG, key[1]);
-			dev_dbg(dev->dev, "PIO Key    => %08x %08x\n", key[0], key[1]);
+			if (dev->dbg_mode >= 3)
+			    dev_info(dev->dev, "PIO Key    => %08x %08x\n", key[0], key[1]);
 			break;
 		case NA51055_CRYPTO_MODE_3DES:
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY0_REG, key[0]);
@@ -1312,14 +1375,16 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY3_REG, key[3]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY4_REG, key[4]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY5_REG, key[5]);
-			dev_dbg(dev->dev, "PIO Key    => %08x %08x %08x %08x %08x %08x\n", key[0], key[1], key[2], key[3], key[4], key[5]);
+			if (dev->dbg_mode >= 3)
+			    dev_info(dev->dev, "PIO Key    => %08x %08x %08x %08x %08x %08x\n", key[0], key[1], key[2], key[3], key[4], key[5]);
 			break;
 		case NA51055_CRYPTO_MODE_AES_128:
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY0_REG, key[0]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY1_REG, key[1]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY2_REG, key[2]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY3_REG, key[3]);
-			dev_dbg(dev->dev, "PIO Key    => %08x %08x %08x %08x\n", key[0], key[1], key[2], key[3]);
+			if (dev->dbg_mode >= 3)
+			    dev_info(dev->dev, "PIO Key    => %08x %08x %08x %08x\n", key[0], key[1], key[2], key[3]);
 			break;
 		case NA51055_CRYPTO_MODE_AES_256:
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY0_REG, key[0]);
@@ -1330,7 +1395,8 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY5_REG, key[5]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY6_REG, key[6]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_KEY7_REG, key[7]);
-			dev_dbg(dev->dev, "PIO Key    => %08x %08x %08x %08x %08x %08x %08x %08x\n", key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7]);
+			if (dev->dbg_mode >= 3)
+			    dev_info(dev->dev, "PIO Key    => %08x %08x %08x %08x %08x %08x %08x %08x\n", key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7]);
 			break;
 		default:
 			dev_err(dev->dev, "crypto PIO mode not support mode:%d!!\n", mode);
@@ -1345,7 +1411,8 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 		na51055_crypto_write(dev, NA51055_CRYPTO_IN1_REG, 0);
 		na51055_crypto_write(dev, NA51055_CRYPTO_IN2_REG, 0);
 		na51055_crypto_write(dev, NA51055_CRYPTO_IN3_REG, 0);
-		dev_dbg(dev->dev, "PIO In     => %08x %08x %08x %08x\n", 0, 0, 0, 0);
+		if (dev->dbg_mode >= 3)
+			dev_info(dev->dev, "PIO In     => %08x %08x %08x %08x\n", 0, 0, 0, 0);
 	}
 	else {
 		if (mode == NA51055_CRYPTO_MODE_DES || mode == NA51055_CRYPTO_MODE_3DES) {
@@ -1353,14 +1420,16 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN1_REG, src[1]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN2_REG, 0);
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN3_REG, 0);
-			dev_dbg(dev->dev, "PIO In     => %08x %08x %08x %08x\n", src[0], src[1], 0, 0);
+			if (dev->dbg_mode >= 3)
+				dev_info(dev->dev, "PIO In     => %08x %08x %08x %08x\n", src[0], src[1], 0, 0);
 		}
 		else {
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN0_REG, src[0]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN1_REG, src[1]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN2_REG, src[2]);
 			na51055_crypto_write(dev, NA51055_CRYPTO_IN3_REG, src[3]);
-			dev_dbg(dev->dev, "PIO In     => %08x %08x %08x %08x\n", src[0], src[1], src[2], src[3]);
+			if (dev->dbg_mode >= 3)
+				dev_info(dev->dev, "PIO In     => %08x %08x %08x %08x\n", src[0], src[1], src[2], src[3]);
 		}
 	}
 
@@ -1390,14 +1459,16 @@ static int na51055_crypto_pio(struct na51055_crypto_dev *dev, NA51055_CRYPTO_MOD
 		if (mode == NA51055_CRYPTO_MODE_DES || mode == NA51055_CRYPTO_MODE_3DES) {
 			dst[0] = na51055_crypto_read(dev, NA51055_CRYPTO_OUT0_REG);
 			dst[1] = na51055_crypto_read(dev, NA51055_CRYPTO_OUT1_REG);
-			dev_dbg(dev->dev, "PIO Out    => %08x %08x\n", dst[0], dst[1]);
+			if (dev->dbg_mode >= 3)
+			    dev_info(dev->dev, "PIO Out    => %08x %08x\n", dst[0], dst[1]);
 		}
 		else {
 			dst[0] = na51055_crypto_read(dev, NA51055_CRYPTO_OUT0_REG);
 			dst[1] = na51055_crypto_read(dev, NA51055_CRYPTO_OUT1_REG);
 			dst[2] = na51055_crypto_read(dev, NA51055_CRYPTO_OUT2_REG);
 			dst[3] = na51055_crypto_read(dev, NA51055_CRYPTO_OUT3_REG);
-			dev_dbg(dev->dev, "PIO Out    => %08x %08x %08x %08x\n", dst[0], dst[1], dst[2], dst[3]);
+			if (dev->dbg_mode >= 3)
+			    dev_info(dev->dev, "PIO Out    => %08x %08x %08x %08x\n", dst[0], dst[1], dst[2], dst[3]);
 		}
 	}
 	else {
@@ -1639,7 +1710,8 @@ static void na51055_crypto_aes_gcm_copy_hash(struct aead_request *req)
 
 	scatterwalk_map_and_copy(auth_tag, req->dst, (req->assoclen + req->cryptlen), crypto_aead_authsize(tfm), 1);
 
-	dev_dbg((pctx->dev)->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
+	if ((pctx->dev)->dbg_mode >= 3)
+		dev_info((pctx->dev)->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
 }
 
 static int na51055_crypto_aes_gcm_verify_hash(struct aead_request *req)
@@ -1654,8 +1726,10 @@ static int na51055_crypto_aes_gcm_verify_hash(struct aead_request *req)
 	crypto_xor(auth_tag, iauth_tag, authsize);
 	scatterwalk_map_and_copy(iauth_tag, req->src, (req->assoclen + req->cryptlen - authsize), authsize, 0);
 
-	dev_dbg((pctx->dev)->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0],  reqctx->auth_tag[1],  reqctx->auth_tag[2],  reqctx->auth_tag[3]);
-	dev_dbg((pctx->dev)->dev, "AuthTag In => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
+	if ((pctx->dev)->dbg_mode >= 3) {
+		dev_info((pctx->dev)->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0],  reqctx->auth_tag[1],  reqctx->auth_tag[2],  reqctx->auth_tag[3]);
+		dev_info((pctx->dev)->dev, "AuthTag In => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
+	}
 
 	return crypto_memneq(iauth_tag, auth_tag, authsize) ? -EBADMSG : 0;
 }
@@ -1722,7 +1796,8 @@ static void __gcm_hash_final_done(struct aead_request *req, int err)
 
 	if (!err) {
 		crypto_xor(auth_tag, iauth_tag, crypto_aead_authsize(tfm));
-		dev_dbg((pctx->dev)->dev, "GHASH Out  => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
+		if (dev->dbg_mode >= 3)
+		    dev_info((pctx->dev)->dev, "GHASH Out  => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
 	}
 
 	reqctx->ghash_ctx.complete(req, err);
@@ -1956,7 +2031,8 @@ static int na51055_crypto_aes_gcm_hash(struct aead_request *req, struct na51055_
 	if (err)
 		return err;
 
-	dev_dbg((pctx->dev)->dev, "GHASH Out  => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
+	if (dev->dbg_mode >= 3)
+		dev_info((pctx->dev)->dev, "GHASH Out  => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
 
 	return 0;
 }
@@ -2171,7 +2247,8 @@ static void na51055_crypto_aes_ccm_complete(struct na51055_crypto_dev *dev, NA51
 				/* copy tag */
 				memcpy(reqctx->auth_tag, (u8 *)(dev->dma_ch[ch].desc)->cv, AES_BLOCK_SIZE);
 
-				dev_dbg(dev->dev, "Tag Out    => %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "Tag Out    => %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
 
 				/* ccm encryption, hardware do payload CBC encrypt first to create tag then issue CTR to create cipher */
 				reqctx->type   = NA51055_CRYPTO_TYPE_ENCRYPT;
@@ -2186,7 +2263,8 @@ static void na51055_crypto_aes_ccm_complete(struct na51055_crypto_dev *dev, NA51
 				/* tag XOR s0 to create auth_tag */
 				crypto_xor((u8 *)reqctx->auth_tag, (u8 *)(dev->dma_ch[ch].desc)->s0, AES_BLOCK_SIZE);
 
-				dev_dbg(dev->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
 
 				/* copy auth_tag to destination buffer */
 				scatterwalk_map_and_copy(reqctx->auth_tag, aead_req->dst, (aead_req->assoclen + reqctx->cryptlen), crypto_aead_authsize(tfm), 1);
@@ -2213,12 +2291,14 @@ static void na51055_crypto_aes_ccm_complete(struct na51055_crypto_dev *dev, NA51
 				/* make auth_tag */
 				crypto_xor((u8 *)reqctx->auth_tag, (u8 *)(dev->dma_ch[ch].desc)->cv, AES_BLOCK_SIZE);
 
-				dev_dbg(dev->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "AuthTag Out=> %08x %08x %08x %08x\n", reqctx->auth_tag[0], reqctx->auth_tag[1], reqctx->auth_tag[2], reqctx->auth_tag[3]);
 
 				/* copy source tag */
 				scatterwalk_map_and_copy(reqctx->iauth_tag, aead_req->src, (aead_req->assoclen + reqctx->cryptlen), crypto_aead_authsize(tfm), 0);
 
-				dev_dbg(dev->dev, "AuthTag In => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
+				if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "AuthTag In => %08x %08x %08x %08x\n", reqctx->iauth_tag[0], reqctx->iauth_tag[1], reqctx->iauth_tag[2], reqctx->iauth_tag[3]);
 
 				/* verify tag */
 				if (crypto_memneq(reqctx->auth_tag, reqctx->iauth_tag, crypto_aead_authsize(tfm)))
@@ -2387,10 +2467,12 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 		}
 		align_chk = (reqctx->opmode == NA51055_CRYPTO_OPMODE_GCM || reqctx->opmode == NA51055_CRYPTO_OPMODE_CTR || reqctx->opmode == NA51055_CRYPTO_OPMODE_CFB) ? 0 : 1;
 
-		dev_dbg(dev->dev, "DMA#%d      => transfer done\n", i);
-		dev_dbg(dev->dev, "DMA#%d CIV  => %08x %08x %08x %08x\n", i, desc->cv[0], desc->cv[1], desc->cv[2], desc->cv[3]);
-		dev_dbg(dev->dev, "DMA#%d S0   => %08x %08x %08x %08x\n", i, desc->s0[0], desc->s0[1], desc->s0[2], desc->s0[3]);
-		dev_dbg(dev->dev, "DMA#%d GHASH=> %08x %08x %08x %08x\n", i, desc->ghash[0], desc->ghash[1], desc->ghash[2], desc->ghash[3]);
+		if (dev->dbg_mode >= 2) {
+			dev_info(dev->dev, "DMA#%d      => transfer done\n", i);
+			dev_info(dev->dev, "DMA#%d CIV  => %08x %08x %08x %08x\n", i, desc->cv[0], desc->cv[1], desc->cv[2], desc->cv[3]);
+			dev_info(dev->dev, "DMA#%d S0   => %08x %08x %08x %08x\n", i, desc->s0[0], desc->s0[1], desc->s0[2], desc->s0[3]);
+			dev_info(dev->dev, "DMA#%d GHASH=> %08x %08x %08x %08x\n", i, desc->ghash[0], desc->ghash[1], desc->ghash[2], desc->ghash[3]);
+		}
 
 		/* check processed source data length if use source temp buffer */
 		if (!dma_ch->sg_src_work && (dma_ch->src_copied == 2)) {
@@ -2402,12 +2484,14 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 			/* copy remain data to temp buffer */
 			if ((dma_ch->src_total < dma_ch->req_nbytes) && req_src_sg) {
 				if (dma_ch->req_nbytes >= (dma_ch->src_total + tbuf_size)) {
-				    dev_dbg(dev->dev, "crypto dma#%d copy %d bytes from original offset %d to temp buffer\n", i, tbuf_size, dma_ch->src_total);
+				    if (dev->dbg_mode >= 3)
+				        dev_info(dev->dev, "crypto dma#%d copy %d bytes from original offset %d to temp buffer\n", i, tbuf_size, dma_ch->src_total);
 					scatterwalk_map_and_copy(dma_ch->tbuf_src, req_src_sg, dma_ch->src_total, tbuf_size, 0);
 					sg_init_one(&dma_ch->sg_src_cpy, dma_ch->tbuf_src, tbuf_size);
 				}
 				else {
-				    dev_dbg(dev->dev, "crypto dma#%d copy %d bytes from original offset %d to temp buffer\n", i, (dma_ch->req_nbytes - dma_ch->src_total), dma_ch->src_total);
+				    if (dev->dbg_mode >= 3)
+				        dev_info(dev->dev, "crypto dma#%d copy %d bytes from original offset %d to temp buffer\n", i, (dma_ch->req_nbytes - dma_ch->src_total), dma_ch->src_total);
 					scatterwalk_map_and_copy(dma_ch->tbuf_src, req_src_sg, dma_ch->src_total, (dma_ch->req_nbytes - dma_ch->src_total), 0);
 					sg_init_one(&dma_ch->sg_src_cpy, dma_ch->tbuf_src, (dma_ch->req_nbytes - dma_ch->src_total));
 				}
@@ -2436,7 +2520,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 
 			/* copy output data to destination buffer */
 			if ((dma_ch->dst_total >= dma_ch->sg_dst_cpy.length) && req_dst_sg) {
-				dev_dbg(dev->dev, "crypto dma#%d copy %d bytes back to original buffer offset %d\n", i, dma_ch->sg_dst_cpy.length, (dma_ch->dst_total - dma_ch->sg_dst_cpy.length));
+			    if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "crypto dma#%d copy %d bytes back to original buffer offset %d\n", i, dma_ch->sg_dst_cpy.length, (dma_ch->dst_total - dma_ch->sg_dst_cpy.length));
 				scatterwalk_map_and_copy(sg_virt(&dma_ch->sg_dst_cpy), req_dst_sg, (dma_ch->dst_total - dma_ch->sg_dst_cpy.length), dma_ch->sg_dst_cpy.length, 1);
 			}
 			else {
@@ -2474,11 +2559,12 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 			case NA51055_CRYPTO_MODE_3DES:
 			    for (j=0; j<100; j++) {
 			        if (desc->cv[0] || desc->cv[1])
-                        break;
+			            break;
 			        udelay(1);
 			    }
 			    if (!desc->cv[0] && !desc->cv[1]) {
-			        dev_err(dev->dev, "DMA#%d CV not ready => %08x %08x\n", i, desc->cv[0], desc->cv[1]);
+			        if (dev->dbg_mode >= 1)
+			            dev_info(dev->dev, "DMA#%d CV not ready => %08x %08x\n", i, desc->cv[0], desc->cv[1]);
 			        goto completed;
 			    }
 				break;
@@ -2490,7 +2576,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 			        udelay(1);
 			    }
 			    if (!desc->cv[0] && !desc->cv[1] && !desc->cv[2] && !desc->cv[3]) {
-			        dev_err(dev->dev, "DMA#%d CV not ready => %08x %08x %08x %08x\n", i, desc->cv[0], desc->cv[1], desc->cv[2], desc->cv[3]);
+			        if (dev->dbg_mode >= 1)
+			            dev_info(dev->dev, "DMA#%d CV not ready => %08x %08x %08x %08x\n", i, desc->cv[0], desc->cv[1], desc->cv[2], desc->cv[3]);
 			        goto completed;
 			    }
 				break;
@@ -2560,7 +2647,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 					case NA51055_CRYPTO_MODE_3DES:
 						desc->iv[0] = desc->cv[0];
 						desc->iv[1] = desc->cv[1];
-						dev_dbg(dev->dev, "DMA#%d NIV  => %08x %08x\n", i, desc->iv[0], desc->iv[1]);
+						if (dev->dbg_mode >= 3)
+						    dev_info(dev->dev, "DMA#%d NIV  => %08x %08x\n", i, desc->iv[0], desc->iv[1]);
 						break;
 					case NA51055_CRYPTO_MODE_AES_128:
 					case NA51055_CRYPTO_MODE_AES_256:
@@ -2568,7 +2656,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 						desc->iv[1] = desc->cv[1];
 						desc->iv[2] = desc->cv[2];
 						desc->iv[3] = desc->cv[3];
-						dev_dbg(dev->dev, "DMA#%d NIV  => %08x %08x %08x %08x\n", i, desc->iv[0], desc->iv[1], desc->iv[2], desc->iv[3]);
+						if (dev->dbg_mode >= 3)
+						    dev_info(dev->dev, "DMA#%d NIV  => %08x %08x %08x %08x\n", i, desc->iv[0], desc->iv[1], desc->iv[2], desc->iv[3]);
 						break;
 					default:
 						break;
@@ -2588,14 +2677,15 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 #endif
 
 				/* dummy read to ensure data in DDR */
-                wmb();
+				wmb();
 				reg_value = desc->block[block_num-1].block_cfg;
 				rmb();
 
 				/* set dma channel state to busy */
 				dma_ch->state = NA51055_CRYPTO_STATE_BUSY;
 
-				dev_dbg(dev->dev, "DMA#%d      => trigger next transfer!\n", i);
+				if (dev->dbg_mode >= 2)
+					dev_info(dev->dev, "DMA#%d      => trigger next transfer!\n", i);
 			}
 			else {
 				goto completed;
@@ -2619,7 +2709,8 @@ completed:
 				dma_ch->sg_ass_nents = 0;
 			}
 			if (dma_ch->dst_copied == 1) {
-				dev_dbg(dev->dev, "crypto dma#%d copy %d bytes back to original buffer\n", i, dma_ch->dst_total);
+			    if (dev->dbg_mode >= 3)
+				    dev_info(dev->dev, "crypto dma#%d copy %d bytes back to original buffer\n", i, dma_ch->dst_total);
 				scatterwalk_map_and_copy(sg_virt(&dma_ch->sg_dst_cpy), req_dst_sg, 0, dma_ch->dst_total, 1);
 				free_pages((unsigned long)sg_virt(&dma_ch->sg_dst_cpy), get_order(dma_ch->sg_dst_cpy.length));
 				dma_ch->dst_copied = 0;
@@ -4037,6 +4128,229 @@ static void na51055_crypto_dma_buf_free(struct na51055_crypto_dev *dev)
 	}
 }
 
+static int na51055_crypto_proc_version_show(struct seq_file *sfile, void *v)
+{
+	seq_printf(sfile, "Version: %s\n", DRV_VERSION);
+	return 0;
+}
+
+static int na51055_crypto_proc_dbg_mode_show(struct seq_file *sfile, void *v)
+{
+	struct na51055_crypto_dev *dev = (struct na51055_crypto_dev *)sfile->private;
+
+	seq_printf(sfile, "Debug_Mode: %d\n", dev->dbg_mode);
+	seq_printf(sfile, "0: disable debug message output\n");
+	seq_printf(sfile, "1: enable  debug message output\n");
+
+	return 0;
+}
+
+static int na51055_crypto_proc_param_show(struct seq_file *sfile, void *v)
+{
+	char *mclk_str[] = {"240MHz", "320MHz", "Unknown", "PLL9"};
+
+	seq_printf(sfile, "[0]MCLK      : %s\n", ((mclk >= 0 && mclk < NA51055_CRYPTO_MCLK_MAX) ? mclk_str[mclk] : mclk_str[1]));
+	seq_printf(sfile, "[1]TBuf_Alloc: %s (%d)\n", (tbuf_alloc ? "Buddy" : "None"), tbuf_size);
+	seq_printf(sfile, "[2]Align_Mode: %s (%d)\n", (align_mode ? "CACHE_ALIGN" : "DMA_ALIGN"), (align_mode ? NA51055_CRYPTO_CACHE_ALIGN_SIZE : NA51055_CRYPTO_DMA_ALIGN_SIZE));
+
+	return 0;
+}
+
+static ssize_t na51055_crypto_proc_dbg_mode_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
+{
+	int mode;
+	unsigned long flags;
+	char value_str[32] = {'\0'};
+	struct seq_file *sfile = (struct seq_file *)file->private_data;
+	struct na51055_crypto_dev *dev = (struct na51055_crypto_dev *)sfile->private;
+
+	if(copy_from_user(value_str, buffer, count))
+		return -EFAULT;
+
+	value_str[count] = '\0';
+	sscanf(value_str, "%d\n", &mode);
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	if ((mode >= 0) && (mode <= 3)) {
+		dev->dbg_mode = mode;
+	}
+
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return count;
+}
+
+static int na51055_crypto_proc_dump_reg_show(struct seq_file *sfile, void *v)
+{
+	int i;
+	unsigned long flags;
+	struct na51055_crypto_dev *dev = (struct na51055_crypto_dev *)sfile->private;
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	/* dump device register */
+	for (i=0; i<=NA51055_CRYPTO_KEY_READ_REG; i+=16) {
+		seq_printf(sfile, "%04x | %08x %08x %08x %08x\n", i,
+				   na51055_crypto_read(dev, i),
+				   na51055_crypto_read(dev, i+4),
+				   na51055_crypto_read(dev, i+8),
+				   na51055_crypto_read(dev, i+12));
+	}
+
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return 0;
+}
+
+static ssize_t na51055_crypto_proc_param_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
+{
+	int ret;
+	int param_id, param_value;
+	unsigned long flags;
+	char value_str[32] = {'\0'};
+	struct seq_file *sfile = (struct seq_file *)file->private_data;
+	struct na51055_crypto_dev *dev = (struct na51055_crypto_dev *)sfile->private;
+
+	if(copy_from_user(value_str, buffer, count))
+		return -EFAULT;
+
+	value_str[count] = '\0';
+	ret = sscanf(value_str, "%d %d\n", &param_id, &param_value);
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	if (ret >= 2) {
+		switch (param_id) {
+			case 2: /* Align Mode */
+				if ((param_value >= NA51055_CRYPTO_ALIGN_MODE_DMA) && (param_value < NA51055_CRYPTO_ALIGN_MODE_MAX)) {
+					align_mode = param_value;
+				}
+				break;
+			default:
+				break;
+		}
+	}
+
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return count;
+}
+
+static int na51055_crypto_proc_version_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, na51055_crypto_proc_version_show, PDE_DATA(file_inode(file)));
+}
+
+static int na51055_crypto_proc_dbg_mode_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, na51055_crypto_proc_dbg_mode_show, PDE_DATA(file_inode(file)));
+}
+
+static int na51055_crypto_proc_param_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, na51055_crypto_proc_param_show, PDE_DATA(file_inode(file)));
+}
+
+static int na51055_crypto_proc_dump_reg_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, na51055_crypto_proc_dump_reg_show, PDE_DATA(file_inode(file)));
+}
+
+static struct file_operations na51055_crypto_proc_version_ops = {
+	.owner  = THIS_MODULE,
+	.open   = na51055_crypto_proc_version_open,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+	.release= single_release,
+};
+
+static struct file_operations na51055_crypto_proc_dbg_mode_ops = {
+	.owner  = THIS_MODULE,
+	.open   = na51055_crypto_proc_dbg_mode_open,
+	.write  = na51055_crypto_proc_dbg_mode_write,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+	.release= single_release,
+};
+
+static struct file_operations na51055_crypto_proc_param_ops = {
+	.owner  = THIS_MODULE,
+	.open   = na51055_crypto_proc_param_open,
+	.write  = na51055_crypto_proc_param_write,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+	.release= single_release,
+};
+
+static struct file_operations na51055_crypto_proc_dump_reg_ops = {
+	.owner  = THIS_MODULE,
+	.open   = na51055_crypto_proc_dump_reg_open,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+	.release= single_release,
+};
+
+static void na51055_crypto_proc_remove(struct na51055_crypto_dev *dev)
+{
+	if (dev->proc.root) {
+		proc_remove(dev->proc.root);        ///< include subtree
+		dev->proc.root = NULL;
+	}
+}
+
+static int na51055_crypto_proc_init(struct na51055_crypto_dev *dev)
+{
+	int  ret = 0;
+	char *root_name = "nvt_crypto";
+
+	/* root */
+	dev->proc.root = proc_mkdir(root_name, NULL);
+	if (dev->proc.root == NULL) {
+		dev_err(dev->dev, "error to create %s proc\n", root_name);
+		ret = -EFAULT;
+		goto err;
+	}
+
+	/* version */
+	dev->proc.version = proc_create_data("version", S_IRUGO|S_IXUGO, dev->proc.root, &na51055_crypto_proc_version_ops, dev);
+	if (dev->proc.version == NULL) {
+		dev_err(dev->dev, "error to create %s/version proc\n", root_name);
+		ret = -EFAULT;
+		goto err;
+	}
+
+	/* dbg_mode */
+	dev->proc.dbg_mode = proc_create_data("dbg_mode", S_IRUGO|S_IXUGO, dev->proc.root, &na51055_crypto_proc_dbg_mode_ops, dev);
+	if (dev->proc.dbg_mode == NULL) {
+		dev_err(dev->dev, "error to create %s/dbg_mode proc\n", root_name);
+		ret = -EFAULT;
+		goto err;
+	}
+
+	/* param */
+	dev->proc.param = proc_create_data("param", S_IRUGO|S_IXUGO, dev->proc.root, &na51055_crypto_proc_param_ops, dev);
+	if (dev->proc.param == NULL) {
+		dev_err(dev->dev, "error to create %s/param proc\n", root_name);
+		ret = -EFAULT;
+		goto err;
+	}
+
+	/* dump_reg */
+	dev->proc.dump_reg = proc_create_data("dump_reg", S_IRUGO|S_IXUGO, dev->proc.root, &na51055_crypto_proc_dump_reg_ops, dev);
+	if (dev->proc.dump_reg == NULL) {
+		dev_err(dev->dev, "error to create %s/dump_reg proc\n", root_name);
+		ret = -EFAULT;
+		goto err;
+	}
+
+err:
+	if(ret < 0)
+		na51055_crypto_proc_remove(dev);
+
+	return ret;
+}
+
 static int na51055_crypto_probe(struct platform_device *pdev)
 {
 	int    ret, i;
@@ -4163,10 +4477,10 @@ static int na51055_crypto_probe(struct platform_device *pdev)
 					/* source tbuf */
 					dd->dma_ch[i].tbuf_src = (void *)__get_free_pages(GFP_KERNEL, get_order(tbuf_size));
 					if (!dd->dma_ch[i].tbuf_src) {
-						dev_dbg(&pdev->dev, "unable to alloc source temp buffer from buddy\n");
+						dev_warn(&pdev->dev, "unable to alloc source temp buffer from buddy\n");
 					}
 					else if ((((u32)page_to_phys(virt_to_page(dd->dma_ch[i].tbuf_src)) + tbuf_size) & (~NA51055_CRYPTO_DMA_ADDR_MASK))) {
-						dev_dbg(&pdev->dev, "alloc source temp buffer from buddy but dma not support buffer physical address\n");
+						dev_warn(&pdev->dev, "alloc source temp buffer from buddy but dma not support buffer physical address\n");
 						free_pages((unsigned long)dd->dma_ch[i].tbuf_src, get_order(tbuf_size));
 						dd->dma_ch[i].tbuf_src = NULL;
 					}
@@ -4174,10 +4488,10 @@ static int na51055_crypto_probe(struct platform_device *pdev)
 					/* destination tbuf */
 					dd->dma_ch[i].tbuf_dst = (void *)__get_free_pages(GFP_KERNEL, get_order(tbuf_size));
 					if (!dd->dma_ch[i].tbuf_dst) {
-						dev_dbg(&pdev->dev, "unable to alloc destination temp buffer from buddy\n");
+						dev_warn(&pdev->dev, "unable to alloc destination temp buffer from buddy\n");
 					}
 					else if ((((u32)page_to_phys(virt_to_page(dd->dma_ch[i].tbuf_dst)) + tbuf_size) & (~NA51055_CRYPTO_DMA_ADDR_MASK))) {
-						dev_dbg(&pdev->dev, "alloc destination temp buffer from buddy but dma not support buffer physical address\n");
+						dev_warn(&pdev->dev, "alloc destination temp buffer from buddy but dma not support buffer physical address\n");
 						free_pages((unsigned long)dd->dma_ch[i].tbuf_dst, get_order(tbuf_size));
 						dd->dma_ch[i].tbuf_dst = NULL;
 					}
@@ -4185,10 +4499,10 @@ static int na51055_crypto_probe(struct platform_device *pdev)
 					/* associated tbuf */
 					dd->dma_ch[i].tbuf_ass = (void *)__get_free_pages(GFP_KERNEL, get_order(tbuf_size));
 					if (!dd->dma_ch[i].tbuf_ass) {
-						dev_dbg(&pdev->dev, "unable to alloc associated temp buffer from buddy\n");
+						dev_warn(&pdev->dev, "unable to alloc associated temp buffer from buddy\n");
 					}
 					else if ((((u32)page_to_phys(virt_to_page(dd->dma_ch[i].tbuf_ass)) + tbuf_size) & (~NA51055_CRYPTO_DMA_ADDR_MASK))) {
-						dev_dbg(&pdev->dev, "alloc associated temp buffer from buddy but dma not support buffer physical address\n");
+						dev_warn(&pdev->dev, "alloc associated temp buffer from buddy but dma not support buffer physical address\n");
 						free_pages((unsigned long)dd->dma_ch[i].tbuf_ass, get_order(tbuf_size));
 						dd->dma_ch[i].tbuf_ass = NULL;
 					}
@@ -4231,6 +4545,12 @@ static int na51055_crypto_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	/* init debug proc */
+	ret = na51055_crypto_proc_init(dd);
+	if (ret) {
+		goto err;
+	}
+
 	pr_info("nvt-crypto driver registered Version: %s (CLK: %luHz)\n", DRV_VERSION, clk_get_rate(dd->clk));
 
 	return 0;
@@ -4269,6 +4589,7 @@ err:
 	tasklet_kill(&dd->hash_tasklet);
 #endif
 	tasklet_kill(&dd->payload_tasklet);
+	na51055_crypto_proc_remove(dd);
 	clk_disable_unprepare(dd->clk);
 	na51055_crypto_dma_buf_free(dd);
 	return ret;
@@ -4320,6 +4641,7 @@ static int na51055_crypto_remove(struct platform_device *pdev)
 		}
 	}
 
+	na51055_crypto_proc_remove(dev);
 	clk_disable_unprepare(dev->clk);
 	na51055_crypto_dma_buf_free(dev);
 

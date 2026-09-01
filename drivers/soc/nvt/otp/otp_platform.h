@@ -32,6 +32,8 @@
 #include "otp_drv.h"
 #include "otp_dbg.h"
 extern UINT32 IOADDR_EFUSE_REG_BASE;
+extern UINT32 IOADDR_TZPC_REG_BASE;
+extern UINT32 IOADDR_DDR_ARB_REG_BASE;	
 #endif
 
 extern ER otp_platform_sem_wait(void);

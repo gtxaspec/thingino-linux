@@ -35,6 +35,8 @@ static vk_spinlock_t	v_otp_spin_locks;
 #include <mach/fmem.h>
 
 UINT32 IOADDR_EFUSE_REG_BASE = 0x0;
+UINT32 IOADDR_TZPC_REG_BASE = 0x0;
+UINT32 IOADDR_DDR_ARB_REG_BASE = 0x0;
 DEFINE_SEMAPHORE(otp_sem);
 //static struct semaphore otp_sem;
 DEFINE_SPINLOCK(v_otp_spin_locks);
@@ -116,6 +118,13 @@ void otp_platform_create_resource(MODULE_INFO *pmodule_info)
 	IOADDR_EFUSE_REG_BASE = (UINT32)pmodule_info->io_addr[0];
 	//sema_init(&otp_sem, 1);
 	//otp_sem_init = 1;
+	if(!IOADDR_TZPC_REG_BASE) {
+		IOADDR_TZPC_REG_BASE = (UINT32)ioremap_nocache(NVT_TZPC_PHY_BASE_PHYS, 0x100);
+	}
+
+	if(!IOADDR_DDR_ARB_REG_BASE) {
+		IOADDR_DDR_ARB_REG_BASE = (UINT32)ioremap_nocache(NVT_DDR_ARB_PHY_BASE_PHYS, 0x100);
+	}	
 #endif
 }
 
@@ -131,12 +140,12 @@ void otp_platform_earily_create_resource(void)
 {
 	if(!IOADDR_EFUSE_REG_BASE) {
 		IOADDR_EFUSE_REG_BASE = (UINT32)ioremap_nocache(NVT_EFUSE_BASE_PHYS, 0x100);
-	}
+	}	
 }
 
 void otp_platform_earily_release_resource(void)
 {
-	iounmap((volatile void __iomem *)IOADDR_EFUSE_REG_BASE);
+	iounmap((volatile void __iomem *)IOADDR_EFUSE_REG_BASE);	
 }
 
 EXPORT_SYMBOL(otp_platform_earily_create_resource);

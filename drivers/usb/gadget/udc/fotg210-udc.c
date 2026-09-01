@@ -28,7 +28,7 @@
 #include "fotg210-EP.h"
 
 #define	DRIVER_DESC	"FOTG210 USB Device Controller Driver"
-#define	DRIVER_VERSION	"1.00.038"
+#define	DRIVER_VERSION	"1.00.039"
 
 static bool is_cdc_class = 0;
 u32 vbus_gpio_no = D_GPIO(7);
@@ -1665,12 +1665,6 @@ static int fotg210_setup_packet(struct fotg210_udc *fotg210,
 			is_cdc_class = 1;
 		}
 
-		if ((ctrl->bRequest == UVC_GET_CUR) || (ctrl->bRequest == UVC_GET_MIN) || (ctrl->bRequest == UVC_GET_MAX) || (ctrl->bRequest == UVC_GET_RES)
-				|| (ctrl->bRequest ==  UVC_GET_LEN) || (ctrl->bRequest ==  UVC_GET_DEF) || (ctrl->bRequest == UVC_GET_INFO)) {
-
-			fotg210_set_cxdone(fotg210);
-		}
-
 		ret = 1;
 	}
 
@@ -1868,8 +1862,14 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 			if (fotg210_setup_packet(fotg210, &ctrl)) {
 				spin_unlock(&fotg210->lock);
 				if (fotg210->driver->setup(&fotg210->gadget,
-							   &ctrl) < 0)
-					fotg210_set_cxstall(fotg210);
+							&ctrl) < 0) {
+					if (ctrl.bRequestType & USB_DIR_IN) {
+						fotg210_set_cxstall(fotg210);
+					} else {
+						fotg210_set_cxstall(fotg210);
+						fotg210_set_cxdone(fotg210);
+					}
+				}
 				spin_lock(&fotg210->lock);
 			}
 		}

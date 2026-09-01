@@ -95,7 +95,19 @@ static int slave_configure(struct scsi_device *sdev)
 	 * while others have trouble with more than 64K. At this time we
 	 * are limiting both to 32K (64 sectores).
 	 */
+#ifdef CONFIG_PLAT_NOVATEK
+	if (us->pusb_dev->speed == USB_SPEED_FULL) {
+		unsigned int max_sectors = 128; //64K
+
+		if ((queue_max_hw_sectors(sdev->request_queue) > max_sectors) && (queue_max_sectors(sdev->request_queue) > max_sectors)) {
+			printk("full speed, devreq hw max-%d kb, host set max-%d kb for better compatiblility\n", queue_max_hw_sectors(sdev->request_queue)/2, max_sectors/2);
+			blk_queue_max_hw_sectors(sdev->request_queue, max_sectors);
+		}
+
+	} else if (us->fflags & (US_FL_MAX_SECTORS_64 | US_FL_MAX_SECTORS_MIN)) {
+#else
 	if (us->fflags & (US_FL_MAX_SECTORS_64 | US_FL_MAX_SECTORS_MIN)) {
+#endif
 		unsigned int max_sectors = 64;
 
 		if (us->fflags & US_FL_MAX_SECTORS_MIN)

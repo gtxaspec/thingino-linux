@@ -1028,9 +1028,17 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	}
 
 	if (local_top_reg5.bit.ETH == ETH_ID_ENUM_RMII)
+	{
 		value |= PIN_ETH_CFG_RMII;
+		if(top_reg5.bit.ETH_MDIO == ETH_MDIO_FUNC)
+			value |= PIN_ETH_CFG_MDIO;
+	}
 	else if (local_top_reg5.bit.ETH == ETH_ID_ENUM_RMII_2)
+	{
 		value |= PIN_ETH_CFG_RMII_2;
+		if(top_reg5.bit.ETH_MDIO == ETH_MDIO_FUNC_2)
+			value |= PIN_ETH_CFG_MDIO_2;
+	}
 
 	if (local_top_reg6.bit.EXT_PHYCLK == ETH_EXTPHY_CLK_FUNC)
 		value |= PIN_ETH_CFG_EXTPHYCLK;

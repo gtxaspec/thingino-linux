@@ -147,7 +147,11 @@ typedef enum {
 	EFUSE_OTP_TOTAL_KEY_SET_FIELD,
 } EFUSE_OTP_KEY_SET_FIELD;
 
-#define EFUSE_OTP_KEY_FIELD_CNT			4
+#define EFUSE_OTP_KEY_FIELD_CNT							4
+
+#define NVT_EFUSE_VERSION 								0x22041508
+#define efuse_check_available(name)  					efuse_check_available2(name, NVT_EFUSE_VERSION)
+#define efuse_check_available_extend(param1, param2) 	efuse_check_available_extend2(param1, param2, NVT_EFUSE_VERSION)
 
 
 // Capacity of Storage device
@@ -171,9 +175,10 @@ typedef struct {
 typedef enum {
 	EFUSE_ABILITY_CDC_RESOLUTION    =0x1001,        //< Check package resoltion of codec
 	EFUSE_ABILITY_CDC_PLL_FREQ		=0x1002,		//< Check package PLL freq of codec
-	EFUSE_ABILITY_MIPI_CSI_1C2D		=0x1003,		//< Check if MIPI CSI only support 1C2D
+	EFUSE_ABILITY_MIPI_CSI_1C4D		=0x1003,		//< Check if MIPI CSI only support 1C2D
 	EFUSE_ABILITY_MIPI_DSI			=0x1004,		//< Check if MIPI DSI support
 	EFUSE_ABILITY_LINEBUFFER_3M		=0x1005,		//< Check if Line buffer only support 3M(Please fill resolution)
+	EFUSE_ABILITY_CUSTOM			=0x1006,		//< Check if CUSTOM function check
 													//< Max = 2304 x 1296
 	///< Context are :
 	///< - @b UINT32 * : starting address of CDC_ABILITY
@@ -311,7 +316,7 @@ extern INT32    efuse_readParamOps(EFUSE_PARAM_DATA param, UINT16 *data);
         - @b   TRUE     Usable library
         - @b   FALSE    Un-usable library
 */
-extern BOOL efuse_check_available(const CHAR * name);
+extern BOOL efuse_check_available2(const CHAR * name, UINT32 param);
 
 /*
      efuse_check_available_extend
@@ -325,7 +330,7 @@ extern BOOL efuse_check_available(const CHAR * name);
         - @b   TRUE     support
         - @b   FALSE    not support
 */
-extern BOOL efuse_check_available_extend(EFUSE_PKG_ABILITY_LIST param1, UINT32 param2);
+extern BOOL efuse_check_available_extend2(EFUSE_PKG_ABILITY_LIST param1, UINT32 param2, UINT32 param3);
 
 /*
      efuse_get_unique_id

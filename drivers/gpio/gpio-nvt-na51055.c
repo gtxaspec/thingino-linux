@@ -516,16 +516,24 @@ static void nvt_gpio_set(struct gpio_chip *gc, unsigned offset, int value)
 {
 	uint32_t tmp;
 	uint32_t ofs = (offset >> 5) << 2;
+	unsigned long flags = 0;
+	struct nvt_gpio_chip *nvt_gpio_chip_ptr = to_nvt_gpio(gc);
 
 	if (gpio_validation(offset) == 0) {
 
 		offset &= (32-1);
 		tmp = (1<<offset);
 
+		/*race condition protect. enter critical section*/
+		loc_cpu(&nvt_gpio_chip_ptr->lock, flags);
+
 		if (value)
 			GPIO_SETREG(NVT_GPIO_STG_SET_0 + ofs, tmp);
 		else
 			GPIO_SETREG(NVT_GPIO_STG_CLR_0 + ofs, tmp);
+
+		/*race condition protect. leave critical section*/
+		unl_cpu(&nvt_gpio_chip_ptr->lock, flags);
 	}
 
 }
@@ -570,20 +578,21 @@ static int nvt_gpio_dir_output(struct gpio_chip *gc,
 
 	offset &= (32-1);
 	tmp = (1<<offset);
+
 	/*race condition protect. enter critical section*/
-	//loc_cpu();
 	loc_cpu(&nvt_gpio_chip_ptr->lock, flags);
+
 	reg_data = GPIO_GETREG(NVT_GPIO_STG_DIR_0 + ofs);
 	reg_data |= (1<<offset);    /*output*/
 	GPIO_SETREG(NVT_GPIO_STG_DIR_0 + ofs, reg_data);
-
-	/*race condition protect. leave critical section*/
-	unl_cpu(&nvt_gpio_chip_ptr->lock, flags);
 
 	if (value)
 		GPIO_SETREG(NVT_GPIO_STG_SET_0 + ofs, tmp);
 	else
 		GPIO_SETREG(NVT_GPIO_STG_CLR_0 + ofs, tmp);
+
+	/*race condition protect. leave critical section*/
+	unl_cpu(&nvt_gpio_chip_ptr->lock, flags);
 
 	return 0;
 }

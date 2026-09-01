@@ -39,7 +39,7 @@
 #include <linux/of_device.h>
 #endif
 
-#define DRV_VERSION		"1.00.040"
+#define DRV_VERSION		"1.00.050"
 static UCHAR dev_addr[6] = {0, 0x55, 0x7b, 0xb5, 0x7d, 0xf7};
 
 void __iomem *ETH_QOS_REG_BASE;
@@ -557,21 +557,6 @@ static const struct of_device_id synopsys_eth_of_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, synopsys_eth_of_dt_ids);
 #endif
 
-static struct platform_driver DWC_ETH_QOS_driver = {
-	.probe = DWC_ETH_QOS_probe,
-	.remove = DWC_ETH_QOS_remove,
-#ifdef CONFIG_PM
-	.suspend = DWC_ETH_QOS_suspend,
-	.resume = DWC_ETH_QOS_resume,
-#endif
-	.driver = {
-			.name = DEV_NAME,
-			.owner = THIS_MODULE,
-#ifdef CONFIG_OF
-			.of_match_table = synopsys_eth_of_dt_ids,
-#endif
-	},
-};
 
 #ifdef CONFIG_PM
 
@@ -684,6 +669,22 @@ static INT DWC_ETH_QOS_resume(struct platform_device *pdev)
 }
 
 #endif	/* CONFIG_PM */
+
+static struct platform_driver DWC_ETH_QOS_driver = {
+	.probe = DWC_ETH_QOS_probe,
+	.remove = DWC_ETH_QOS_remove,
+#ifdef CONFIG_PM
+	.suspend = DWC_ETH_QOS_suspend,
+	.resume = DWC_ETH_QOS_resume,
+#endif
+	.driver = {
+			.name = DEV_NAME,
+			.owner = THIS_MODULE,
+#ifdef CONFIG_OF
+			.of_match_table = synopsys_eth_of_dt_ids,
+#endif
+	},
+};
 
 /*!
 * \brief Macro to register the driver registration function.

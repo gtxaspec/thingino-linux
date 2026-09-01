@@ -41,7 +41,7 @@
 #include <plat/nvt_serial.h>
 #include <plat/top.h>
 
-#define DRIVER_VERSION		"2.0.5"
+#define DRIVER_VERSION		"2.0.6"
 
 #define DRIVER_NAME		"nvt_serial"
 
@@ -131,6 +131,26 @@ static void nvt_write_early(struct uart_port *port, unsigned int off, unsigned i
 	writel_relaxed(val, port->membase + off);
 
 	spin_unlock_irqrestore(&write_lock_early, flags);
+}
+
+static void nvt_clear_fifos(struct uart_port *port)
+{
+	struct circ_buf *xmit;
+	xmit = &port->state->xmit;
+
+	/* Enable FIFO and Reset */
+	nvt_write(port, UART_FCR_REG, FIFO_EN_BIT | RX_FIFO_RESET_BIT | TX_FIFO_RESET_BIT);
+	/* Disable FIFO */
+	nvt_write(port, UART_FCR_REG, 0);
+
+
+	if(xmit->head != xmit->tail){
+		serial_dbg("\nFIFO remain %d\n",CIRC_CNT_TO_END(xmit->head, xmit->tail, UART_XMIT_SIZE));
+
+		/* Force reset FIFO buffer */
+		xmit->head = xmit->tail;
+	}
+	
 }
 
 static void nvt_enable_rx_dma(struct work_struct *work)
@@ -666,6 +686,11 @@ static int nvt_startup(struct uart_port *port)
 		return ret;
 
 	/*
+	 * Clear the FIFO buffers and disable.
+	 */
+	nvt_clear_fifos(port);	
+
+	/*
 	 * Clear the interrupt registers again for luck, and clear the
 	 * saved flags to avoid getting false values from polling
 	 * routines or the previous session.
@@ -836,6 +861,7 @@ static void nvt_set_termios(struct uart_port *port, struct ktermios *termios,
 	nvt_write(port, UART_LCR_REG, lcr_val);  /* clear DLAB bit */
 
 	/* Set rx fifo trigger level */
+	nvt_clear_fifos(port);
 	nvt_write(port, UART_FCR_REG, FIFO_EN_BIT | (nvt_port->rx_trig_level << _UART_FCR_RX_TRIGGER_SHIFT));
 
 	/* Set hardware flow control */
@@ -881,11 +907,13 @@ static void nvt_set_termios(struct uart_port *port, struct ktermios *termios,
 	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
 		port->read_status_mask |= BREAK_INT_BIT;
 
+	
 	uart_update_timeout(port, termios->c_cflag, baud);
 
 	serial_dbg("baud(%d) hw_flowctrl(%d) tx_dma(%d) rx_dma(%d)\n", baud, ((termios->c_cflag & CRTSCTS) ? 1 : 0), nvt_port->tx_dma_en, nvt_port->rx_dma_en);
 
 	spin_unlock_irqrestore(&port->lock, flags);
+
 }
 
 static const char *nvt_type(struct uart_port *port)

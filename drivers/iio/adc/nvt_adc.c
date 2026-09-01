@@ -25,7 +25,7 @@
 #include <plat/efuse_protected.h>
 #include <plat/top.h>
 
-#define DRV_VERSION "1.02.100"
+#define DRV_VERSION "1.03.000"
 
 #ifdef CONFIG_NVT_FPGA_EMULATION
 #define CALI_VDDADC 3300
@@ -362,7 +362,7 @@ static const struct of_device_id nvt_adc_of_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, nvt_adc_of_dt_ids);
 #endif
 
-#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
+#if (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089))
 static void nvt_adc_get_trimdata(struct nvt_adc_state *adc)
 {
 	u16 data0, data1 = 0x0;
@@ -370,6 +370,27 @@ static void nvt_adc_get_trimdata(struct nvt_adc_state *adc)
 	u32 upper_bound = CALI_VDDADC + 200;
 	u32 lower_bound = CALI_VDDADC - 200;
 
+#if (defined(CONFIG_NVT_IVOT_PLAT_NA51055))
+    if (efuse_readParamOps(EFUSE_ADC_TRIM_A_DATA, &data0)) {
+		adc->cali_value = CALI_VDDADC;
+	} else {
+	    data0 = ((data0 & 0x3F80)>>7); //Trim A @ bit[13..7]
+
+        if (efuse_readParamOps(EFUSE_ADC_TRIM_B_DATA, &data1) ) {
+    	    adc->cali_value = CALI_VDDADC;
+        } else {
+    	    data1 = (data1 & 0x1FF); //Trim B @ bit[8..0]
+            slope = data1 - data0;
+            cali_value = (511 - data0) * 1000;
+            cali_value = 2*(cali_value/slope) + 500;
+
+            if ((cali_value > upper_bound) || (cali_value < lower_bound))
+            	adc->cali_value = CALI_VDDADC;
+            else
+            	adc->cali_value = cali_value;
+        }
+	}
+#else  //#if (defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 	if (efuse_readParamOps(EFUSE_ADC_TRAM_A_DATA, &data0)) {
 		adc->cali_value = CALI_VDDADC;
 	} else {
@@ -386,6 +407,7 @@ static void nvt_adc_get_trimdata(struct nvt_adc_state *adc)
 				adc->cali_value = cali_value;
 		}
 	}
+#endif
 }
 #endif
 
@@ -453,8 +475,8 @@ static int nvt_adc_probe(struct platform_device *pdev)
 		}
 	}
 
-#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
-	nvt_adc_get_trimdata(adc);
+#if (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089))
+     nvt_adc_get_trimdata(adc);
 #else
 	if (of_property_read_u32(pdev->dev.of_node, "cali_value", &adc->cali_value))
 		adc->cali_value = CALI_VDDADC;

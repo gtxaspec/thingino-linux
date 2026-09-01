@@ -161,7 +161,7 @@ static int nvt_otp_probe(struct platform_device *pdev)
 #endif
 			ret = -ENODEV;
 			goto FAIL_FREE_RES;
-		}
+		} 
 	}
 #if 0
 	//Dynamic to allocate Device ID

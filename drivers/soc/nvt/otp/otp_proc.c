@@ -20,10 +20,10 @@
 //============================================================================
 // Define
 //============================================================================
-#define MAX_CMD_LENGTH 30
-#define MAX_ARG_NUM     6
+#define MAX_CMD_LENGTH 		30
+#define MAX_ARG_NUM     	6
 
-#define DBG_TEST_EN	(0)
+#define DBG_TEST_EN			(0)
 
 //============================================================================
 // Declaration
@@ -42,7 +42,6 @@ POTP_DRV_INFO pdrv_otp_info_data;
 // Function define
 //============================================================================
 
-
 //=============================================================================
 // proc "Custom Command" file operation functions
 //=============================================================================
@@ -59,6 +58,7 @@ static int nvt_otp_proc_show(struct seq_file *sfile, void *v)
 	seq_printf(sfile, "             => nvt_read_key_lock No (Read lock specific key set)\n");
 	seq_printf(sfile, "             => encrypt_key_set No (Encrypt/decrypt via specific key set)\n");
 	seq_printf(sfile, "             => version (knlPkg.a version)\n");
+
 	return 0;
 }
 
@@ -262,7 +262,7 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 			pr_info("[4] data = 0x%08x\r\n", data);
 		}
 #if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
-		if (efuse_readParamOps(EFUSE_ADC_TRIM_A_DATA, &data) != E_OK) {			
+		if (efuse_readParamOps(EFUSE_ADC_TRIM_A_DATA, &data) != E_OK) {
 			pr_err("[trim_A] data = NULL\n");
 		} else {
 			//Trim A @ bit[13..7]
@@ -270,7 +270,7 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 			pr_info("[trim_A] data = 0x%08x\r\n", data);
 		}
 
-		if (efuse_readParamOps(EFUSE_ADC_TRIM_B_DATA, &data) != E_OK) {			
+		if (efuse_readParamOps(EFUSE_ADC_TRIM_B_DATA, &data) != E_OK) {
 			pr_err("[trim_A] data = NULL\n");
 		} else {
 			//Trim B @ bit[8..0]
@@ -308,7 +308,7 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 		} else {
 			pr_info("[9] data = 0x%08x\r\n", data);
 		}
-#endif		
+#endif
 //#endif
 		return size;
 	} else if(!strcmp(argv[0], "uniqueid")) {

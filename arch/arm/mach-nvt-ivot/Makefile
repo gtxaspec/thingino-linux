@@ -10,6 +10,6 @@ obj-$(CONFIG_SMP)			+= platsmp.o headsmp.o
 
 obj-$(CONFIG_HOTPLUG_CPU)		+= hotplug.o
 
-obj-$(CONFIG_PM)			+= pm.o sleep.o
+#obj-$(CONFIG_PM)			+= pm.o sleep.o
 
 obj-$(CONFIG_TEE)			+= smc.o
