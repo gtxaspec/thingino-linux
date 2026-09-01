@@ -37,7 +37,7 @@
 #include "../nvt_flash_spi/nvt_flash_spi_int.h"
 #include "ext_flash_table.h"
 
-#define NOR_VERSION "1.07.121"
+#define NOR_VERSION "1.07.122"
 
 /* SMI clock rate */
 #define NVT_FLASH_MAX_CLOCK_FREQ	50000000 /* 50 MHz */

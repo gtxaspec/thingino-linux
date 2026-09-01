@@ -191,13 +191,11 @@ static void DWC_ETH_QOS_stop_dev(struct DWC_ETH_QOS_prv_data *pdata)
 
 static void DWC_ETH_QOS_tx_desc_mang_ds_dump(struct DWC_ETH_QOS_prv_data *pdata)
 {
+#ifdef YDEBUG
 	struct DWC_ETH_QOS_tx_wrapper_descriptor *tx_desc_data = NULL;
 	struct s_TX_NORMAL_DESC *tx_desc = NULL;
 	int qInx, i;
 
-#ifndef YDEBUG
-	return;
-#endif
 	printk(KERN_ALERT "/**** TX DESC MANAGEMENT DATA STRUCTURE DUMP ****/\n");
 
 	printk(KERN_ALERT "TX_DESC_QUEUE_CNT = %d\n", DWC_ETH_QOS_TX_QUEUE_CNT);
@@ -237,18 +235,19 @@ static void DWC_ETH_QOS_tx_desc_mang_ds_dump(struct DWC_ETH_QOS_prv_data *pdata)
 	}
 
 	printk(KERN_ALERT "/************************************************/\n");
+#else
+	return;
+#endif
 }
 
 
 static void DWC_ETH_QOS_rx_desc_mang_ds_dump(struct DWC_ETH_QOS_prv_data *pdata)
 {
+#ifdef YDEBUG
 	struct DWC_ETH_QOS_rx_wrapper_descriptor *rx_desc_data = NULL;
 	struct s_RX_NORMAL_DESC *rx_desc = NULL;
 	int qInx, i;
 
-#ifndef YDEBUG
-	return;
-#endif
 	printk(KERN_ALERT "/**** RX DESC MANAGEMENT DATA STRUCTURE DUMP ****/\n");
 
 	printk(KERN_ALERT "RX_DESC_QUEUE_CNT = %d\n", DWC_ETH_QOS_RX_QUEUE_CNT);
@@ -290,6 +289,10 @@ static void DWC_ETH_QOS_rx_desc_mang_ds_dump(struct DWC_ETH_QOS_prv_data *pdata)
 	}
 
 	printk(KERN_ALERT "/************************************************/\n");
+#else
+	return;
+#endif
+
 }
 
 
@@ -532,6 +535,7 @@ irqreturn_t DWC_ETH_QOS_ISR_SW_DWC_ETH_QOS(int irq, void *device_id)
 	struct DWC_ETH_QOS_rx_queue *rx_queue = NULL;
 	ULONG varMAC_ANS = 0;
 	ULONG varMAC_PCS = 0;
+	int ret = 0;
 
 	DBGPR("-->DWC_ETH_QOS_ISR_SW_DWC_ETH_QOS\n");
 
@@ -625,8 +629,11 @@ irqreturn_t DWC_ETH_QOS_ISR_SW_DWC_ETH_QOS(int irq, void *device_id)
 			pdata->xstats.pmt_irq_n++;
 			DWC_ETH_QOS_GStatus = S_MAC_ISR_PMTIS;
 			MAC_PMTCSR_RgRd(varMAC_PMTCSR);
-			if (pdata->power_down)
-				DWC_ETH_QOS_powerup(pdata->dev, DWC_ETH_QOS_IOCTL_CONTEXT);
+			if (pdata->power_down) {
+				ret = DWC_ETH_QOS_powerup(pdata->dev, DWC_ETH_QOS_IOCTL_CONTEXT);
+				if (ret)
+					DBGPR("Device is already powered up\n");
+			}
 		}
 
 		/* RGMII/SMII interrupt */
@@ -2434,7 +2441,7 @@ static void DWC_ETH_QOS_print_rx_tstamp_info(struct s_RX_NORMAL_DESC *rxdesc,
 	ptp_version = ((ptp_status & 0x2000) ? "v2 (1588-2008)" : "v1 (1588-2002)");
 	ptp_pkt_type = ((ptp_status & 0x1000) ? "ptp over Eth" : "ptp over IPv4/6");
 
-	pkt_type = ((ptp_status & 0xF00) > 8);
+	pkt_type = ((ptp_status & 0xF00) >> 8);
 	switch (pkt_type) {
 	case 0:
 		ptp_msg_type = "NO PTP msg received";
@@ -3077,6 +3084,8 @@ static int DWC_ETH_QOS_clean_split_hdr_rx_irq(
 							payload_len);
 					}
 				} else {
+					if (!desc_data->skb_top)
+						goto next_desc;
 					/* this is the middle of a chain */
 					payload_len = pdata->rx_buffer_len;
 					skb_fill_page_desc(desc_data->skb_top,
@@ -3092,7 +3101,7 @@ static int DWC_ETH_QOS_clean_split_hdr_rx_irq(
 							 payload_len, buf2_used);
 				goto next_desc;
 			} else {
-				if (!(RX_NORMAL_DESC->RDES3 & DWC_ETH_QOS_RDESC3_FD)) {
+				if (!(RX_NORMAL_DESC->RDES3 & DWC_ETH_QOS_RDESC3_FD) && (desc_data->skb_top)) {
 					buf2_used = 1;
 					/* end of the chain */
 					if (hdr_len) {
@@ -3338,6 +3347,8 @@ static int DWC_ETH_QOS_clean_jumbo_rx_irq(struct DWC_ETH_QOS_prv_data *pdata,
 						buffer->page2, 0,
 						pdata->rx_buffer_len);
 				} else {
+					if (!desc_data->skb_top)
+						goto next_desc;
 					/* this is the middle of a chain */
 					skb_fill_page_desc(desc_data->skb_top,
 						skb_shinfo(desc_data->skb_top)->nr_frags,
@@ -3358,7 +3369,7 @@ static int DWC_ETH_QOS_clean_jumbo_rx_irq(struct DWC_ETH_QOS_prv_data *pdata,
 							 buf2_used);
 				goto next_desc;
 			} else {
-				if (!(RX_NORMAL_DESC->RDES3 & DWC_ETH_QOS_RDESC3_FD)) {
+				if (!(RX_NORMAL_DESC->RDES3 & DWC_ETH_QOS_RDESC3_FD) && (desc_data->skb_top)) {
 					/* end of the chain */
 					pkt_len =
 						(pkt_len - (pdata->rx_buffer_len * intermediate_desc_cnt));
@@ -6124,6 +6135,7 @@ static void DWC_ETH_QOS_program_dcb_algorithm(struct DWC_ETH_QOS_prv_data *pdata
 
 	DBGPR("-->DWC_ETH_QOS_program_dcb_algorithm\n");
 
+	memset(&l_dcb_struct, 0, sizeof(struct DWC_ETH_QOS_dcb_algorithm));
 	if(copy_from_user(&l_dcb_struct, u_dcb_struct,
 				sizeof(struct DWC_ETH_QOS_dcb_algorithm)))
 		printk(KERN_ALERT "Failed to fetch DCB Struct info from user\n");
@@ -6161,6 +6173,7 @@ static void DWC_ETH_QOS_program_avb_algorithm(struct DWC_ETH_QOS_prv_data *pdata
 
 	DBGPR("-->DWC_ETH_QOS_program_avb_algorithm\n");
 
+	memset(&l_avb_struct, 0, sizeof(struct DWC_ETH_QOS_avb_algorithm));
 	if(copy_from_user(&l_avb_struct, u_avb_struct,
 				sizeof(struct DWC_ETH_QOS_avb_algorithm)))
 		printk(KERN_ALERT "Failed to fetch AVB Struct info from user\n");

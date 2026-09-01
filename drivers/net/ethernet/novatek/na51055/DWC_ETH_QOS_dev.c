@@ -3761,7 +3761,7 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 	if (buffer->len2 != 0) {
 		/* update the second buffer pointer and length */
 		TX_NORMAL_DESC_TDES1_Ml_Wr(TX_NORMAL_DESC->TDES1, buffer->dma2);
-		TX_NORMAL_DESC_TDES2_B2L_Mlf_Wr(TX_NORMAL_DESC->TDES2, buffer->len2);
+		TX_NORMAL_DESC_TDES2_B2L_Mlf_Wr(TX_NORMAL_DESC->TDES2, (UINT)buffer->len2);
 	}
 
 	if (vartso_enable) {
@@ -3841,7 +3841,7 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 		if (buffer->len2 != 0) {
 			/* update the second buffer pointer and length */
 			TX_NORMAL_DESC_TDES1_Ml_Wr(TX_NORMAL_DESC->TDES1, buffer->dma2);
-			TX_NORMAL_DESC_TDES2_B2L_Mlf_Wr(TX_NORMAL_DESC->TDES2, buffer->len2);
+			TX_NORMAL_DESC_TDES2_B2L_Mlf_Wr(TX_NORMAL_DESC->TDES2, (UINT)buffer->len2);
 		}
 
 		/* set own bit */
@@ -3867,6 +3867,8 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 	TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
 #endif
 
+	// For convarity overrun local check
+	INCR_TX_DESC_INDEX(start_index, 0);
 	/* set OWN bit of FIRST descriptor at end to avoid race condition */
 	dma_wmb();
 	TX_NORMAL_DESC = GET_TX_DESC_PTR(qInx, start_index);

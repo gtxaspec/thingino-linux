@@ -69,10 +69,48 @@ static void check_cpu_freq(void)
 		cpu_clk = clk_get_rate(pll8_clk);
 		cpu_clk *= 8;
 
-		if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , cpu_clk) == FALSE) {
-			pr_err("cpu clock exceeds limitation with %ld, reset to 1.05 GHz\n", cpu_clk);
-			clk_set_rate(pll8_clk, 1050000000 / 8);
+		//1. cpu_clk > 1.35GHz set as 1.35GHz
+		if (cpu_clk > (UINT32)1350000000) {
+			if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , 1350000000) == TRUE) {
+				pr_err("cpu clock exceeds limitation with %ld, reset to 1.35 GHz\n", cpu_clk);
+				clk_set_rate(pll8_clk, 1350000000 / 8);
+			} else {
+				if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , 1200000000) == TRUE) {
+					pr_err("cpu clock exceeds limitation with %ld, reset to 1.2 GHz\n", cpu_clk);
+					clk_set_rate(pll8_clk, 1200000000 / 8);
+				} else {
+					pr_err("cpu clock exceeds limitation with %ld, reset to 1 GHz\n", cpu_clk);
+					clk_set_rate(pll8_clk, 1000000000 / 8);
+				}
+			} 
+			//2. 1.2GHz < cpu_clk <= 1.35GHz (only overclock can usage)									
+		} else if (cpu_clk <= (UINT32)1350000000 && cpu_clk > 1200000000) {
+			if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , cpu_clk) == FALSE) {
+				if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , 1200000000) == TRUE) {
+					pr_err("cpu clock exceeds limitation with %ld, reset to 1.2 GHz\n", cpu_clk);
+					clk_set_rate(pll8_clk, 1200000000 / 8);
+				} else {
+					pr_err("cpu clock exceeds limitation with %ld, reset to 1 GHz\n", cpu_clk);
+					clk_set_rate(pll8_clk, 1000000000 / 8);
+				}
+			} else {
+				// over clock > 1.2G is available
+				//pr_info("over clock > 1.2G OK %ldHz\r\n", cpu_clk);				
+			}
+		} else if (cpu_clk <= (UINT32)1200000000 && cpu_clk > 1000000000) {
+			if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , cpu_clk) == FALSE) {
+				pr_err("cpu clock exceeds limitation with %ld, reset to 1 GHz\n", cpu_clk);
+				clk_set_rate(pll8_clk, 1000000000 / 8);				
+			} else {
+				// over clock > 1.05G is available
+				//pr_info("over clock > 1.05G OK %ldHz\r\n", cpu_clk);
+			}
 		}
+		
+//		if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , cpu_clk) == FALSE) {
+//			pr_err("cpu clock exceeds limitation with %ld, reset to 1.05 GHz\n", cpu_clk);
+//			clk_set_rate(pll8_clk, 1050000000 / 8);
+//		}
 	}
 }
 

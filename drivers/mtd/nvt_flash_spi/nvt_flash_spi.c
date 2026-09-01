@@ -159,34 +159,39 @@ void nand_host_send_command(struct drv_nand_dev_info *info, uint32_t command,
 int nand_host_receive_data(struct drv_nand_dev_info *info, uint8_t *buffer,
 					uint32_t length, uint32_t trans_mode)
 {
-	int32_t index;
-	uint8_t *eccbuf;
-
-	eccbuf = buffer;
+	uint32_t tempBuffer;
+	uint32_t index;
 
 	if(trans_mode == _PIO_MODE) {
-		length = ((length+3)/4) * 4;
-
 		while(length) {
-			if(length < 64) {
-				if((NAND_GETREG(info, NAND_FIFO_STS_REG_OFS) & _FIFO_CNT_MASK) == (length/4)) {
-					for (index = length; index > 0; index -= 4) {
+			if(length >= SPINAND_FIFO_SIZE) {
+				if(NAND_GETREG(info, NAND_FIFO_STS_REG_OFS) & _FIFO_FULL) {
+					for (index = SPINAND_FIFO_SIZE; index > 0; index -= 4) {
 						*((uint32_t *)buffer) = NAND_GETREG(info, NAND_DATAPORT_REG_OFS);
-						buffer += 4;
 						length -= 4;
+						buffer +=4;
 					}
 				}
 			} else {
-				if(NAND_GETREG(info, NAND_FIFO_STS_REG_OFS) & _FIFO_FULL) {
-					for (index = 64; index > 0; index -= 4) {
-						*((uint32_t *)buffer) = NAND_GETREG(info, NAND_DATAPORT_REG_OFS);
-						buffer += 4;
+				if((NAND_GETREG(info, NAND_FIFO_STS_REG_OFS) & _FIFO_CNT_MASK) == ((length+3)/4)) {
+					tempBuffer = NAND_GETREG(info, NAND_DATAPORT_REG_OFS);
+					if(length < 4) {
+						for(index = length; index > 0; index--) {
+							*((uint8_t *)buffer) = tempBuffer & (0xFF) ;
+							tempBuffer >>= 8;
+							length -= 1;
+							buffer += 1;
+						}
+					} else {
+						*((uint32_t *)buffer) = tempBuffer;
 						length -= 4;
+						buffer += 4;
 					}
 				}
 			}
 		}
 	}
+
 	return nand_cmd_wait_complete(info);
 }
 
@@ -207,15 +212,15 @@ int nand_host_receive_data(struct drv_nand_dev_info *info, uint8_t *buffer,
 int nand_host_transmit_data(struct drv_nand_dev_info *info, uint8_t *buffer, uint32_t length, uint32_t trans_mode)
 {
 	int32_t index;
-	uint8_t *eccbuf;
-
-	eccbuf = buffer;
+	BOOL not_aligned = (length%4)?1:0;
+	uint32_t temp, delay, sLen = length;
 
 	if(trans_mode == _PIO_MODE) {
 		length = ((length+3)/4) * 4;
+		NAND_SETREG(info, NAND_FIFO_CTRL_REG_OFS, (_FIFO_EN | NAND_GETREG(info, NAND_FIFO_CTRL_REG_OFS)));
 
 		while(length) {
-			if(length < 64) {
+			if(length < SPINAND_FIFO_SIZE) {
 				if(NAND_GETREG(info, NAND_FIFO_STS_REG_OFS) & _FIFO_EMPTY) {
 					for (index = length; index > 0; index -= 4) {
 						NAND_SETREG(info, NAND_DATAPORT_REG_OFS, *((uint32_t *)buffer));
@@ -226,13 +231,23 @@ int nand_host_transmit_data(struct drv_nand_dev_info *info, uint8_t *buffer, uin
 			} else {
 				if(NAND_GETREG(info, NAND_FIFO_STS_REG_OFS) & _FIFO_EMPTY)
 				{
-					for (index = 64; index > 0; index -= 4) {
+					for (index = SPINAND_FIFO_SIZE; index > 0; index -= 4) {
 						NAND_SETREG(info, NAND_DATAPORT_REG_OFS, *((uint32_t *)buffer));
 						buffer += 4;
 						length -= 4;
 					}
 				}
 			}
+		}
+
+		if(not_aligned) {
+			delay = (sLen*8+10)*100/(info->flash_freq/1000000);
+			delay = (delay/100) + (delay%100?1:0);
+			udelay(delay);
+
+			temp = NAND_GETREG(info, NAND_FIFO_CTRL_REG_OFS);
+			temp &= ~(0x1);
+			NAND_SETREG(info, NAND_FIFO_CTRL_REG_OFS, temp);
 		}
 	}
 	return nand_cmd_wait_complete(info);

@@ -1755,6 +1755,8 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	if (ret)
 		goto out;
 
+	// nvt mmc host has already finish initial, do not need to wait again.
+	mmc->ios.power_delay_ms = 0;
 	ret = mmc_add_host(mmc);
 	if (ret < 0)
 		goto out;
@@ -1895,5 +1897,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.123");
+MODULE_VERSION("1.07.124");
 

@@ -773,7 +773,7 @@ static int DWC_ETH_QOS_handle_tso(struct net_device *dev,
 {
 	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
 	struct s_tx_pkt_features *tx_pkt_features = GET_TX_PKT_FEATURES_PTR;
-	int ret = 1;
+	int ret = 0;
 
 	DBGPR("-->DWC_ETH_QOS_handle_tso\n");
 

@@ -1638,9 +1638,11 @@ int spinor_program_operation(struct drv_nand_dev_info *info, u32 byte_addr, u32 
 
 	if (sector_size) {
 
+#if !SPINOR_SUPPORT_BYTE_ALIGN
 		/*Minimal transmitting size should be word align*/
 		if (sector_size % WORD_ALIGN_OFFSET)
 			sector_size += WORD_ALIGN_OFFSET - (sector_size % WORD_ALIGN_OFFSET);
+#endif
 
 		ret = spiflash_page_program(info, addr_index, sector_size, (pbuf + (cycle_index * SPIFLASH_MAX_PROGRAM_BYTE_AT_ONCE)));
 	}

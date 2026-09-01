@@ -202,14 +202,39 @@ static int nvt_suspend(struct phy_device *phydev)
 static void nvt_link_change_notify(struct phy_device *phydev)
 {
 	int status, phy_link;
+#ifdef NVT_PHY_AN_FAIL_10M_TO_100M
+	static unsigned long crc_count = 0, crc_count_old = 0;
+	static unsigned long reg_old, tx_reg_old;
+	unsigned long reg = 0, tx_reg = 0;
+	int ret;
+#endif
+
 	status = phy_read(phydev, MII_BMSR);
 	if (status < 0)
-		return status;
+		return;
 
 	if ((status & BMSR_LSTATUS) == 0)
 		phy_link = 0;
 	else
 		phy_link = 1;
+
+#ifdef NVT_PHY_AN_FAIL_10M_TO_100M
+	if (phy_link) {
+		tx_reg = ioread32((void*)(0xFD2B3800 + 0x204));
+		reg = ioread32((void*)(0xFD2B3800 + 0x210));
+		if (reg != reg_old)
+			crc_count += reg;
+
+		reg_old = reg;
+		if ((crc_count - crc_count_old > 100) && (tx_reg == tx_reg_old)) {
+			ret = nvt_soft_reset(phydev);
+			if (ret < 0)
+				printk("reset fail\r\n");
+		}
+		crc_count_old = crc_count;
+		tx_reg_old = tx_reg;
+	}
+#endif
 
 	if (((na510xx_phy_state!=PHY_HALTED) && (phydev->state == PHY_HALTED)) ||
 		((phydev->state == PHY_CHANGELINK) && (!phy_link))) {
@@ -253,5 +278,5 @@ static struct mdio_device_id __maybe_unused novatek_tbl[] = {
 MODULE_DEVICE_TABLE(mdio, novatek_tbl);
 
 MODULE_DESCRIPTION("Novatek Ethernet PHY Driver");
-MODULE_VERSION("1.00.004");
+MODULE_VERSION("1.00.005");
 MODULE_LICENSE("GPL");

@@ -21,6 +21,12 @@ config NVT_HDAL_BUILD_IN
 	  Enable this option will let a part of your hdal driver link to uImage
 	  You could select which module want to link in the submenu.
 
+config NVT_STACK_CHECK
+	bool "NVT STACK check"
+	default n
+	help
+	  This option will check STACK overflow issue.
+
 config NVT_PROFILER
 	bool "Novatek Profilers"
 	depends on PLAT_NOVATEK

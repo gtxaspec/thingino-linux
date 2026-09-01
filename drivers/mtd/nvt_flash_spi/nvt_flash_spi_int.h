@@ -29,6 +29,8 @@
 #define SPINAND_SPARE_SIZE          (64)
 #define SPINAND_BLOCK_SIZE          (128*1024)
 #define SPINAND_DUMMY_BYTE          (0x00)
+#define SPINAND_FIFO_SIZE           (64)
+#define SPINOR_SUPPORT_BYTE_ALIGN   (1)
 #define SPI_FLASH_16MB_BOUN         0x1000000
 #define WORD_ALIGN_OFFSET           (4)
 #define ECC_CORRECTED               0xB0

@@ -473,19 +473,11 @@ static void nvt_spi_transfer_polled(struct nvt_spi *dev,u32 count,
 		val = spi_get_buffer(dev);
 
 		if (NULL != rx_data) {
-            if (dev->word_size == 16) {
-    			rx_data[0] = (val>>0) & 0xFF;
-    			rx_data[1] = (val>>8) & 0xFF;
-    			rx_data[2] = (val>>16) & 0xFF;
-    			rx_data[3] = (val>>24) & 0xFF;
-                rx_data += 4;
-            } else {
-    			rx_data[0] = (val>>0) & 0xFF;
-    			rx_data[1] = (val>>8) & 0xFF;
-    			rx_data[2] = (val>>16) & 0xFF;
-    			rx_data[3] = (val>>24) & 0xFF;
-    			rx_data += 4;
-            }
+			rx_data[0] = (val>>0) & 0xFF;
+			rx_data[1] = (val>>8) & 0xFF;
+			rx_data[2] = (val>>16) & 0xFF;
+			rx_data[3] = (val>>24) & 0xFF;
+			rx_data += 4;
 		}
 	}
 
@@ -735,7 +727,7 @@ static int nvt_spi_probe(struct platform_device *dev)
 	u32 dev_id = 0;
 	int cs_gpio;
 	int num_cs, i;
-    int bus_num;
+    int bus_num = 0;
 #endif
 
 	master = spi_alloc_master(&dev->dev, sizeof(*c));
@@ -797,23 +789,29 @@ static int nvt_spi_probe(struct platform_device *dev)
 			0, dev->name, c);
 
 	c->last_chipselect = -1;
+	c->dma_support = 0;
 
 	/* the spi->mode bits understood by this driver: */
 	master->mode_bits = SPI_CS_HIGH | SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST;
 #ifdef CONFIG_OF
-	of_property_read_u32(dev->dev.of_node, "nvt-devname", &dev_id);
-	of_property_read_u32(dev->dev.of_node, "dma-support", &dma);
-    of_property_read_u32(dev->dev.of_node, "latch-delay", &latch_delay);
-	master->bus_num = dev_id;
-
-    if (latch_delay == 1) {
-        printk("spi%d latch delay 0.5T\r\n", master->bus_num);
-    } else if (latch_delay == 2) {
-        printk("spi%d latch delay 1T\r\n", master->bus_num);
-    } else if (latch_delay ==3) {
-        printk("spi%d latch delay 1.5T\r\n", master->bus_num);
+    if (!of_property_read_u32(dev->dev.of_node, "nvt-devname", &dev_id)) {
+        master->bus_num = dev_id;
     }
-    c->latch_clk_delay = latch_delay;
+
+    if (!of_property_read_u32(dev->dev.of_node, "dma-support", &dma)) {
+        c->dma_support = dma;
+    }
+
+    if (!of_property_read_u32(dev->dev.of_node, "latch-delay", &latch_delay)) {
+        if (latch_delay == 1) {
+            printk("spi%d latch delay 0.5T\r\n", master->bus_num);
+        } else if (latch_delay == 2) {
+            printk("spi%d latch delay 1T\r\n", master->bus_num);
+        } else if (latch_delay ==3) {
+            printk("spi%d latch delay 1.5T\r\n", master->bus_num);
+        }
+        c->latch_clk_delay = latch_delay;
+    }
 
 	num_cs = of_gpio_named_count(dev->dev.of_node, "cs-gpios");
 
@@ -860,9 +858,14 @@ static int __exit nvt_spi_remove(struct platform_device *dev)
 {
 	struct spi_master *master = spi_master_get(platform_get_drvdata(dev));
 
+	if (master == NULL)
+		return -ENODEV;
+
 #ifndef CONFIG_NVT_SPI_DMA_BUSY_WAIT
+{
 	struct nvt_spi *c = spi_master_get_devdata(master);
 	mutex_destroy(&c->m_lock);
+}
 #endif
 
 	spi_unregister_master(master);
@@ -909,4 +912,4 @@ module_exit(nvt_spi_exit);
 
 MODULE_DESCRIPTION("NVT SPI Driver");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("1.13.004");
+MODULE_VERSION("1.13.006");

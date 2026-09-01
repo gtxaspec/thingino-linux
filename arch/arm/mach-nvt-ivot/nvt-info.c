@@ -646,6 +646,75 @@ static const struct file_operations nvt_hdal_mtd_num_fops = {
 };
 #endif
 
+#ifdef CONFIG_NVT_STACK_CHECK
+
+extern unsigned long stack_warn;
+extern int remaining_min;
+extern unsigned long remaining_stack;
+
+static ssize_t nvt_stack_write(struct file *file, const char __user *buffer,
+					size_t count, loff_t *pos)
+{
+	char *buf = (char *) __get_free_page(GFP_USER);
+	int res = -EINVAL;
+
+	if (!buf) {
+		pr_err("get free page fail\n");
+		return -ENOMEM;
+	}
+
+	if (count < 1) {
+		pr_err("count < 1\n");
+		goto out;
+	}
+
+	if (copy_from_user(buf, buffer, count)) {
+		pr_err("copy_from_user fail\n");
+		goto out;
+	}
+
+	buf[count-1] = '\0';
+
+	if (kstrtoul(buf, 10, &stack_warn) < 0) {
+		pr_err("kstrtoul fail\n");
+		goto out;
+	}
+
+	if ((stack_warn <= 0) || (stack_warn > THREAD_SIZE)) {
+		pr_err("\nCommand error, value = 0x%lx\n", stack_warn);
+		goto out;
+	}
+	pr_info("\nNew stack check value = %ld\n", stack_warn);
+	remaining_min = THREAD_SIZE;
+
+	res = count;
+out:
+	free_page((unsigned long)buf);
+	return res;
+}
+
+static int nvt_stack_proc_show(struct seq_file *m, void *v)
+{
+	seq_puts(m, "====== Stack Detect ======\n");
+	seq_printf(m, "current stack usage %ld\n", THREAD_SIZE - remaining_stack);
+	seq_printf(m, "total stack size %ld, reserve %ld\n", THREAD_SIZE, stack_warn);
+	seq_printf(m, "Max stack usage %ld\n", THREAD_SIZE - remaining_min);
+
+	return 0;
+}
+
+static int nvt_stack_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, nvt_stack_proc_show, NULL);
+}
+
+static const struct file_operations nvt_stack_fops = {
+	.open = nvt_stack_open,
+	.read = seq_read,
+	.write = nvt_stack_write,
+};
+#endif
+
 #ifdef CONFIG_PROC_FS
 static int __init nvt_bootts_proc_init(void)
 {
@@ -682,6 +751,12 @@ static int __init nvt_bootts_proc_init(void)
 	entry = proc_create("hdal_part_num", 0664, nvt_info_dir_root,&nvt_hdal_mtd_num_fops);
 	if (!entry)
 		return -ENOMEM;
+
+#ifdef CONFIG_NVT_STACK_CHECK
+	entry = proc_create("stack", 0664, nvt_info_dir_root,&nvt_stack_fops);
+	if (!entry)
+		return -ENOMEM;
+#endif
 
 	pr_info("NVTBOOTTS: %s initial success\n", __func__);
 

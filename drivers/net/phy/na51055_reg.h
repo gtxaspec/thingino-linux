@@ -7,6 +7,9 @@
  *
  */
 
+/* Workaround: Phy reset detection when DUT AN fail(SUT set speed from 10m to 100m) */
+//#define NVT_PHY_AN_FAIL_10M_TO_100M
+
 #define HW_RESET_ADDRESS     0xFD020088
 #define HW_RESET_MASK        0xC0000000
 

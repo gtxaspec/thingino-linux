@@ -18,6 +18,27 @@
 
 #include "internals.h"
 
+#ifdef CONFIG_NVT_STACK_CHECK
+#include <asm/thread_info.h>
+
+unsigned long stack_warn = 0;
+int remaining_min = THREAD_SIZE;
+unsigned long remaining_stack = 0;
+
+void check_stack_overflow(void)
+{
+	remaining_stack = current_stack_pointer & (THREAD_SIZE - 1);
+
+	if (remaining_stack < sizeof(struct thread_info) + stack_warn) {
+		pr_err("Err===> stack overflow, current stack usage %ld\n",
+		       THREAD_SIZE - remaining_stack);
+	}
+
+	if (remaining_stack < remaining_min)
+		remaining_min = remaining_stack;
+}
+#endif
+
 #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
 void (*handle_arch_irq)(struct pt_regs *) __ro_after_init;
 #endif
@@ -154,6 +175,10 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 		irqreturn_t res;
 
 		trace_irq_handler_entry(irq, action);
+#ifdef CONFIG_NVT_STACK_CHECK
+		check_stack_overflow();
+#endif
+
 #ifdef CONFIG_NVT_PROFILER
 		/* Make it an independent function so kprobe works */
 		res = __irq_action_handler(desc, action);

@@ -39,7 +39,7 @@
 #include <linux/of_device.h>
 #endif
 
-#define DRV_VERSION		"1.00.054"
+#define DRV_VERSION		"1.00.055"
 static UCHAR dev_addr[6] = {0, 0x55, 0x7b, 0xb5, 0x7d, 0xf7};
 
 void __iomem *ETH_QOS_REG_BASE;
@@ -88,6 +88,10 @@ static void nvt_eth_env_probe(struct platform_device *pdev)
 
 	ETH_QOS_REG_BASE = (void __iomem *)(0xFD2B0000);    // pre-assume base address
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (unlikely(res == NULL)) {
+		dev_err(&pdev->dev, "No memory resources\n");
+		return -1;
+	}
 	base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(base)) {
 		dev_err(&pdev->dev, "Unable to find IORESOURCE_MEM, assume 0xFD2B0000\n");
@@ -361,6 +365,7 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	/* enabling and registration of irq with magic wakeup */
 	if (1 == pdata->hw_feat.mgk_sel) {
 		device_set_wakeup_capable(&pdev->dev, 1);
+		// coverity[missing_lock], probe here is no race condition.
 		pdata->wolopts = WAKE_MAGIC;
 		enable_irq_wake(dev->irq);
 	}
@@ -425,9 +430,13 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 
 #endif /* end of DWC_ETH_QOS_CONFIG_PGTEST */
 
+	// coverity[side_effect_free]
 	spin_lock_init(&pdata->lock);
+	// coverity[side_effect_free]
 	spin_lock_init(&pdata->tx_lock);
+	// coverity[side_effect_free]
 	spin_lock_init(&pdata->pmt_lock);
+	// coverity[side_effect_free]
 	spin_lock_init(&pdata->rx_int_lock);
 	mutex_init(&pdata->ethtool_lock);
 
@@ -450,7 +459,7 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	if (ret) {
 		printk(KERN_ALERT "%s: Net device registration failed\n",
 		    DEV_NAME);
-		goto err_out_q_alloc_failed;
+		goto err_out_reg_netdev_failed;
 	}
 
 	DBGPR("<-- DWC_ETH_QOS_probe\n");
@@ -469,6 +478,7 @@ err_out_dev_failed:
 	platform_set_drvdata(pdev, NULL);
 	return ret;
 
+err_out_reg_netdev_failed:
 #ifdef DWC_ETH_QOS_CONFIG_PGTEST
 	DWC_ETH_QOS_free_pg(pdata);
 err_out_pg_failed:
