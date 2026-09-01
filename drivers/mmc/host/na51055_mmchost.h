@@ -559,4 +559,7 @@ extern void sdio_copy_info(struct mmc_nvt_host *info);
 extern void sdiohost_power_cycle(struct mmc_nvt_host *host, uint32_t delay_ms);
 
 extern void sdiohost_set_paddirection(struct mmc_nvt_host *host);
+
+extern void sdiohost_setblkfifoen(struct mmc_nvt_host *host, bool enable);
+
 #endif

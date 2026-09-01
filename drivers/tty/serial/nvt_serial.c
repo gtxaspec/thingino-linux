@@ -41,7 +41,7 @@
 #include <plat/nvt_serial.h>
 #include <plat/top.h>
 
-#define DRIVER_VERSION		"2.0.4"
+#define DRIVER_VERSION		"2.0.5"
 
 #define DRIVER_NAME		"nvt_serial"
 
@@ -779,7 +779,7 @@ static void nvt_set_termios(struct uart_port *port, struct ktermios *termios,
 {
 	struct nvt_port *nvt_port = UART_TO_NVT(port);
 	unsigned long flags;
-	unsigned int lcr_val, baud;
+	unsigned int lcr_val = 0, baud;
 
 	serial_flow_dbg();
 

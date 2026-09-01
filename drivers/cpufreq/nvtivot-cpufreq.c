@@ -5,7 +5,7 @@
 #include <linux/clk-provider.h>
 #include <linux/platform_device.h>
 #include <plat/top.h>
-#define DRV_VERSION "1.0.0"
+#define DRV_VERSION "1.0.1"
 
 static const struct of_device_id machines[] __initconst = {
 	{ .compatible = "nvt,ca9" },
@@ -31,10 +31,10 @@ static int nvt_target(struct cpufreq_policy *policy, unsigned int index)
 	struct nvt_cpufreq *cpufreq = cpufreq_get_driver_data();
 	unsigned long rate = freq_table[index].frequency;
 
-	if (nvt_get_chip_id() == CHIP_NA51055)
-		return clk_set_rate(cpufreq->cpu_clk, rate * 1000);
-	else
+	if (nvt_get_chip_id() == CHIP_NA51084)
 		return clk_set_rate(cpufreq->cpu_clk, rate * 1000 / 8);
+	else
+		return clk_set_rate(cpufreq->cpu_clk, rate * 1000);
 }
 
 static unsigned int nvt_cpufreq_get(unsigned int cpu)
@@ -47,10 +47,10 @@ static unsigned int nvt_cpufreq_get(unsigned int cpu)
 		return 0;
 	}
 
-	if (nvt_get_chip_id() == CHIP_NA51055)
-		return clk_get_rate(policy->clk) / 1000;
-	else
+	if (nvt_get_chip_id() == CHIP_NA51084)
 		return (clk_get_rate(policy->clk)*8) / 1000;
+	else
+		return clk_get_rate(policy->clk) / 1000;
 }
 
 static int nvt_cpu_init(struct cpufreq_policy *policy)

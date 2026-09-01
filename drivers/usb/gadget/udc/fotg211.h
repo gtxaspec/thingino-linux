@@ -154,7 +154,7 @@
 
 /* Device IN Endpoint x MaxPacketSize Register(0x160+4*(x-1)) */
 #define FOTG210_INEPMPSR(ep)	(0x160 + 4 * ((ep) - 1))
-#define INOUTEPMPSR_MPS(mps)	((mps) & 0x2FF)
+#define INOUTEPMPSR_MPS(mps)	((mps) & 0x7FF)
 #define INOUTEPMPSR_STL_EP	(1 << 11)
 #define INOUTEPMPSR_RESET_TSEQ	(1 << 12)
 #define INOUTEPMPSR_TX0BYTE_IEP	(1 << 15)

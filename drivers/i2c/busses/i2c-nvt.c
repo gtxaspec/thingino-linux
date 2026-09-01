@@ -41,7 +41,7 @@
 #include <linux/dma-mapping.h>
 
 #include "plat/i2c_reg.h"
-#define DRV_VERSION         "1.00.014"
+#define DRV_VERSION         "1.00.015"
 #define NVTIM_I2C_TIMEOUT (msecs_to_jiffies(1000))
 
 static struct semaphore i2c_sem;
@@ -301,6 +301,7 @@ static int i2c_nvtim_rst_module(struct nvtim_i2c_dev *dev)
 static int i2c_nvtim_init(struct nvtim_i2c_dev *dev)
 {
 	struct nvtim_i2c_clk_info clk_info = {0};
+	int rst_module_done = 0;
 
 	/*put I2C into reset*/
 	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, I2C_CTRL_REG_DEFAULT);
@@ -325,11 +326,17 @@ static int i2c_nvtim_init(struct nvtim_i2c_dev *dev)
 	// NVT_I2C_AUTO_BUCLEAR (must send befor reset i2c module)
 	if ((dev->pdata->err_hdl & NVT_I2C_AUTO_BUCLEAR_BIT) == NVT_I2C_AUTO_BUCLEAR_BIT) {
 		i2c_nvtim_busclr(dev);
+		i2c_nvtim_rst_module(dev); // avoid dummy clk in transfer after busclr [NA51090-844]
+		rst_module_done = 1;
 	}
 
 	// NVT_I2C_AUTO_RSTMDL
 	if ((dev->pdata->err_hdl & NVT_I2C_AUTO_RSTMDL_BIT) == NVT_I2C_AUTO_RSTMDL_BIT) {
-		i2c_nvtim_rst_module(dev);
+		if (rst_module_done) {
+			// already resest
+		} else {
+			i2c_nvtim_rst_module(dev);
+		}
 	}
 
 	return 0;

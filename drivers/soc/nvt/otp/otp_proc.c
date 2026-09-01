@@ -261,19 +261,19 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 		} else {
 			pr_info("[4] data = 0x%08x\r\n", data);
 		}
-
-		if (efuse_readParamOps(EFUSE_DDRP_V_TRIM_DATA, &data) != E_OK) {
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+		if (efuse_readParamOps(EFUSE_ADC_TRAM_A_DATA, &data) != E_OK) {
 			pr_err("[3] data = NULL\n");
 		} else {
 			pr_info("[3] data = 0x%08x\r\n", data);
 		}
 
-		if (efuse_readParamOps(EFUSE_DDRP_ZQ_TRIM_DATA, &data) != E_OK) {
+		if (efuse_readParamOps(EFUSE_DDRP_LDO_TRIM_DATA, &data) != E_OK) {
 			pr_err("[5] data = NULL\n");
 		} else {
 			pr_info("[5] data = 0x%08x\r\n", data);
 		}
-
+#endif
 		if (efuse_readParamOps(EFUSE_THERMAL_TRIM_DATA, &data) != E_OK) {
 			pr_err("[6] data = NULL\n");
 		} else {
@@ -285,6 +285,13 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 		} else {
 			pr_info("[7] data = 0x%08x\r\n", data);
 		}
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+		if (efuse_readParamOps(EFUSE_ADC_TRAM_B_DATA, &data) != E_OK) {
+			pr_err("[9] data = NULL\n");
+		} else {
+			pr_info("[9] data = 0x%08x\r\n", data);
+		}
+#endif		
 //#endif
 		return size;
 	} else if(!strcmp(argv[0], "uniqueid")) {
@@ -540,7 +547,7 @@ static ssize_t nvt_avl_proc_cmd_write(struct file *file, const char __user *buf,
 		cmd_efuse_show_avl();
 		return size;
 	} else if(!strcmp(argv[0], "version")) {
-		pr_info("knlpkg.a 1.00.004\r\n");
+		pr_info("knlpkg.a 1.00.007\r\n");
 	}
 ERR_OUT:
 

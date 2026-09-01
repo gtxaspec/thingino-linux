@@ -6984,7 +6984,7 @@ void dump_tx_desc(struct DWC_ETH_QOS_prv_data *pdata, int first_desc_idx,
 
 void dump_rx_desc(UINT qInx, struct s_RX_NORMAL_DESC *desc, int desc_idx)
 {
-	printk(KERN_ALERT "\nRX_NORMAL_DESC[%02d %4p %03d RECEIVED FROM DEVICE]"\
+	printk(KERN_ALERT "\n Debug: RX_NORMAL_DESC[%02d %4p %03d RECEIVED FROM DEVICE]"\
 		" = %#x:%#x:%#x:%#x\n",
 		qInx, desc, desc_idx, desc->RDES0, desc->RDES1,
 		desc->RDES2, desc->RDES3);

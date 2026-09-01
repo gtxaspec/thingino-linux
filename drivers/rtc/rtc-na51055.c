@@ -26,7 +26,7 @@
 #include <linux/proc_fs.h>
 #include <linux/of.h>
 
-#define DRV_VERSION		"1.11.000"
+#define DRV_VERSION		"1.11.010"
 
 #ifdef CONFIG_RTC_NVT_PWBC_SDT_USER
 #define RTC_PWBC_SDT_ISR_DISABLE	1
@@ -141,10 +141,6 @@ void nvt_rtc_power_control(int reboot_sec)
 
 		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
 		pwbc_reg.bit.pwralarm_en = 1;
-		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
-	} else {
-		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
-		pwbc_reg.bit.pwralarm_dis = 1;
 		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
 	}
 
@@ -378,8 +374,14 @@ static int nvt_rtc_chk_power(struct device *dev)
 	union RTC_DAYKEY_REG daykey_reg;
 	union RTC_CTRL_REG ctrl_reg;
 	union RTC_OSCAN_REG oscan_reg;
+	union RTC_PWBC_REG pwbc_reg;
 	const int RESET_YEAR = 1970 - 1900;
 	const int RESET_MON = 0;
+
+	// set power alarm default disabled
+	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	pwbc_reg.bit.pwralarm_dis = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
 
 	for (year_looper = 0; year_looper < RESET_YEAR; year_looper++)
 		days += rtc_ydays[is_leap_year(year_looper + 1900)][12];

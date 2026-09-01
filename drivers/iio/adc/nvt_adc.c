@@ -25,7 +25,7 @@
 #include <plat/efuse_protected.h>
 #include <plat/top.h>
 
-#define DRV_VERSION "1.02.070"
+#define DRV_VERSION "1.02.100"
 
 #ifdef CONFIG_NVT_FPGA_EMULATION
 #define CALI_VDDADC 3300
@@ -362,6 +362,33 @@ static const struct of_device_id nvt_adc_of_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, nvt_adc_of_dt_ids);
 #endif
 
+#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
+static void nvt_adc_get_trimdata(struct nvt_adc_state *adc)
+{
+	u16 data0, data1 = 0x0;
+	u32 slope, cali_value = 0x0;
+	u32 upper_bound = CALI_VDDADC + 200;
+	u32 lower_bound = CALI_VDDADC - 200;
+
+	if (efuse_readParamOps(EFUSE_ADC_TRAM_A_DATA, &data0)) {
+		adc->cali_value = CALI_VDDADC;
+	} else {
+		if (efuse_readParamOps(EFUSE_ADC_TRAM_B_DATA, &data1)) {
+			adc->cali_value = CALI_VDDADC;
+		} else {
+			slope = data1 - data0;
+			cali_value = (511 - data0) * 1000;
+			cali_value = 2*(cali_value/slope) + 500;
+
+			if ((cali_value > upper_bound) || (cali_value < lower_bound))
+				adc->cali_value = CALI_VDDADC;
+			else
+				adc->cali_value = cali_value;
+		}
+	}
+}
+#endif
+
 static int nvt_adc_probe(struct platform_device *pdev)
 {
 	struct iio_dev *iio;
@@ -426,8 +453,12 @@ static int nvt_adc_probe(struct platform_device *pdev)
 		}
 	}
 
+#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
+	nvt_adc_get_trimdata(adc);
+#else
 	if (of_property_read_u32(pdev->dev.of_node, "cali_value", &adc->cali_value))
 		adc->cali_value = CALI_VDDADC;
+#endif
 
 	adc->sample_rate = (clk_get_rate(adc->clk) / (2 * (nvt_adc_pow2div + 1))) / (4 * (26 + nvt_adc_plusdiv));
 
@@ -448,7 +479,7 @@ static int nvt_adc_probe(struct platform_device *pdev)
 	if(err)
 		goto iio_free;
 
-	pr_info("%s: %s done\n", __func__, dev_name(&pdev->dev));
+	pr_info("%s: %s done voltage %d ver %s\n", __func__, dev_name(&pdev->dev), adc->cali_value, DRV_VERSION);
 
 
 	thermal_zone = thermal_zone_device_register("nvt_thermal", 0, 0,

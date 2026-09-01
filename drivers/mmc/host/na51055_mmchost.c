@@ -511,11 +511,23 @@ void sdiohost_resetasync(struct mmc_nvt_host *host, uint32_t id)
 	dlyreg1.reg = sdiohost_getreg(host, id, SDIO_DLY1_REG_OFS);
 	dlyreg1.bit.DATA_READ_DLY = 2;
 	sdiohost_setreg(host, id, SDIO_DLY1_REG_OFS, dlyreg1.reg);
+}
 
-	/* test block_fifo = 1 */
-	phyreg.reg = sdiohost_getreg(host, id, SDIO_PHY_REG_OFS);
-	phyreg.bit.BLK_FIFO_EN = 1;
-	sdiohost_setreg(host, id, SDIO_PHY_REG_OFS, phyreg.reg);
+/*
+	Enable FIFO 512 Bytes (Only SDIO3).
+
+	@param[in] id   SDIO channel ID
+			- @b SDIO_HOST_ID_3: SDIO3
+
+	@return void
+*/
+void sdiohost_setblkfifoen(struct mmc_nvt_host *host, bool enable)
+{
+	union SDIO_PHY_REG         phyreg;
+
+	phyreg.reg = sdiohost_getreg(host, host->id, SDIO_PHY_REG_OFS);
+	phyreg.bit.BLK_FIFO_EN = enable;
+	sdiohost_setreg(host, host->id, SDIO_PHY_REG_OFS, phyreg.reg);
 }
 
 /*
@@ -1036,14 +1048,14 @@ uint32_t uidmaaddress, uint32_t uidatalength, bool bisread, uint32_t *vuisdio_de
 		for (i = 0; i < vsdio_seg_num[id]; i++) {
 			/* Flush cache in data DMA*/
 			if (!bisread) {
-				dma_flushwritecache((void *)(mmc_dev(host->mmc), (vuisdio_destab
+				dma_flushwritecache(mmc_dev(host->mmc), (void *)(mmc_dev(host->mmc), (vuisdio_destab
 				[(i * SDIO_DES_WORD_SIZE) +
 				(SDIO_DES_LINE2_REG_OFS>>2)])),
 				vuisdio_destab[(i * SDIO_DES_WORD_SIZE +
 				SDIO_DES_LINE1_REG_OFS)>>2]);
 				fifoctrlreg.bit.FIFO_DIR = 1;
 			} else {
-				dma_flushreadcache((void *)(mmc_dev(host->mmc), (vuisdio_destab
+				dma_flushreadcache(mmc_dev(host->mmc), (void *)(mmc_dev(host->mmc), (vuisdio_destab
 				[(i * SDIO_DES_WORD_SIZE) +
 				(SDIO_DES_LINE2_REG_OFS>>2)])),
 				vuisdio_destab[(i * SDIO_DES_WORD_SIZE +
@@ -1075,10 +1087,10 @@ uint32_t uidmaaddress, uint32_t uidatalength, bool bisread, uint32_t *vuisdio_de
 
 	/* Flush cache in DMA mode*/
 	if (!bisread) {
-		dma_flushwritecache((void *)uidmaaddress, uidatalength);
+		dma_flushwritecache(mmc_dev(host->mmc), (void *)uidmaaddress, uidatalength);
 		fifoctrlreg.bit.FIFO_DIR = 1;
 	} else {
-		dma_flushreadcache((void *)uidmaaddress, uidatalength);
+		dma_flushreadcache(mmc_dev(host->mmc), (void *)uidmaaddress, uidatalength);
 	}
 #endif
 

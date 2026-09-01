@@ -37,7 +37,9 @@ static UINT32	ARB2_BASE_ADDR = 0;
 /* Function define                                                           */
 /*===========================================================================*/
 #ifndef EFUSE_DDRP_LDO_TRIM_DATA
+#if !defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 #define EFUSE_DDRP_LDO_TRIM_DATA	EFUSE_DDRP_ZQ_TRIM_DATA
+#endif
 #endif
 int nvt_otp_drv_open(PMODULE_INFO pmodule_info, unsigned char if_id)
 {
@@ -746,6 +748,7 @@ void trim_drvdump(void) {
             {
                 pr_info(" !!!!RZQ DDR1 trim read error [%d]!!!!\r\n", trim);
             }
+#if 0			
 			DDR2_EN = *(volatile UINT32 *)(ARB2_BASE_ADDR - 0x1000 + 4);	//bit[5] = 1?
 			if((DDR2_EN & (1<<5)) == (1<<5)) {
 	            trim = efuse_readParamOps(EFUSE_DDRP_V_TRIM_DATA, &value);
@@ -779,7 +782,7 @@ void trim_drvdump(void) {
             }else {
 				pr_info("No DDR2 init\n");
             }
-
+#endif
 		}
 		pr_info("####### LDO ######\n");
 		trim = efuse_readParamOps(EFUSE_DDRP_LDO_TRIM_DATA, &value);
