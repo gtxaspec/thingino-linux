@@ -1727,12 +1727,21 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 					mmc->caps |= MMC_CAP_NEEDS_POLL;
 					dev_err(mmc_dev(host->mmc), "cd_gpio request irq failed\n");
 				}
-			} else
+			} else {
 				mmc->caps |= MMC_CAP_NEEDS_POLL;
+			}
+
+			if (mmc->caps && MMC_CAP_NEEDS_POLL) {
+				dev_err(mmc_dev(host->mmc), "cd_gpio still in polling mode\n");
+			} else {
+				dev_err(mmc_dev(host->mmc), "cd_gpio in interrupt mode\n");
+			}
+		} else {
+			dev_info(mmc_dev(host->mmc), "cd_gpio disabled\n");
 		}
 	} else {
 		mmc->caps |= MMC_CAP_NEEDS_POLL;
-		dev_err(mmc_dev(host->mmc), "cd_gpio is invalid\n");
+		dev_info(mmc_dev(host->mmc), "cd_gpio in polling mode\n");
 	}
 
 	platform_set_drvdata(pdev, host);
@@ -1897,5 +1906,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.124");
+MODULE_VERSION("1.07.125");
 

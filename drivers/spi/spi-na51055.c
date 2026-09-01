@@ -452,15 +452,9 @@ static void nvt_spi_transfer_polled(struct nvt_spi *dev,u32 count,
 
 		// Send next word over the wire
 		if (NULL != tx_data) {
-            if (dev->word_size == 16) {
-                val = (tx_data[3]<<24) | (tx_data[2]<<16) \
-    				| (tx_data[1]<<8)  | (tx_data[0]<<0);
-    			tx_data += 4;
-            } else {
-    			val = (tx_data[3]<<24) | (tx_data[2]<<16) \
-    				| (tx_data[1]<<8) | (tx_data[0]<<0);
-    			tx_data += 4;
-            }
+			val = (tx_data[3]<<24) | (tx_data[2]<<16) \
+				| (tx_data[1]<<8) | (tx_data[0]<<0);
+			tx_data += 4;
 		} else
 			val = 0;
 
@@ -912,4 +906,4 @@ module_exit(nvt_spi_exit);
 
 MODULE_DESCRIPTION("NVT SPI Driver");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("1.13.006");
+MODULE_VERSION("1.13.007");

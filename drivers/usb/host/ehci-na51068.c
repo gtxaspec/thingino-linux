@@ -248,11 +248,14 @@ static int nvtim_usb_ehci_probe(const struct hc_driver *driver,
 		return -ENXIO;
 	}
 
-	of_property_read_u32(pdev->dev.of_node, "phy_reg",
-				&phy_reg);
+	if (of_property_read_u32(dev->dev.of_node, "phy_reg", &phy_reg)) {
+		printk("phy_reg not set!\n");
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "channel",
-				&channel);
+	if (of_property_read_u32(dev->dev.of_node, "channel", &channel)) {
+		printk("channel not set\n");
+	}
+
 #else
 	if (pdev->resource[1].flags != IORESOURCE_IRQ) {
 		pr_debug("resource[1] is not IORESOURCE_IRQ");
@@ -370,8 +373,6 @@ static int nvtim_ehci_init(struct usb_hcd *hcd)
 	hrtimer_init(&ehci->hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 	ehci->hrtimer.function = ehci_hrtimer_func;
 	ehci->next_hrtimer_event = EHCI_HRTIMER_NO_EVENT;
-
-	hcc_params = ehci_readl(ehci, &ehci->caps->hcc_params);
 
 	ehci->uframe_periodic_max = 100;
 

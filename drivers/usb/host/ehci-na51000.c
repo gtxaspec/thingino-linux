@@ -525,8 +525,6 @@ static int nvtim_ehci_init(struct usb_hcd *hcd)
 	ehci->hrtimer.function = ehci_hrtimer_func;
 	ehci->next_hrtimer_event = EHCI_HRTIMER_NO_EVENT;
 
-	hcc_params = ehci_readl(ehci, &ehci->caps->hcc_params);
-
 	ehci->uframe_periodic_max = 100;
 
 	/*

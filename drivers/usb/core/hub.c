@@ -2965,6 +2965,9 @@ static int port_is_power_on(struct usb_hub *hub, unsigned portstatus)
 	} else {
 		if (portstatus & USB_PORT_STAT_POWER)
 			ret = 1;
+#if defined(CONFIG_USB_NVTIVOT_HCD) && defined(CONFIG_PM)
+		ret = 1;
+#endif
 	}
 
 	return ret;
@@ -5446,7 +5449,7 @@ static void hub_event(struct work_struct *work)
 				dev_err(hub_dev, "over-current condition\n");
 		}
 	}
-
+#ifndef CONFIG_PM
 	#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
 	{
 		u16 status=0,change=0;
@@ -5458,7 +5461,7 @@ static void hub_event(struct work_struct *work)
 		}
 	}
 	#endif
-
+#endif
 out_autopm:
 	/* Balance the usb_autopm_get_interface() above */
 	usb_autopm_put_interface_no_suspend(intf);

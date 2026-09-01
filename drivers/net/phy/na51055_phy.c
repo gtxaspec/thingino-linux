@@ -19,8 +19,96 @@
 
 #include "na51055_reg.h"
 static int bplug = 0;
+static int g_enable_e_loopback = 0;
+static int g_enable_i_loopback = 0;
+static int g_nvt_phy_sysfs_created = 0;
 
 static enum phy_state na510xx_phy_state = PHY_DOWN;
+
+static void __iomem *NVT_PHY_BASE = 0;
+
+static ssize_t loopback_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "external loopback mode is %s\n"
+			"internal loopback mode is %s\n",
+			(g_enable_e_loopback) ? "enable" : "disable",
+			(g_enable_i_loopback) ? "enable" : "disable");
+}
+
+static ssize_t loopback_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t len)
+{
+	struct phy_device *phydev = to_phy_device(dev);
+	int enable_lm = 0, loopback_mode = 0, ret, val;
+
+	ret = sscanf(buf, "%d %d", &loopback_mode, &enable_lm);
+	printk("ret = %d, loopback = %d, enable_lm = %d\n", ret, loopback_mode, enable_lm);
+
+	if ((ret != 2) || ((loopback_mode >> 1) != 0) || ((enable_lm >> 1) != 0)) {
+		printk("invalid loopback_mode : %d (internal = 0, external = 1)"
+			"or enable value : %d (disable = 0, enable = 1)\n",
+			loopback_mode, enable_lm);
+		return -EINVAL;
+	}
+
+	if (loopback_mode == 1) {
+		// external loppback mode
+		if (enable_lm == 1) {
+			phy_sw_reset_enable();
+			iowrite32(0x3c, (void *)(0xFD2B3800 + 0x04));
+			iowrite32(0x80, (void *)(0xFD2B3800 + 0x74));
+			mdelay(10);
+			phy_sw_reset_disable();
+			g_enable_e_loopback = 1;
+		} else {
+			phy_sw_reset_enable();
+			iowrite32(0x00, (void *)(0xFD2B3800 + 0x04));
+			mdelay(10);
+			phy_sw_reset_disable();
+			g_enable_e_loopback = 0;
+		}
+	} else {
+		//internal loopback mode
+		if (enable_lm == 1) {
+			val = phy_read(phydev, MII_BMCR);
+			if (val < 0)
+				return -EIO;
+
+			val |= BMCR_LOOPBACK;
+
+			ret = phy_write(phydev, MII_BMCR, val);
+			if (ret < 0)
+				return -EIO;
+			g_enable_i_loopback = 1;
+		} else {
+			val = phy_read(phydev, MII_BMCR);
+			if (val < 0)
+				return -EIO;
+
+			val &= ~BMCR_LOOPBACK;
+
+			ret = phy_write(phydev, MII_BMCR, val);
+			if (ret < 0)
+				return -EIO;
+			g_enable_i_loopback = 0;
+		}
+	}
+	return len;
+}
+
+static DEVICE_ATTR_RW(loopback);
+
+static int nvt_phy_sysfs_init(struct device *dev)
+{
+	return sysfs_create_file(&dev->kobj, &dev_attr_loopback.attr);
+}
+
+static void nvt_phy_sysfs_remove(struct device *dev)
+{
+	sysfs_remove_file(&dev->kobj, &dev_attr_loopback.attr);
+}
 
 /**
  * phy_poll_reset - Safely wait until a PHY reset has properly completed
@@ -136,6 +224,8 @@ static int nvt_resume(struct phy_device *phydev)
 	int ret = 0;
 	int inv_led = 0;
 	PIN_GROUP_CONFIG pinmux_config[1] = {0};
+	struct device *dev = &phydev->mdio.dev;
+
 #ifdef CONFIG_OF
 	struct device_node* of_node = of_find_node_by_path("/phy@f02b3800");
 #endif
@@ -188,13 +278,27 @@ static int nvt_resume(struct phy_device *phydev)
 	phy_sw_reset_disable();
 	genphy_config_aneg(phydev);
 
+	if (!g_nvt_phy_sysfs_created) {
+		ret = nvt_phy_sysfs_init(dev);
+		if (ret) {
+			printk("%s: sysfs init fail ret = %d\r\n", __func__, ret);
+		}
+		g_nvt_phy_sysfs_created = 1;
+	}
+
 	return 0;
 }
 
 static int nvt_suspend(struct phy_device *phydev)
 {
+	struct device *dev = &phydev->mdio.dev;
 	bplug = 0;
 
+	if (g_nvt_phy_sysfs_created) {
+		nvt_phy_sysfs_remove(dev);
+		g_nvt_phy_sysfs_created = 0;
+	}
+	printk("%s, suspend\n", __func__);
 	return 0;
 //	return genphy_suspend(phydev);
 }
@@ -278,5 +382,5 @@ static struct mdio_device_id __maybe_unused novatek_tbl[] = {
 MODULE_DEVICE_TABLE(mdio, novatek_tbl);
 
 MODULE_DESCRIPTION("Novatek Ethernet PHY Driver");
-MODULE_VERSION("1.00.005");
+MODULE_VERSION("1.00.006");
 MODULE_LICENSE("GPL");

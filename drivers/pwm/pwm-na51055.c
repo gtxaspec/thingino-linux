@@ -370,6 +370,9 @@ static void nvt_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
   	/*wait done*/
   	wait_for_completion(&vPWMFlgId[pwm->hwpwm]);
 
+	/*wait for enable be 0*/
+	while ((nvt_pwm_read_reg(pwm_dev, REG_ENABLE) & CTRL_ENABLE(pwm->hwpwm)) == CTRL_ENABLE(pwm->hwpwm));
+
 #ifdef PWM_SELECT_CPU1
 	val = nvt_pwm_read_reg(pwm_dev, REG_INT_ENABLE);
 	val &= ~(1 << (pwm->hwpwm));
@@ -599,4 +602,4 @@ module_exit(nvt_pwm_exit_driver);
 MODULE_DESCRIPTION("NVT PWM Driver");
 MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.00.011");
+MODULE_VERSION("1.00.012");
