@@ -734,6 +734,9 @@ struct hw_if_struct {
 	INT(*disable_rx_interrupt)(UINT);
 	INT(*enable_rx_interrupt)(UINT);
 
+	INT(*disable_dma_interrupt)(UINT);
+	INT(*enable_dma_interrupt)(UINT);
+
 	/* for handling MMC */
 	INT(*disable_mmc_interrupts)(VOID);
 	INT(*config_mmc_counters)(VOID);
@@ -1426,6 +1429,8 @@ u32 DWC_ETH_QOS_usec2riwt(u32 usec, struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_init_rx_coalesce(struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_enable_all_ch_rx_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_disable_all_ch_rx_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
+void DWC_ETH_QOS_enable_all_ch_dma_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
+void DWC_ETH_QOS_disable_all_ch_dma_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_update_rx_errors(struct net_device *, unsigned int);
 void DWC_ETH_QOS_stop_all_ch_tx_dma(struct DWC_ETH_QOS_prv_data *pdata);
 UCHAR get_tx_queue_count(void);

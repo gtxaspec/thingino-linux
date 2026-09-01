@@ -29,7 +29,10 @@
 #include <plat/nvt-sramctl.h>
 
 #define	DRIVER_DESC	"FOTG211 USB Device Controller Driver"
-#define	DRIVER_VERSION	"1.00.022"
+#define	DRIVER_VERSION	"1.00.021"
+
+#define USE_TASKLET_FOR_IRQ 0
+
 
 static bool is_cdc_class = 0;
 u32 vbus_gpio_no = D_GPIO(7);
@@ -1317,7 +1320,15 @@ static void fotg210_set_mps(struct fotg210_ep *ep, u32 epnum, u32 mps,
 				FOTG210_OUTEPMPSR(epnum);
 
 	val = ioread32(fotg210->reg + offset);
+	val &= ~INOUTEPMPSR_MPS(0x7FF);
 	val |= INOUTEPMPSR_MPS(mps);
+
+	// select HBW(1/2/3)
+	val &= ~(0x3<<13);
+	if((ep->type == USB_ENDPOINT_XFER_ISOC) && (ep->dir_in)) { // modify hbm while iso_in case
+		val |= (HBM_ISOI<<13);
+	}
+
 	iowrite32(val, fotg210->reg + offset);
 }
 
@@ -2721,7 +2732,7 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 	return IRQ_HANDLED;
 }
 
-#if 0
+#if USE_TASKLET_FOR_IRQ
 static irqreturn_t fotg210_isr(int irq, void *_fotg210)
 {
 	u32 value;
@@ -3026,7 +3037,7 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 	//fotg210_disable_unplug(fotg210);
 
 
-#if 0
+#if USE_TASKLET_FOR_IRQ
 	/* Using tasklet for command processing */
 	ret =  request_threaded_irq(ires->start, fotg210_isr, fotg210_ist,
 			IRQF_SHARED, udc_name, fotg210);

@@ -224,7 +224,11 @@ static unsigned long nvt_pll_clk_recalc_rate(struct clk_hw *hw,
 	do_div(temp_rate, pll_cal_factor);
 
 	pll->current_rate = temp_rate;
+//	if ((strncmp(pll->name, "pll8", strlen("pll8")) == 0) && nvt_get_chip_id() == CHIP_NA51084) {
+		//pll->current_rate = pll->current_rate * 8;
+	//}
 #endif
+
 	return pll->current_rate;
 }
 
@@ -1479,7 +1483,6 @@ static int nvt_composite_mux_clk_set_parent(struct clk_hw *hw, u8 index)
 		container_of(cmux, struct nvt_composite_mux_clk, mux);
 	unsigned long flags;
 	u32 reg_val;
-
 	if (mux->mux_reg_offset == SIEMCLK_COMM_CLK_RATE_REG0_OFFSET) {
 		unsigned long offset = mux->mux_reg_offset & SIEMCLK_COMM_MASK;
 
@@ -1698,12 +1701,16 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
 		} else {
 			if (fastboot == 0) {
 #if defined (CONFIG_NVT_IVOT_PLAT_NA51089) || defined (CONFIG_NVT_IVOT_PLAT_NA51055)
-				if((strncmp(p_cmux_clk->name, "cpu_clk", 16) == 0)) {
-					pr_info("%s parent 0x%08x\r\n", p_cmux_clk->name, (int)clk_get_rate(clk));
-					if(clk_get_rate(clk) == 480000000) {
-						composite_mux_clks[i].parent_idx= 2;
-					} else if(clk_get_rate(clk) == 80000000) {
-						composite_mux_clks[i].parent_idx= 0;
+				if ((strncmp(p_cmux_clk->name, "cpu_clk", 16) == 0)) {
+					if (clk_get_rate(clk) == 480000000) {
+						composite_mux_clks[i].parent_idx = 2;
+					} else if (clk_get_rate(clk) == 80000000) {
+						composite_mux_clks[i].parent_idx = 0;
+					} else {
+						if (nvt_get_chip_id() == CHIP_NA51084) {
+							composite_mux_clks[i].current_rate = 1000000000;
+						}
+						composite_mux_clks[i].parent_idx = 1;
 					}
 				}
 #endif

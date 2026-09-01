@@ -167,6 +167,8 @@ static void DWC_ETH_QOS_stop_dev(struct DWC_ETH_QOS_prv_data *pdata)
 
 	DBGPR("-->DWC_ETH_QOS_stop_dev\n");
 
+	DWC_ETH_QOS_disable_all_ch_dma_interrpt(pdata);
+
 	netif_tx_disable(pdata->dev);
 
 	DWC_ETH_QOS_all_ch_napi_disable(pdata);
@@ -463,6 +465,43 @@ void DWC_ETH_QOS_enable_all_ch_rx_interrpt(
 	DBGPR("<--DWC_ETH_QOS_enable_all_ch_rx_interrpt\n");
 }
 
+void DWC_ETH_QOS_disable_all_ch_dma_interrpt(
+			struct DWC_ETH_QOS_prv_data *pdata)
+{
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+	UINT qInx;
+	unsigned long flags;
+
+	DBGPR("-->DWC_ETH_QOS_disable_all_ch_dma_interrpt\n");
+
+	spin_lock_irqsave(&pdata->rx_int_lock, flags);
+
+	for (qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++)
+		hw_if->disable_dma_interrupt(qInx);
+
+	spin_unlock_irqrestore(&pdata->rx_int_lock, flags);
+
+	DBGPR("<--DWC_ETH_QOS_disable_all_ch_dma_interrpt\n");
+}
+
+void DWC_ETH_QOS_enable_all_ch_dma_interrpt(
+			struct DWC_ETH_QOS_prv_data *pdata)
+{
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+	UINT qInx;
+	unsigned long flags;
+
+	DBGPR("-->DWC_ETH_QOS_enable_all_ch_dma_interrpt\n");
+
+	spin_lock_irqsave(&pdata->rx_int_lock, flags);
+
+	for (qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++)
+		hw_if->enable_dma_interrupt(qInx);
+
+	spin_unlock_irqrestore(&pdata->rx_int_lock, flags);
+
+	DBGPR("<--DWC_ETH_QOS_enable_all_ch_dma_interrpt\n");
+}
 
 /*!
 * \brief Interrupt Service Routine

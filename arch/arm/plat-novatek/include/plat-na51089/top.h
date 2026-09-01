@@ -197,22 +197,22 @@ typedef enum {
 	PIN_SENSOR_CFG_LVDS = 0x40,         ///< LVDS sensor PIN/PAD is configured by PIN_FUNC_MIPI_LVDS group.
 	PIN_SENSOR_CFG_LVDS_VDHD = 0x80,    ///< Enable SN_XVS/SN_XHS on SN_VD/SN_HD (SN_SGPIO[2..3])
 
-	PIN_SENSOR_CFG_SHUTTER0 = 0x100,    ///< Enable SN_SHUTTER0 on SGPIO12 (S_GPIO[12])
-	PIN_SENSOR_CFG_MCLK = 0x200,        ///< Enable SN_MCLK on SN_MCLK (S_GPIO[0])
-	PIN_SENSOR_CFG_MCLK2 = 0x400,       ///< Enable SN_MCLK2 on SN_PXCLK (S_GPIO[1])
+	PIN_SENSOR_CFG_SHUTTER0 = 0x100,    ///< Not support. (Backward compatible)
+	PIN_SENSOR_CFG_MCLK = 0x200,        ///< Enable SN1_MCLK_1 on SN_MCLK (S_GPIO[0])
+	PIN_SENSOR_CFG_MCLK2 = 0x400,       ///< Enable SN2_MCLK_1 on SN_PXCLK (S_GPIO[1])
 	PIN_SENSOR_CFG_MES0 = 0x800,        ///< Not support. (Backward compatible)
 	PIN_SENSOR_CFG_MES0_2ND = 0x1000,   ///< Not support. (Backward compatible)
 	PIN_SENSOR_CFG_MES1 = 0x2000,       ///< Not support. (Backward compatible)
 	PIN_SENSOR_CFG_MES1_2ND = 0x4000,   ///< Not support. (Backward compatible)
 	PIN_SENSOR_CFG_FLCTR = 0x8000,      ///< Not support. (Backward compatible)
 	PIN_SENSOR_CFG_STROBE = 0x10000,    ///< Not support. (Backward compatible)
-	PIN_SENSOR_CFG_SPCLK = 0x20000,     ///< Enable SP_CLK on SP_CLK_1 (P_GPIO[17])
-	PIN_SENSOR_CFG_SPCLK_2ND = 0x40000, ///< Enable SP_CLK on SP_CLK_2 (L_GPIO[23])
+	PIN_SENSOR_CFG_SPCLK = 0x20000,     ///< Enable SP_CLK on SP_CLK_1 (P_GPIO[20])
+	PIN_SENSOR_CFG_SPCLK_2ND = 0x40000, ///< Enable SP_CLK on SP_CLK_2 (L_GPIO[2])
 	PIN_SENSOR_CFG_SPCLK_3RD = 0x80000,    ///< Enable SP_CLK on SP_CLK_3 (D_GPIO[3])
-	PIN_SENSOR_CFG_SP2CLK  = 0x100000,  ///< Enable SP_CLK2 on SP_CLK2_1 (P_GPIO[18])
+	PIN_SENSOR_CFG_SP2CLK  = 0x100000,  ///< Enable SP_CLK2 on SP_CLK2_1 (P_GPIO[21])
 	PIN_SENSOR_CFG_SP2CLK_2ND = 0x200000,      ///< Enable SP_CLK2 on SP_CLK2_2 (C_GPIO[9])
 	PIN_SENSOR_CFG_SP2CLK_3RD = 0x400000,  ///< Enable SP_CLK2 on SP_CLK2_3 (D_GPIO[4])
-	PIN_SENSOR_CFG_MCLK_2ND     = 0x800000,  ///Not support (Backward compatible)
+	PIN_SENSOR_CFG_MCLK_2ND     = 0x800000,  ///Enable SN1_MCLK_2 on HSI_CK1P (HSI_GPIO[11])
 	PIN_SENSOR_CFG_MCLK_3RD = 0x1000000,    ///Not support (Backward compatible)
 	PIN_SENSOR_CFG_MES2 = 0x2000000,         ///Not support (Backward compatible)
 	PIN_SENSOR_CFG_MES2_2ND     = 0x4000000, ///Not support (Backward compatible)
@@ -240,8 +240,8 @@ typedef enum {
 	PIN_SENSOR2_CFG_LVDS = 0x40,        ///< LVDS sensor. PIN/PAD is configured by PIN_FUNC_MIPI_LVDS group.
 	PIN_SENSOR2_CFG_LVDS_VDHD = 0x80,   ///< Enable SN2_XVS/SN2_XHS on SN2_VD/SN2_HD (SN_SGPIO[4..5])
 	PIN_SENSOR2_CFG_12BITS = 0x100,     ///< Support 12 bits sensor.
-	PIN_SENSOR2_CFG_MCLK = 0x200,       ///< Enable SN2_MCLK on SN_PXCLK (S_GPIO[1])
-	PIN_SENSOR2_CFG_MCLK_2ND = 0x400,   ///< Enable SN2_MCLK on S_GPIO12 (S_GPIO[12])
+	PIN_SENSOR2_CFG_MCLK = 0x200,       ///< Enable SN2_MCLK_1 on SN_PXCLK (S_GPIO[1])
+	PIN_SENSOR2_CFG_MCLK_2ND = 0x400,   ///< Enable SN2_MCLK_2 on S_GPIO8 (S_GPIO[8])
 	PIN_SENSOR2_CFG_SN3_MCLK = 0x800,   ///< Enable SN3_MCLK on P_GPIO12 (P_GPIO[12])
 
 	PIN_SENSOR2_CFG_SN_MCLK = 0x1000,      ///< Enable SN_MCLK on S_GPIO[0]

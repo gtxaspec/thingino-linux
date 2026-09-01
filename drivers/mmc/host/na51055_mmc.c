@@ -1386,6 +1386,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 #else
 	struct nvt_mmc_config *pdata = NULL;
 	const struct of_device_id *of_id;
+	PIN_GROUP_CONFIG pinmux_config;
 
 	nvt_mmc_check_fastboot();
 
@@ -1504,6 +1505,16 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		}
 	}
 
+	if (host->id == SDIO_HOST_ID_1) {
+		pinmux_config.pin_function = PIN_FUNC_SDIO;
+	} else if (host->id == SDIO_HOST_ID_2) {
+		pinmux_config.pin_function = PIN_FUNC_SDIO2;
+	} else {
+		pinmux_config.pin_function = PIN_FUNC_SDIO3;
+	}
+	nvt_pinmux_capture(&pinmux_config, 1);
+	host->pinmux_value = pinmux_config.config;
+
 	host->use_dma = use_dma;
 	host->mmc_irq = irq;
 	host->mmc_cd_irq = gpio_to_irq(cd_gpio[0]);
@@ -1573,27 +1584,51 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		}
 		/* Setup Spread Spectrum Clock*/
 		if (ss_clk[0]) {
-			struct clk* pll4_clk = clk_get(NULL, "pll4");
-			struct clk* pll4ss_clk;
+			if (nvt_get_chip_id() == CHIP_NA51089) {
+				/* 56x sdio spread spectrum */
+				struct clk* pll9_clk = clk_get(NULL, "pll9");
+				struct clk* pll9ss_clk;
 
-			if (!IS_ERR(pll4_clk)) {
-				clk_set_rate(pll4_clk, ss_clk[0]);
-				clk_set_parent(host->clk, pll4_clk);
+				if (!IS_ERR(pll9_clk)) {
+					clk_set_rate(pll9_clk, ss_clk[0]);
+					clk_set_parent(host->clk, pll9_clk);
+				} else {
+					dev_err(mmc_dev(host->mmc), "%s: pll9 not found\n", __func__);
+					goto out;
+				}
+
+				pll9ss_clk = clk_get(NULL, "pll9_ss");
+
+				if (!IS_ERR(pll9ss_clk))
+					clk_set_phase(pll9ss_clk, ss_clk[1]);
+				else {
+					dev_err(mmc_dev(host->mmc), "%s: pll9ss not found\n", __func__);
+					goto out;
+				}
 			} else {
-				dev_err(mmc_dev(host->mmc), "%s: pll4 not found\n", __func__);
-				goto out;
-			}
+				/* 52x sdio spread spectrum */
+				struct clk* pll4_clk = clk_get(NULL, "pll4");
+				struct clk* pll4ss_clk;
 
-			if (nvt_get_chip_id() == CHIP_NA51055)
-				pll4ss_clk = clk_get(NULL, "pll4_ss");
-			else
-				pll4ss_clk = clk_get(NULL, "pll4_ss_528");
+				if (!IS_ERR(pll4_clk)) {
+					clk_set_rate(pll4_clk, ss_clk[0]);
+					clk_set_parent(host->clk, pll4_clk);
+				} else {
+					dev_err(mmc_dev(host->mmc), "%s: pll4 not found\n", __func__);
+					goto out;
+				}
 
-			if (!IS_ERR(pll4ss_clk))
-				clk_set_phase(pll4ss_clk, ss_clk[1]);
-			else {
-				dev_err(mmc_dev(host->mmc), "%s: pll4ss not found\n", __func__);
-				goto out;
+				if (nvt_get_chip_id() == CHIP_NA51055)
+					pll4ss_clk = clk_get(NULL, "pll4_ss");
+				else
+					pll4ss_clk = clk_get(NULL, "pll4_ss_528");
+
+				if (!IS_ERR(pll4ss_clk))
+					clk_set_phase(pll4ss_clk, ss_clk[1]);
+				else {
+					dev_err(mmc_dev(host->mmc), "%s: pll4ss not found\n", __func__);
+					goto out;
+				}
 			}
 		}
 
@@ -1606,7 +1641,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 
 	init_mmcsd_host(host , voltage_switch);
 
-	sdiohost_set_paddirection(host);
+	sdiohost_set_pads(host, PAD_PULLUP);
 
 	mmc->f_min = 312500;
 	mmc->f_max = 24000000;
@@ -1724,12 +1759,12 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto out;
 
-	dev_info(mmc_dev(host->mmc), "Using %s, %d-bit mode sampling %s edge, mmc%d\n",
+	dev_info(mmc_dev(host->mmc), "Using %s, %d-bit mode sampling %s edge, mmc%d, pinmux(0x%x)\n",
 		host->use_dma ? "DMA" : "PIO",
 		(mmc->caps & MMC_CAP_8_BIT_DATA) ? 8 :
 		(mmc->caps & MMC_CAP_4_BIT_DATA) ? 4 : 1,
 		host->neg_sample_edge ? "Negtive" : "Positive",
-		host->id);
+		host->id, host->pinmux_value);
 
 	return 0;
 
@@ -1860,5 +1895,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.120");
+MODULE_VERSION("1.07.123");
 

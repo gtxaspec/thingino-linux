@@ -178,8 +178,9 @@ typedef enum {
 	EFUSE_ABILITY_MIPI_CSI_1C4D		=0x1003,		//< Check if MIPI CSI only support 1C2D
 	EFUSE_ABILITY_MIPI_DSI			=0x1004,		//< Check if MIPI DSI support
 	EFUSE_ABILITY_LINEBUFFER_3M		=0x1005,		//< Check if Line buffer only support 3M(Please fill resolution)
-	EFUSE_ABILITY_CUSTOM			=0x1006,		//< Check if CUSTOM function check
 													//< Max = 2304 x 1296
+	EFUSE_ABILITY_CUSTOM			=0x1006,		//< Check if CUSTOM function check
+	EFUSE_ABILITY_ISP_OVR_CLK		=0x1007,		//< Check if ISP can over clock
 	///< Context are :
 	///< - @b UINT32 * : starting address of CDC_ABILITY
 
@@ -210,6 +211,7 @@ typedef enum {
 	SECUREBOOT_5TH_KEY_SET_READ_LOCK,	///< Quary if 5th key read lock already or not
 
 	SECUREBOOT_WT,						///<
+	SECUREBOOT_IPP_OVR_CLK,				///< Quary IPP over clock
 
 	SECUREBOOT_STATUS_NUM,
 
@@ -233,7 +235,7 @@ typedef enum {
 #define OTP_SIGNATURE_RSA_CHK_EN		(1 << 3)
 #define OTP_JTAG_DISABLE_EN				(1 << 2)
 
-
+#define OTP_IPP_OVR_CLK_BIT				18
 #define OTP_SEC_BOOT_WT_BIT				20
 #define OTP_1ST_KEY_PROGRAMMED_BIT		27
 #define OTP_2ND_KEY_PROGRAMMED_BIT		28
@@ -241,6 +243,7 @@ typedef enum {
 #define OTP_4TH_KEY_PROGRAMMED_BIT		30
 #define OTP_5TH_KEY_PROGRAMMED_BIT		31
 
+#define OTP_IPP_OVR_CLK					(1 << OTP_IPP_OVR_CLK_BIT)
 #define OTP_1ST_KEY_PROGRAMMED			(1 << OTP_1ST_KEY_PROGRAMMED_BIT)
 #define OTP_2ND_KEY_PROGRAMMED			(1 << OTP_2ND_KEY_PROGRAMMED_BIT)
 #define OTP_3RD_KEY_PROGRAMMED			(1 << OTP_3RD_KEY_PROGRAMMED_BIT)

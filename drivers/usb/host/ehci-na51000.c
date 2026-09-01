@@ -4,6 +4,7 @@
  */
 
 #include "na51000.h"
+#include <plat/nvt-sramctl.h>
 #include <linux/clk.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
@@ -68,6 +69,9 @@ static void nvtim_init_usbhc(struct platform_device *dev)
 
 	usbbase = (u32)ehci->caps;
 
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51055)
+	printk("nvtim_init_usbhc\n");
+#else
 #if 1
 	printk("nvtim_init_usbhc\n");
 	{
@@ -85,7 +89,7 @@ static void nvtim_init_usbhc(struct platform_device *dev)
 		printk("R0x40=0x%08X\r\n",readl((volatile unsigned long *)(usbbase+0x40)));
 	}
 #endif
-
+#endif
 	//printk("IC-VER=0x%08X\r\n",readl((volatile unsigned long *)(0xFD0100F0)));
 
 	if(readl((volatile unsigned long *)(0xFD0100F0)) != 0x48210000) {
@@ -359,6 +363,23 @@ static int nvtim_usb_ehci_probe(const struct hc_driver *driver,
 		retval = -ENOMEM;
 		goto err_register;
 	}
+
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51055)
+	printk("init usb20 clk\n");
+	{
+		struct clk *source_clk;
+
+		printk("usb20 assert reset\n");
+		source_clk = clk_get(&dev->dev, "f0600000.usb20");
+		if (IS_ERR(source_clk)) {
+			printk("faile to get clock f0600000.usb20\n");
+		} else {
+			/* toggle reset */
+			clk_prepare(source_clk);
+			clk_put(source_clk);
+		}
+	}
+#endif
 
 	/* This part is used in debug usage for using real usb addr. */
 	/* hcd->regs =(void __iomem*) hcd->rsrc_start;
@@ -704,6 +725,9 @@ static int nvtim_ehci_hcd_drv_probe(struct platform_device *pdev)
 	if (usb_disabled())
 		return -ENODEV;
 
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51055)
+       nvt_disable_sram_shutdown(USB_SD);
+#endif
 	nvt_ehci_proc_init();
 
 	ret = nvtim_usb_ehci_probe(&nvtivot_ehci_hc_driver, &hcd, pdev);
@@ -719,6 +743,9 @@ static int nvtim_ehci_hcd_drv_remove(struct platform_device *pdev)
 
 	nvt_ehci_proc_exit();
 
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51089)
+	nvt_enable_sram_shutdown(USB_SD);
+#endif
 	return 0;
 }
 
@@ -853,4 +880,4 @@ static struct platform_driver ehci_hcd_na51000_driver = {
 	}
 };
 
-MODULE_VERSION("1.00.005");
+MODULE_VERSION("1.00.006");

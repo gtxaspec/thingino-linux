@@ -407,6 +407,7 @@ struct mmc_nvt_host {
 	 * SDR104_MODE_DATA
 	 */
 	u32 pad_driving[SDIO_MAX_MODE_DRIVING];
+	u32 pinmux_value;
 
 	/* Scatterlist DMA uses one or more parameter RAM entries:
 	 * the main one (associated with rxdma or txdma) plus zero or
@@ -554,6 +555,10 @@ extern void sdiohost_setdlyphase_sel(struct mmc_nvt_host *host, u32 sel);
 
 extern void sdiohost_setphyphase_cmpen(struct mmc_nvt_host *host, u32 sel);
 
+extern void sdiohost_set_pads(struct mmc_nvt_host *host, PAD_PULL pulltype);
+
+extern void sdiohost_set_gpios(struct mmc_nvt_host *host, bool dir_out, int value);
+
 extern void sdiohost_power_down(struct mmc_nvt_host *host);
 
 extern void sdiohost_power_up(struct mmc_nvt_host *host);
@@ -561,8 +566,6 @@ extern void sdiohost_power_up(struct mmc_nvt_host *host);
 extern void sdio_copy_info(struct mmc_nvt_host *info);
 
 extern void sdiohost_power_cycle(struct mmc_nvt_host *host, uint32_t delay_ms);
-
-extern void sdiohost_set_paddirection(struct mmc_nvt_host *host);
 
 extern void sdiohost_setblkfifoen(struct mmc_nvt_host *host, bool enable);
 

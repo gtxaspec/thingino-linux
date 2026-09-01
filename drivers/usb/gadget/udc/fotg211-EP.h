@@ -4,6 +4,8 @@
 #define BLK_SZ512 512
 #define BLK_SZ1024 1024
 
+#define HBM_ISOI 3 //(1/2/3)
+
 /*
    USB FIFO number 0~15
    */

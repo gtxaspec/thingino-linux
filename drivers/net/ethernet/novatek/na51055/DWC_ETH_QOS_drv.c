@@ -167,6 +167,8 @@ static void DWC_ETH_QOS_stop_dev(struct DWC_ETH_QOS_prv_data *pdata)
 
 	DBGPR("-->DWC_ETH_QOS_stop_dev\n");
 
+	DWC_ETH_QOS_disable_all_ch_dma_interrpt(pdata);
+
 	netif_tx_disable(pdata->dev);
 
 	DWC_ETH_QOS_all_ch_napi_disable(pdata);

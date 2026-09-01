@@ -37,7 +37,7 @@
 #include <asm/div64.h>
 #include "../mtdcore.h"
 
-#define NAND_VERSION "1.04.232"
+#define NAND_VERSION "1.04.233"
 
 static int enable_erase_cnt = 0;
 static u32 erase_count[4096] = {};
@@ -784,6 +784,13 @@ static int spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 
 				mtd->ecc_stats.corrected += count;
 				ret = count;
+			} else if (full_id == WINBOND_W25N01KV) {
+				status = nand_cmd_read_status(info, \
+					NAND_SPI_STS_FEATURE_3);
+
+				count = (status >> 4) & 0x3;
+				mtd->ecc_stats.corrected += count;
+				ret = count;
 			} else if (chip_id == MFG_ID_XTX) {
 				if (dev_id == (XTX_XT26G01C>>8)) {
 					status = nand_cmd_read_status(info, \
@@ -1407,6 +1414,9 @@ static int spinand_probe(struct platform_device *pdev)
 			if (info->flash_info->chip_id == WINBOND_W25N02KV) {
 				info->nand_chip.ecc.strength = 8;
 				mtd->bitflip_threshold = 6;
+			} else if (info->flash_info->chip_id == WINBOND_W25N01KV) {
+				info->nand_chip.ecc.strength = 4;
+				mtd->bitflip_threshold = 3;
 			} else
 				mtd->bitflip_threshold = 1;
 		} else if (chip_id == MFG_ID_MXIC) {

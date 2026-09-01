@@ -272,6 +272,7 @@ struct drv_nand_dev_info {
 #define MXIC25L25635F_SFDP      0xF3
 #define MXIC_MX35LF2G14AC       0x20C2
 #define MICRON_MT29F2G01AB      0x242C
+#define WINBOND_W25N01KV        0x21AEEF
 #define WINBOND_W25N02KV        0x22AAEF
 #define WINBOND_W25Q256FV       0x1940EF
 #define MICRON_MT29F1G01AA      0x122C  /* ecc only corrected 1 bit */

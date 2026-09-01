@@ -2060,6 +2060,43 @@ static INT enable_rx_interrupt(UINT qInx)
   return Y_SUCCESS;
 }
 
+/*!
+* \brief This sequence is used to disable given DMA channel tx/rx interrupts
+* \param[in] qInx
+* \return Success or Failure
+* \retval  0 Success
+* \retval -1 Failure
+*/
+
+static INT disable_dma_interrupt(UINT qInx)
+{
+
+  DMA_IER_RBUE_UdfWr(qInx, 0);
+  DMA_IER_RIE_UdfWr(qInx, 0);
+  DMA_IER_TXSE_UdfWr(qInx, 0);
+  DMA_IER_TIE_UdfWr(qInx, 0);
+
+  return Y_SUCCESS;
+}
+
+/*!
+* \brief This sequence is used to enable given DMA channel tx/rx interrupts
+* \param[in] qInx
+* \return Success or Failure
+* \retval  0 Success
+* \retval -1 Failure
+*/
+
+static INT enable_dma_interrupt(UINT qInx)
+{
+
+  DMA_IER_RBUE_UdfWr(qInx, 0x1);
+  DMA_IER_RIE_UdfWr(qInx, 0x1);
+  DMA_IER_TXSE_UdfWr(qInx, 0x1);
+  DMA_IER_TIE_UdfWr(qInx, 0x1);
+
+  return Y_SUCCESS;
+}
 
 static VOID configure_sa_via_reg(u32 cmd)
 {
@@ -4335,7 +4372,7 @@ static INT configure_dma_channel(UINT qInx,
 	printk(KERN_ALERT "%s Rx Split header mode\n",
 		(pdata->rx_split_hdr ? "Enabled" : "Disabled"));
 
-//	DMA_RCR0_RBSZ_UdfWr(DWC_ETH_QOS_ETH_FRAME_LEN);
+	DMA_RCR0_RBSZ_UdfWr(pdata->rx_buffer_len);
 
 	/*
 	 * For PG don't start TX DMA now.
@@ -4881,6 +4918,9 @@ void DWC_ETH_QOS_init_function_ptrs_dev(struct hw_if_struct *hw_if)
 
 	hw_if->disable_rx_interrupt = disable_rx_interrupt;
 	hw_if->enable_rx_interrupt = enable_rx_interrupt;
+
+	hw_if->disable_dma_interrupt = disable_dma_interrupt;
+	hw_if->enable_dma_interrupt = enable_dma_interrupt;
 
 	/* for handling MMC */
 	hw_if->disable_mmc_interrupts = disable_mmc_interrupts;

@@ -201,7 +201,7 @@ typedef enum {
 	SECUREBOOT_STATUS_NUM,
 
 	SECUREBOOT_VPE_OVER_CLOCKING,       ///< Quary if VPE can over clocking or not
-
+	SECUREBOOT_NT_OVR_CLK,
 } SECUREBOOT_STATUS;
 
 #define EFUSE_SUCCESS                   E_OK
@@ -241,6 +241,9 @@ typedef enum {
 #define OTP_3RD_KEY_READ_LOCK_BIT       24
 #define OTP_4TH_KEY_READ_LOCK_BIT       25
 #define OTP_5TH_KEY_READ_LOCK_BIT       26
+
+#define OTP_NT_OVR_CLK_BIT              15
+#define OTP_NT_OVR_CLK                  (1 << OTP_NT_OVR_CLK_BIT)
 
 #define OTP_1ST_KEY_READ_LOCK           (1 << OTP_1ST_KEY_READ_LOCK_BIT)
 #define OTP_2ND_KEY_READ_LOCK           (1 << OTP_2ND_KEY_READ_LOCK_BIT)
@@ -457,6 +460,7 @@ extern INT32 trigger_efuse_key(EFUSE_KEY_MANAGER_DST key_dst, UINT32 key_word_of
 #define is_4th_key_read_lock()          quary_secure_boot(SECUREBOOT_4TH_KEY_SET_READ_LOCK)
 #define is_5th_key_read_lock()          quary_secure_boot(SECUREBOOT_5TH_KEY_SET_READ_LOCK)
 #define is_vpe_over_clocking()          quary_secure_boot(SECUREBOOT_VPE_OVER_CLOCKING)
+#define is_c_ovr_clk()                  quary_secure_boot(SECUREBOOT_NT_OVR_CLK)
 
 extern void otp_platform_earily_create_resource(void);
 extern void otp_platform_earily_release_resource(void);

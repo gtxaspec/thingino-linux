@@ -34,6 +34,9 @@
  * A deserialized copy of the on-disk structure laid out in struct
  * fat_boot_sector.
  */
+#ifdef CONFIG_PLAT_NOVATEK
+bool nvt_check_device_exist(struct inode *inode);
+#endif
 struct fat_bios_param_block {
 	u16	fat_sector_size;
 	u8	fat_sec_per_clus;
@@ -241,6 +244,10 @@ static int fat_write_end(struct file *file, struct address_space *mapping,
 	struct inode *inode = mapping->host;
 	int err;
 	err = generic_write_end(file, mapping, pos, len, copied, pagep, fsdata);
+#ifdef CONFIG_PLAT_NOVATEK
+	if (!nvt_check_device_exist(inode))
+		err = -EIO;
+#endif
 	if (err < len)
 		fat_write_failed(mapping, pos + len);
 	if (!(err < 0) && !(MSDOS_I(inode)->i_attrs & ATTR_ARCH)) {
@@ -756,6 +763,26 @@ static void fat_destroy_inode(struct inode *inode)
 {
 	call_rcu(&inode->i_rcu, fat_i_callback);
 }
+
+#ifdef CONFIG_PLAT_NOVATEK
+bool nvt_check_device_exist(struct inode *inode)
+{
+	struct bdi_writeback *wb;
+
+	if (!inode)
+		return true;
+
+	wb = inode_to_wb(inode);
+	if (!wb)
+		return true;
+
+	if (!test_bit(WB_registered, &wb->state)) {
+		fat_fs_error(inode->i_sb, "Device does not exist");
+		return false;
+	}
+	return true;
+}
+#endif
 
 static void init_once(void *foo)
 {

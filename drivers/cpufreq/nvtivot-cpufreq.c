@@ -20,6 +20,13 @@ static struct cpufreq_frequency_table freq_table[] = {
 	{ .frequency = CPUFREQ_TABLE_END },
 };
 
+static struct cpufreq_frequency_table freq_table_528[] = {
+	{ .frequency = 480000 },
+	{ .frequency = 800000 },
+	{ .frequency = 1000000 },
+	{ .frequency = CPUFREQ_TABLE_END },
+};
+
 struct nvt_cpufreq {
 	struct device *dev;
 	struct cpufreq_driver driver;
@@ -30,10 +37,33 @@ struct nvt_cpufreq {
 static int nvt_target(struct cpufreq_policy *policy, unsigned int index)
 {
 	struct nvt_cpufreq *cpufreq = cpufreq_get_driver_data();
-	unsigned long rate = freq_table[index].frequency;
-
+	unsigned long rate;
 	if (nvt_get_chip_id() == CHIP_NA51084) {
-		return clk_set_rate(cpufreq->cpu_clk, rate * 1000 / 8);
+		rate = freq_table_528[index].frequency;
+	} else {
+		rate = freq_table[index].frequency;
+	}
+	if (nvt_get_chip_id() == CHIP_NA51084) {
+		if (rate == 480000) {
+			if (clk_set_parent(cpufreq->cpu_clk_parent, clk_get(NULL, "fix480m"))) {
+				printk("set fixed 480MHz error\r\n");
+			} else {
+				if (__clk_is_enabled(cpufreq->cpu_clk)) {
+					clk_disable(cpufreq->cpu_clk);
+				}
+			}
+			return 0;
+		} else {
+			if (!__clk_is_enabled(cpufreq->cpu_clk)) {
+				clk_enable(cpufreq->cpu_clk);
+			}
+			if (clk_set_parent(cpufreq->cpu_clk_parent, clk_get(NULL, "pll8"))) {
+				printk("set pll8 error\r\n");
+			} else {
+				printk("set pll8 success\r\n");
+			}
+			return clk_set_rate(cpufreq->cpu_clk, rate * 1000 / 8);
+		}
 	} else {
 		if (rate == 480000) {
 			if (clk_set_parent(cpufreq->cpu_clk_parent, clk_get(NULL, "fix480m"))) {
@@ -83,15 +113,22 @@ static int nvt_cpu_init(struct cpufreq_policy *policy)
 		clk_prepare_enable(cpufreq->cpu_clk);
 		clk_disable(cpufreq->cpu_clk);
 	}
-
-	ret = cpufreq_generic_init(policy, freq_table, 300 * 1000);
+	if (nvt_get_chip_id() == CHIP_NA51084) {
+		ret = cpufreq_generic_init(policy, freq_table_528, 300 * 1000);
+	} else {
+		ret = cpufreq_generic_init(policy, freq_table, 300 * 1000);
+	}
 	if (ret) {
 		clk_disable_unprepare(cpufreq->cpu_clk);
 		return ret;
 	}
 
 	policy->clk = cpufreq->cpu_clk;
-	policy->suspend_freq = freq_table[0].frequency;
+	if (nvt_get_chip_id() == CHIP_NA51084) {
+		policy->suspend_freq = freq_table_528[0].frequency;
+	} else {
+		policy->suspend_freq = freq_table[0].frequency;
+	}
 	return 0;
 }
 
@@ -120,7 +157,11 @@ static int __init nvt_cpufreq_init(void)
 
 	if (cpu_freq_table[0]) {
 		for (i = 0; i < 4; i++) {
-			freq_table[i].frequency = cpu_freq_table[i] / 1000;
+			if (nvt_get_chip_id() == CHIP_NA51084) {
+				freq_table_528[i].frequency = cpu_freq_table[i] / 1000;
+			} else {
+				freq_table[i].frequency = cpu_freq_table[i] / 1000;
+			}
 			printk("[%d] freq[%d]\r\n", i, freq_table[i].frequency);
 		}
 	}
@@ -135,7 +176,7 @@ static int __init nvt_cpufreq_init(void)
 		return -ENODEV;
 	}
 
-	if (nvt_get_chip_id() == CHIP_NA51089 || nvt_get_chip_id() == CHIP_NA51055) {
+	if (nvt_get_chip_id() == CHIP_NA51089 || nvt_get_chip_id() == CHIP_NA51055 || nvt_get_chip_id() == CHIP_NA51084) {
 		cpufreq->cpu_clk_parent = clk_get(NULL, "cpu_clk");
 		if (IS_ERR(cpufreq->cpu_clk_parent)) {
 			printk("cpu clk parent error\r\n");

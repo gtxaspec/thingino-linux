@@ -1669,6 +1669,128 @@ void sdiohost_power_switch(struct mmc_nvt_host *host, bool enable)
 		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_0);
 }
 
+void sdiohost_set_pads(struct mmc_nvt_host *host, PAD_PULL pulltype)
+{
+	if (host->id == SDIO_HOST_ID_1) {
+		pad_set_pull_updown(PAD_PIN_CGPIO12, pulltype);
+		pad_set_pull_updown(PAD_PIN_CGPIO13, pulltype);
+		pad_set_pull_updown(PAD_PIN_CGPIO14, pulltype);
+		pad_set_pull_updown(PAD_PIN_CGPIO15, pulltype);
+		pad_set_pull_updown(PAD_PIN_CGPIO16, pulltype);
+	} else if (host->id == SDIO_HOST_ID_2) {
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+		if (host->pinmux_value & PIN_SDIO_CFG_2ND_PINMUX)
+		{
+			pad_set_pull_updown(PAD_PIN_SGPIO1, pulltype);
+			pad_set_pull_updown(PAD_PIN_SGPIO2, pulltype);
+			pad_set_pull_updown(PAD_PIN_SGPIO3, pulltype);
+			pad_set_pull_updown(PAD_PIN_SGPIO7, pulltype);
+			pad_set_pull_updown(PAD_PIN_SGPIO8, pulltype);
+		}
+		else if (host->pinmux_value & PIN_SDIO_CFG_3RD_PINMUX)
+		{
+			pad_set_pull_updown(PAD_PIN_DSIGPIO6, pulltype);
+			pad_set_pull_updown(PAD_PIN_DSIGPIO2, pulltype);
+			pad_set_pull_updown(PAD_PIN_DSIGPIO3, pulltype);
+			pad_set_pull_updown(PAD_PIN_DSIGPIO4, pulltype);
+			pad_set_pull_updown(PAD_PIN_DSIGPIO5, pulltype);
+		}
+		else
+#endif
+		{
+			pad_set_pull_updown(PAD_PIN_CGPIO18, pulltype);
+			pad_set_pull_updown(PAD_PIN_CGPIO19, pulltype);
+			pad_set_pull_updown(PAD_PIN_CGPIO20, pulltype);
+			pad_set_pull_updown(PAD_PIN_CGPIO21, pulltype);
+			pad_set_pull_updown(PAD_PIN_CGPIO22, pulltype);
+		}
+	}
+}
+
+void sdiohost_set_gpios(struct mmc_nvt_host *host, bool dir_out, int value)
+{
+	if (dir_out) {
+		if (host->id == SDIO_HOST_ID_1) {
+			gpio_direction_output(C_GPIO(11), value);
+			gpio_direction_output(C_GPIO(12), value);
+			gpio_direction_output(C_GPIO(13), value);
+			gpio_direction_output(C_GPIO(14), value);
+			gpio_direction_output(C_GPIO(15), value);
+			gpio_direction_output(C_GPIO(16), value);
+		} else if (host->id == SDIO_HOST_ID_2) {
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+			if (host->pinmux_value & PIN_SDIO_CFG_2ND_PINMUX)
+			{
+				gpio_direction_output(S_GPIO(0), value);
+				gpio_direction_output(S_GPIO(1), value);
+				gpio_direction_output(S_GPIO(2), value);
+				gpio_direction_output(S_GPIO(3), value);
+				gpio_direction_output(S_GPIO(7), value);
+				gpio_direction_output(S_GPIO(8), value);
+			}
+			else if (host->pinmux_value & PIN_SDIO_CFG_3RD_PINMUX)
+			{
+				gpio_direction_output(DSI_GPIO(6), value);
+				gpio_direction_output(DSI_GPIO(7), value);
+				gpio_direction_output(DSI_GPIO(2), value);
+				gpio_direction_output(DSI_GPIO(3), value);
+				gpio_direction_output(DSI_GPIO(4), value);
+				gpio_direction_output(DSI_GPIO(5), value);
+			}
+			else
+#endif
+			{
+				gpio_direction_output(C_GPIO(17), value);
+				gpio_direction_output(C_GPIO(18), value);
+				gpio_direction_output(C_GPIO(19), value);
+				gpio_direction_output(C_GPIO(20), value);
+				gpio_direction_output(C_GPIO(21), value);
+				gpio_direction_output(C_GPIO(22), value);
+			}
+		}
+	} else {
+		if (host->id == SDIO_HOST_ID_1) {
+			gpio_direction_input(C_GPIO(11));
+			gpio_direction_input(C_GPIO(12));
+			gpio_direction_input(C_GPIO(13));
+			gpio_direction_input(C_GPIO(14));
+			gpio_direction_input(C_GPIO(15));
+			gpio_direction_input(C_GPIO(16));
+		} else if (host->id == SDIO_HOST_ID_2) {
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+			if (host->pinmux_value & PIN_SDIO_CFG_2ND_PINMUX)
+			{
+				gpio_direction_input(S_GPIO(0));
+				gpio_direction_input(S_GPIO(1));
+				gpio_direction_input(S_GPIO(2));
+				gpio_direction_input(S_GPIO(3));
+				gpio_direction_input(S_GPIO(7));
+				gpio_direction_input(S_GPIO(8));
+			}
+			else if (host->pinmux_value & PIN_SDIO_CFG_3RD_PINMUX)
+			{
+				gpio_direction_input(DSI_GPIO(6));
+				gpio_direction_input(DSI_GPIO(7));
+				gpio_direction_input(DSI_GPIO(2));
+				gpio_direction_input(DSI_GPIO(3));
+				gpio_direction_input(DSI_GPIO(4));
+				gpio_direction_input(DSI_GPIO(5));
+			}
+			else
+#endif
+			{
+				gpio_direction_input(C_GPIO(17));
+				gpio_direction_input(C_GPIO(18));
+				gpio_direction_input(C_GPIO(19));
+				gpio_direction_input(C_GPIO(20));
+				gpio_direction_input(C_GPIO(21));
+				gpio_direction_input(C_GPIO(22));
+			}
+		}
+
+	}
+}
+
 void sdiohost_power_down(struct mmc_nvt_host *host)
 {
 	if (host->id == SDIO_HOST_ID_1) {
@@ -1680,18 +1802,9 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 		if (ret)
 			pr_err("Switch SDIO1 pinmux error\n");
 
-		pad_set_pull_updown(PAD_PIN_CGPIO12, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO13, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO14, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO15, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO16, PAD_PULLDOWN);
+		sdiohost_set_pads(host, PAD_PULLDOWN);
 
-		gpio_direction_output(C_GPIO(11), 0);
-		gpio_direction_output(C_GPIO(12), 0);
-		gpio_direction_output(C_GPIO(13), 0);
-		gpio_direction_output(C_GPIO(14), 0);
-		gpio_direction_output(C_GPIO(15), 0);
-		gpio_direction_output(C_GPIO(16), 0);
+		sdiohost_set_gpios(host, true, 0);
 	} else if (host->id == SDIO_HOST_ID_2) {
 		int ret = 0;
 		PIN_GROUP_CONFIG pinmux_config[1];
@@ -1701,18 +1814,9 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 		if (ret)
 			pr_err("Switch SDIO2 pinmux error\n");
 
-		pad_set_pull_updown(PAD_PIN_CGPIO17, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO18, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO19, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO20, PAD_PULLDOWN);
-		pad_set_pull_updown(PAD_PIN_CGPIO21, PAD_PULLDOWN);
+		sdiohost_set_pads(host, PAD_PULLDOWN);
 
-		gpio_direction_output(C_GPIO(17), 0);
-		gpio_direction_output(C_GPIO(18), 0);
-		gpio_direction_output(C_GPIO(19), 0);
-		gpio_direction_output(C_GPIO(20), 0);
-		gpio_direction_output(C_GPIO(21), 0);
-		gpio_direction_output(C_GPIO(22), 0);
+		sdiohost_set_gpios(host, true, 0);
 	}
 
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_0);
@@ -1739,45 +1843,29 @@ void sdiohost_power_up(struct mmc_nvt_host *host)
 	if (host->id == SDIO_HOST_ID_1) {
 		int ret = 0;
 		PIN_GROUP_CONFIG pinmux_config[1];
-		gpio_direction_input(C_GPIO(11));
-		gpio_direction_input(C_GPIO(12));
-		gpio_direction_input(C_GPIO(13));
-		gpio_direction_input(C_GPIO(14));
-		gpio_direction_input(C_GPIO(15));
-		gpio_direction_input(C_GPIO(16));
+
+		sdiohost_set_gpios(host, false, 0);
 
 		pinmux_config->pin_function = PIN_FUNC_SDIO;
-		pinmux_config->config = 0x1;
+		pinmux_config->config = host->pinmux_value;
 		ret = nvt_pinmux_update(pinmux_config, 1);
 		if (ret)
 			pr_err("Switch SDIO1 pinmux error\n");
 
-		pad_set_pull_updown(PAD_PIN_CGPIO12, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO13, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO14, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO15, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO16, PAD_PULLUP);
+		sdiohost_set_pads(host, PAD_PULLUP);
 	} else if (host->id == SDIO_HOST_ID_2) {
 		int ret = 0;
 		PIN_GROUP_CONFIG pinmux_config[1];
-		gpio_direction_input(C_GPIO(17));
-		gpio_direction_input(C_GPIO(18));
-		gpio_direction_input(C_GPIO(19));
-		gpio_direction_input(C_GPIO(20));
-		gpio_direction_input(C_GPIO(21));
-		gpio_direction_input(C_GPIO(22));
+
+		sdiohost_set_gpios(host, false, 0);
 
 		pinmux_config->pin_function = PIN_FUNC_SDIO2;
-		pinmux_config->config = 0x1;
+		pinmux_config->config = host->pinmux_value;
 		ret = nvt_pinmux_update(pinmux_config, 1);
 		if (ret)
 			pr_err("Switch SDIO2 pinmux error\n");
 
-		pad_set_pull_updown(PAD_PIN_CGPIO18, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO19, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO20, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO21, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO22, PAD_PULLUP);
+		sdiohost_set_pads(host, PAD_PULLUP);
 	}
 }
 
@@ -1994,23 +2082,6 @@ void sdio_copy_info(struct mmc_nvt_host *info)
 		drvdump_info[1] = *info;
 	else
 		drvdump_info[2] = *info;
-}
-
-void sdiohost_set_paddirection(struct mmc_nvt_host *host)
-{
-	if (host->id == SDIO_HOST_ID_1) {
-		pad_set_pull_updown(PAD_PIN_CGPIO12, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO13, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO14, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO15, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO16, PAD_PULLUP);
-	} else if (host->id == SDIO_HOST_ID_2) {
-		pad_set_pull_updown(PAD_PIN_CGPIO18, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO19, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO20, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO21, PAD_PULLUP);
-		pad_set_pull_updown(PAD_PIN_CGPIO22, PAD_PULLUP);
-	}
 }
 
 void sdio_drvdump(void)

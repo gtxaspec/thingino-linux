@@ -31,9 +31,10 @@
 #include <linux/gpio.h>
 #include <plat/nvt-gpio.h>
 #include <linux/usb/cdc.h>
+#include <plat/nvt-sramctl.h>
 
 #define	DRIVER_DESC	"NOVATEK iVot USB Device FOTG200 Controller Driver"
-#define	DRIVER_VERSION	"1.00.040"
+#define	DRIVER_VERSION	"1.00.041"
 
 static bool is_cdc_class = 0;
 u32 vbus_gpio_no = D_GPIO(7);
@@ -2315,6 +2316,10 @@ static int fotg210_udc_remove(struct platform_device *pdev)
 	iounmap(fotg210->reg);
 	kfree(fotg210);
 
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51055)
+	nvt_enable_sram_shutdown(USB_SD);
+#endif
+
 	{
 		struct clk *source_clk;
 
@@ -2391,6 +2396,9 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 		}
 	}
 
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51055)
+	nvt_disable_sram_shutdown(USB_SD);
+#endif
 	spin_lock_init(&fotg210->lock);
 
 	platform_set_drvdata(pdev, fotg210);
@@ -2492,6 +2500,10 @@ err_map:
 
 err_alloc:
 	kfree(fotg210);
+
+#if IS_ENABLED(CONFIG_NVT_IVOT_PLAT_NA51055)
+	nvt_enable_sram_shutdown(USB_SD);
+#endif
 
 	return ret;
 }

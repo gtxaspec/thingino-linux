@@ -5,7 +5,7 @@
 #include <linux/clk-provider.h>
 #include <linux/slab.h>
 
-#ifdef CONFIG_COMMON_CLK_NA51055
+#if defined (CONFIG_COMMON_CLK_NA51055) || defined (CONFIG_COMMON_CLK_NA51089)
 void pll_dump_info(void);
 #endif
 #define MAX_CMD_LENGTH 30
@@ -13,7 +13,7 @@ void pll_dump_info(void);
 
 static int clk_dump_info_cmd(struct seq_file *s, void *data)
 {
-#if defined (CONFIG_COMMON_CLK_NA51055)
+#if defined (CONFIG_COMMON_CLK_NA51055) || defined (CONFIG_COMMON_CLK_NA51089)
 	pll_dump_info();
 #else
 	seq_printf(s, "use [ echo @device > clk_dump_info ] to dump info\n");
