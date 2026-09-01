@@ -276,6 +276,7 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	union TOP_REG9 local_top_reg9;
 	union TOP_REGSGPIO0 local_top_reg_sgpio0;
 	union TOP_REGHGPIO0 local_top_reg_hgpio0;
+	union TOP_REGPGPIO0 local_top_reg_pgpio0;
 
 	loc_cpu(&top_lock, flags);
 
@@ -291,6 +292,7 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	local_top_reg9.reg = TOP_GETREG(info, TOP_REG9_OFS);
 	local_top_reg_sgpio0.reg = TOP_GETREG(info, TOP_REGSGPIO0_OFS);
 	local_top_reg_hgpio0.reg = TOP_GETREG(info, TOP_REGHGPIO0_OFS);
+	local_top_reg_pgpio0.reg = TOP_GETREG(info, TOP_REGPGPIO0_OFS);
 
 
 	/*Parsing SDIO1*/
@@ -402,6 +404,12 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	if ((mipi_lvds_sensor[1] != 0) && (local_top_reg_sgpio0.bit.SGPIO_4 == GPIO_ID_EMUM_FUNC) \
 			&& (local_top_reg_sgpio0.bit.SGPIO_5 == GPIO_ID_EMUM_FUNC))
 		value |= PIN_SENSOR2_CFG_LVDS_VDHD;
+	if ((top_reg3.bit.SENSOR2 == SENSOR2_ENUM_CCIR8BITS) && (local_top_reg_pgpio0.bit.PGPIO_11 == GPIO_ID_EMUM_FUNC))
+		value |= PIN_SENSOR2_CFG_CCIR8BITS_FIELD;
+
+	if ((top_reg3.bit.SENSOR2 == SENSOR2_ENUM_CCIR8BITS) && (local_top_reg_pgpio0.bit.PGPIO_9 == GPIO_ID_EMUM_FUNC) \
+			&& (local_top_reg_pgpio0.bit.PGPIO_10 == GPIO_ID_EMUM_FUNC))
+		value |= PIN_SENSOR2_CFG_CCIR8BITS_VDHD;
 
 
 	if ((local_top_reg_sgpio0.bit.SGPIO_0 == GPIO_ID_EMUM_FUNC) && sn_mclk_en[1])
@@ -1701,9 +1709,19 @@ static int pinmux_config_sensor2(uint32_t config)
 			top_reg_pgpio0.bit.PGPIO_6 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_7 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_8 = GPIO_ID_EMUM_FUNC; // SN2_PXCLK
-			top_reg_pgpio0.bit.PGPIO_9 = GPIO_ID_EMUM_FUNC; // SN2_XVS
-			top_reg_pgpio0.bit.PGPIO_10 = GPIO_ID_EMUM_FUNC; // SN2_XHS
-			top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_FUNC; // SN2_Field
+			top_reg_pgpio0.bit.PGPIO_9 = GPIO_ID_EMUM_GPIO; // SN2_XVS
+			top_reg_pgpio0.bit.PGPIO_10 = GPIO_ID_EMUM_GPIO; // SN2_XHS
+
+			if (config & PIN_SENSOR2_CFG_CCIR8BITS_FIELD) {
+				top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_FUNC; // SN2_Field
+			} else {
+				top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_GPIO; // SN2_Field
+			}
+
+                        if (config & PIN_SENSOR2_CFG_CCIR8BITS_VDHD) {
+				top_reg_pgpio0.bit.PGPIO_9 = GPIO_ID_EMUM_FUNC; // SN2_XVS
+				top_reg_pgpio0.bit.PGPIO_10 = GPIO_ID_EMUM_FUNC; // SN2_XHS
+			}
 
 			top_reg3.bit.SENSOR2 = SENSOR2_ENUM_CCIR8BITS;
 			break;

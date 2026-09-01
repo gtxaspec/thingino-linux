@@ -298,6 +298,28 @@ static int fastboot_determination(void)
 	return m_fastboot;
 }
 
+static void nvt_mmc_check_fastboot(void)
+{
+	u32 m_fastboot = 0x0, preload = 0x0;
+	struct device_node* of_node = of_find_node_by_path("/fastboot");
+	int ret = 0;
+
+	if (of_node) {
+		of_property_read_u32(of_node, "enable", &m_fastboot);
+	}
+
+	of_node = of_find_node_by_path("/fastboot/emmc");
+
+	if (of_node) {
+		of_property_read_u32(of_node, "preload", &preload);
+	}
+
+	if (m_fastboot && preload) {
+		ret = nvt_mmc_check_preload_finish();
+		if (ret != 1)
+			pr_err("error with waiting preload %d\n", ret);
+	}
+}
 
 /* PIO only */
 static void nvt_mmc_sg_to_buf(struct mmc_nvt_host *host)
@@ -1349,6 +1371,8 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 #else
 	struct nvt_mmc_config *pdata = NULL;
 	const struct of_device_id *of_id;
+
+	nvt_mmc_check_fastboot();
 
 	/* REVISIT:  when we're fully converted, fail if pdata is NULL */
 	of_id = of_match_device(nvt_mmcsd_of_dt_ids, &pdev->dev);

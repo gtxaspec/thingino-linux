@@ -362,3 +362,4 @@ module_exit(nvt_otp_module_exit);
 MODULE_AUTHOR("Novatek Corp.");
 MODULE_DESCRIPTION("nvt otp driver");
 MODULE_LICENSE("GPL");
+MODULE_VERSION("1.00.010");

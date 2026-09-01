@@ -412,6 +412,10 @@ static struct nand_flash_dev spinand_flash_ids[] = {
 		{ .id = {MFG_ID_TOSHIBA, 0xEB, 0x40} },
 		SZ_2K, SZ_256, SZ_128K, 0, 3, 64 },
 	// TOSHIBA
+	{"TC58CVG1S3HRAIG 2GiB 3.3V",
+		{ .id = {MFG_ID_TOSHIBA, 0xCB} },
+		SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
+	// TOSHIBA
 	{"TC58CVG2S0Hx 4GiB 3.3V",
 		{ .id = {MFG_ID_TOSHIBA, 0xED} },
 		SZ_4K, SZ_512, SZ_256K, 0, 2, 128 },
@@ -1422,7 +1426,7 @@ static int spinand_probe(struct platform_device *pdev)
 	}
 
 #ifndef CONFIG_FLASH_ONLY_DUAL
-	if (info->flash_info->chip_id != TOSHIBA_TC58CVG)
+	if ((info->flash_info->chip_id & 0xFFFF) != TOSHIBA_TC58CVG && (info->flash_info->chip_id & 0xFFFF) != TOSHIBA_TC58CVG3)
 		info->flash_info->spi_nand_status.quad_program = TRUE;
 #endif
 
@@ -1555,5 +1559,5 @@ module_exit(spinand_exit);
 MODULE_DESCRIPTION("SPI NAND driver");
 MODULE_AUTHOR("Howard Chang");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.04.230");
+MODULE_VERSION("1.04.231");
 

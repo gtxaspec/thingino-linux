@@ -66,6 +66,8 @@ static struct usb_zero_options gzero_options = {
 	.qlen = GZERO_QLEN,
 	.ss_bulk_qlen = GZERO_SS_BULK_QLEN,
 	.ss_iso_qlen = GZERO_SS_ISO_QLEN,
+	.int_interval = GZERO_INT_INTERVAL,
+	.int_maxpacket = GZERO_INT_MAXPACKET,
 };
 
 /*-------------------------------------------------------------------------*/
@@ -103,6 +105,18 @@ static unsigned autoresume_interval_ms;
 module_param(autoresume_interval_ms, uint, S_IRUGO);
 MODULE_PARM_DESC(autoresume_interval_ms,
 		"milliseconds to increase successive wakeup delays");
+
+module_param_named(int_interval, gzero_options.int_interval, uint, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(int_interval, "1 - 16");
+
+module_param_named(int_maxpacket, gzero_options.int_maxpacket, uint, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(int_maxpacket, "0 - 1023 (fs), 0 - 1024 (hs/ss)");
+
+module_param_named(int_mult, gzero_options.int_mult, uint, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(int_mult, "0 - 2 (hs/ss only)");
+
+module_param_named(int_maxburst, gzero_options.int_maxburst, uint, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(int_maxburst, "0 - 15 (ss only)");
 
 static unsigned autoresume_step_ms;
 /*-------------------------------------------------------------------------*/
@@ -295,6 +309,10 @@ static int zero_bind(struct usb_composite_dev *cdev)
 	ss_opts->bulk_buflen = gzero_options.bulk_buflen;
 	ss_opts->bulk_qlen = gzero_options.ss_bulk_qlen;
 	ss_opts->iso_qlen = gzero_options.ss_iso_qlen;
+	ss_opts->int_interval = gzero_options.int_interval;
+	ss_opts->int_maxpacket = gzero_options.int_maxpacket;
+	ss_opts->int_mult = gzero_options.int_mult;
+	ss_opts->int_maxburst = gzero_options.int_maxpacket;
 
 	func_ss = usb_get_function(func_inst_ss);
 	if (IS_ERR(func_ss)) {

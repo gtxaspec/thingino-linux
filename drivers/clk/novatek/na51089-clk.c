@@ -1251,6 +1251,9 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 	int i, j, keeper_count = 0;
 	struct nvt_clk_rate_keeper *keeper;
 	const char *name_ptr = NULL;
+	unsigned int rate;
+	unsigned int parent_idx;
+	unsigned int do_reset;
 
 	keeper = kzalloc(CLK_NAME_STR_CNT * sizeof(struct nvt_clk_rate_keeper), GFP_KERNEL);
 	node = of_find_node_by_path("/cg_keeper@0");
@@ -1259,6 +1262,19 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 			name_ptr = keeper[keeper_count].name;
 			if (!of_property_read_string(keeper_node, "keeper_name", &name_ptr)) {
 				strncpy(keeper[keeper_count].name, name_ptr, CLK_NAME_STR_SIZE);
+				
+				if (of_property_read_u32(keeper_node, "do_reset",&do_reset))
+                    do_reset = UINT_MAX;
+                keeper[keeper_count].do_reset = do_reset;
+
+				if (of_property_read_u32(keeper_node, "parent_idx",&parent_idx))
+                	parent_idx = UINT_MAX;
+				keeper[keeper_count].parent_idx = parent_idx;
+
+            	if (of_property_read_u32(keeper_node, "rate",&rate))
+                	rate = UINT_MAX;
+                keeper[keeper_count].rate = rate;
+				
 				keeper_count++;
 				if (keeper_count == CLK_NAME_STR_CNT) {
 					pr_err("exceed keeper limitation");
@@ -1271,8 +1287,19 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 	for (i = 0; i < cmux_array_size; i++) {
 		composite_mux_clks[i].keep_rate = 0;
 		for (j = 0; j < keeper_count; j++) {
-			if (strncmp(composite_mux_clks[i].name, keeper[j].name, strlen(composite_mux_clks[i].name)) == 0) {
-				composite_mux_clks[i].keep_rate = 1;
+			if (strncmp(composite_mux_clks[i].name, keeper[j].name, max(strlen(composite_mux_clks[i].name),strlen(keeper[j].name))) == 0){
+				if(keeper[j].do_reset != UINT_MAX)
+					composite_mux_clks[i].do_reset = (keeper[j].do_reset>0)?DO_RESET:NOT_RESET;
+				
+				if(keeper[j].parent_idx != UINT_MAX)
+					composite_mux_clks[i].parent_idx = keeper[j].parent_idx;
+
+				if(keeper[j].rate != UINT_MAX)
+					composite_mux_clks[i].current_rate = keeper[j].rate;
+				else
+					composite_mux_clks[i].keep_rate = 1;
+	
+				printk("[%s] do_reset=%d, keep_rate=%d, idx=%d, rate=%d\r\n",composite_mux_clks[i].name,composite_mux_clks[i].do_reset,composite_mux_clks[i].keep_rate,composite_mux_clks[i].parent_idx,composite_mux_clks[i].current_rate);
 			}
 		}
 	}

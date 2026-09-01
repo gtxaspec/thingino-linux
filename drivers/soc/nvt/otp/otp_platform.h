@@ -36,6 +36,9 @@ extern UINT32 IOADDR_EFUSE_REG_BASE;
 
 extern ER otp_platform_sem_wait(void);
 extern ER otp_platform_sem_signal(void);
+extern unsigned long otp_platform_spin_lock(void);
+extern void otp_platform_spin_unlock(unsigned long flags);
+
 extern void otp_platform_delay_ms(UINT32 ms);
 #if !(defined __UITRON || defined __ECOS)
 #if defined __FREERTOS

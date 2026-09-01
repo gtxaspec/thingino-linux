@@ -156,6 +156,12 @@ typedef struct {
 	UINT32  uiHeight;                   // height
 } CDC_ABILITY, *PCDC_ABILITY;
 
+// Capacity of Storage device
+typedef struct {
+	UINT32  uiWidth;                    // width
+	UINT32  uiHeight;                   // height
+} LINEBUFFER_ABILITY, *PLINEBUFFER_ABILITY;
+
 /**
     @name eFuse Package extended ability
 
@@ -165,6 +171,10 @@ typedef struct {
 typedef enum {
 	EFUSE_ABILITY_CDC_RESOLUTION    =0x1001,        //< Check package resoltion of codec
 	EFUSE_ABILITY_CDC_PLL_FREQ		=0x1002,		//< Check package PLL freq of codec
+	EFUSE_ABILITY_MIPI_CSI_1C2D		=0x1003,		//< Check if MIPI CSI only support 1C2D
+	EFUSE_ABILITY_MIPI_DSI			=0x1004,		//< Check if MIPI DSI support
+	EFUSE_ABILITY_LINEBUFFER_3M		=0x1005,		//< Check if Line buffer only support 3M(Please fill resolution)
+													//< Max = 2304 x 1296
 	///< Context are :
 	///< - @b UINT32 * : starting address of CDC_ABILITY
 

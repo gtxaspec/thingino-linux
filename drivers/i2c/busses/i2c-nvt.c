@@ -37,17 +37,15 @@
 #include <linux/slab.h>
 #include <linux/cpufreq.h>
 #include <linux/gpio.h>
+#include <linux/spinlock.h>
 #include <linux/semaphore.h>
+#include <linux/kthread.h>
 #include <linux/dma-mapping.h>
 
 #include "plat/i2c_reg.h"
-#define DRV_VERSION         "1.00.015"
-#define NVTIM_I2C_TIMEOUT (msecs_to_jiffies(1000))
-
-static struct semaphore i2c_sem;
-#define loc_cpu()       down(&i2c_sem);
-#define unl_cpu()       up(&i2c_sem);
-
+#define DRV_VERSION             "1.00.016"
+#define NVTIM_I2C_TIMEOUT       (msecs_to_jiffies(1000))
+#define NVTIM_I2C_WDT_TIME_MS   10          ///< 10ms
 
 struct nvtim_i2c_clk_info {
 	u16 gsr;
@@ -59,6 +57,8 @@ struct nvtim_i2c_clk_info {
 struct nvtim_i2c_dev {
 	struct device       *dev;
 	void __iomem        *base;
+	spinlock_t          lock;
+	struct semaphore    sem_lock;
 	struct completion   cmd_complete;
 	struct clk          *clk;
 	u8                  *buf;
@@ -74,7 +74,11 @@ struct nvtim_i2c_dev {
 	int                 bscltimeout;
 	u8                  vd_src;
 	u32                 busfree_interval;
+	u32                 slave_mode;         ///< 0:master 1:slave
+	u32                 wdt_time;           ///< watchdog time period, ms
 	struct i2c_adapter  adapter;
+	struct i2c_client   *slave;
+	struct task_struct  *slave_watchdog;
 	struct nvtim_i2c_platform_data *pdata;
 };
 
@@ -83,7 +87,7 @@ static struct nvtim_i2c_platform_data nvtim_i2c_platform_data_default = {
 	.bus_freq               = I2C_BUS_CLOCK_100KHZ,
 	.bus_delay              = 0,
 	.gsr                    = I2C_DEFAULT_GSR,
-	.tsr                    = 1,    //I2C_DEFAULT_TSR, // set 1 for backward compatible
+	.tsr                    = 1,    // I2C_DEFAULT_TSR, // set 1 for backward compatible
 	.clkl                   = 0xee, // 100KHz
 	.clkh                   = 0xec, // 100KHz
 	.rtytimes               = 0,
@@ -93,21 +97,19 @@ static struct nvtim_i2c_platform_data nvtim_i2c_platform_data_default = {
 	.err_hdl				= 0,
 };
 
-static inline void nvtim_i2c_write_reg(struct nvtim_i2c_dev *i2c_dev,
-									   int reg, u32 val)
+static inline void nvtim_i2c_write_reg(struct nvtim_i2c_dev *i2c_dev, int reg, u32 val)
 {
-	__raw_writel(val, i2c_dev->base + reg);
+	writel(val, i2c_dev->base + reg);
 }
 
 static inline u32 nvtim_i2c_read_reg(struct nvtim_i2c_dev *i2c_dev, int reg)
 {
-	return __raw_readl(i2c_dev->base + reg);
+	return readl(i2c_dev->base + reg);
 }
 
 static u32 nvtim_i2c_get_busclock(u32 *gsr, u32 *clkh, u32 *clkl)
 {
 	return (I2C_SOURCE_CLOCK / (*clkl + *clkh + *gsr + 4));
-
 }
 
 static void nvtim_transceive_bytes(struct nvtim_i2c_dev *dev)
@@ -303,40 +305,76 @@ static int i2c_nvtim_init(struct nvtim_i2c_dev *dev)
 	struct nvtim_i2c_clk_info clk_info = {0};
 	int rst_module_done = 0;
 
-	/*put I2C into reset*/
-	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, I2C_CTRL_REG_DEFAULT);
+	if (dev->slave_mode) {
+	    /* disable */
+	    nvtim_i2c_write_reg(dev, I2C_CTRL_REG, 0x0);
 
-	/*compute clock dividers & Set default timeout */
-	i2c_get_clk_info(dev, &clk_info);
-	nvtim_calc_clk_dividers(dev, dev->pdata->bus_freq, &clk_info);
-	i2c_set_clk_info(dev, clk_info);
-	nvtim_i2c_write_reg(dev, I2C_BUSCLK_REG, clk_info.clkl | (clk_info.clkh << I2C_BUSCLK_HIGH_COUNTER));
-	nvtim_i2c_write_reg(dev, I2C_TIMING_REG, clk_info.tsr | (clk_info.gsr << I2C_TIMING_GSR) | (I2C_DEFAULT_SCL_TIMEOUT << I2C_TIMING_SCLTIMEOUT));
+	    /* config, PIO mode and response ACK after data receive */
+	    nvtim_i2c_write_reg(dev, I2C_CONFIG_REG, 0x0);
 
-	/*Set busfree time*/
-	nvtim_i2c_write_reg(dev, I2C_BUSFREE_REG, dev->busfree_interval);
-	/*clear interrupts sts*/
-	nvtim_i2c_write_reg(dev, I2C_STS_REG, I2C_ALL_BIT);
-	/*Enable interrupts*/
-	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, I2C_INTR_ALL);
+	    /* clock timing */
+	    i2c_get_clk_info(dev, &clk_info);
+	    if (clk_info.tsr < I2C_TSR_MIN) {
+	        clk_info.tsr = I2C_TSR_MIN;
+	    }
+	    else if (clk_info.tsr > I2C_TSR_MAX) {
+	        clk_info.tsr = I2C_TSR_MAX;
+	    }
+	    if (clk_info.gsr > I2C_GSR_MAX) {
+	        clk_info.gsr = I2C_GSR_MAX;
+	    }
+	    nvtim_i2c_write_reg(dev, I2C_TIMING_REG, clk_info.tsr | (clk_info.gsr << I2C_TIMING_GSR) | (I2C_DEFAULT_SCL_TIMEOUT << I2C_TIMING_SCLTIMEOUT));
+	    nvtim_i2c_write_reg(dev, I2C_BUSCLK_REG, 0x0);
 
-	/*
-		I2C error handle
-	*/
-	// NVT_I2C_AUTO_BUCLEAR (must send befor reset i2c module)
-	if ((dev->pdata->err_hdl & NVT_I2C_AUTO_BUCLEAR_BIT) == NVT_I2C_AUTO_BUCLEAR_BIT) {
-		i2c_nvtim_busclr(dev);
-		i2c_nvtim_rst_module(dev); // avoid dummy clk in transfer after busclr [NA51090-844]
-		rst_module_done = 1;
+	    /* busfree time */
+	    nvtim_i2c_write_reg(dev, I2C_BUSFREE_REG, dev->busfree_interval);
+
+	    /* clear interrupts status */
+	    nvtim_i2c_write_reg(dev, I2C_STS_REG, I2C_ALL_BIT);
+
+	    /* enable */
+	    nvtim_i2c_write_reg(dev, I2C_CTRL_REG, (BIT(I2C_CTRL_I2C_EN)      | \
+	                                            BIT(I2C_CTRL_DT_INT_EN)   | \
+	                                            BIT(I2C_CTRL_DR_INT_EN)   | \
+	                                            BIT(I2C_CTRL_BERR_INT_EN) | \
+	                                            BIT(I2C_CTRL_STOP_INT_EN)));
 	}
+	else {
+	    /*put I2C into reset*/
+	    nvtim_i2c_write_reg(dev, I2C_CTRL_REG, I2C_CTRL_REG_DEFAULT);
 
-	// NVT_I2C_AUTO_RSTMDL
-	if ((dev->pdata->err_hdl & NVT_I2C_AUTO_RSTMDL_BIT) == NVT_I2C_AUTO_RSTMDL_BIT) {
-		if (rst_module_done) {
-			// already resest
-		} else {
-			i2c_nvtim_rst_module(dev);
-		}
+	    /*compute clock dividers & Set default timeout */
+	    i2c_get_clk_info(dev, &clk_info);
+	    nvtim_calc_clk_dividers(dev, dev->pdata->bus_freq, &clk_info);
+	    i2c_set_clk_info(dev, clk_info);
+	    nvtim_i2c_write_reg(dev, I2C_BUSCLK_REG, clk_info.clkl | (clk_info.clkh << I2C_BUSCLK_HIGH_COUNTER));
+	    nvtim_i2c_write_reg(dev, I2C_TIMING_REG, clk_info.tsr  | (clk_info.gsr << I2C_TIMING_GSR) | (I2C_DEFAULT_SCL_TIMEOUT << I2C_TIMING_SCLTIMEOUT));
+
+	    /*Set busfree time*/
+	    nvtim_i2c_write_reg(dev, I2C_BUSFREE_REG, dev->busfree_interval);
+	    /*clear interrupts sts*/
+	    nvtim_i2c_write_reg(dev, I2C_STS_REG, I2C_ALL_BIT);
+	    /*Enable interrupts*/
+	    nvtim_i2c_write_reg(dev, I2C_CTRL_REG, I2C_INTR_ALL);
+
+	    /*
+	    	I2C error handle
+	    */
+	    // NVT_I2C_AUTO_BUCLEAR (must send befor reset i2c module)
+	    if ((dev->pdata->err_hdl & NVT_I2C_AUTO_BUCLEAR_BIT) == NVT_I2C_AUTO_BUCLEAR_BIT) {
+	    	i2c_nvtim_busclr(dev);
+	    	i2c_nvtim_rst_module(dev); // avoid dummy clk in transfer after busclr [NA51090-844]
+	    	rst_module_done = 1;
+	    }
+
+	    // NVT_I2C_AUTO_RSTMDL
+	    if ((dev->pdata->err_hdl & NVT_I2C_AUTO_RSTMDL_BIT) == NVT_I2C_AUTO_RSTMDL_BIT) {
+	    	if (rst_module_done) {
+	    		// already resest
+	    	} else {
+	    		i2c_nvtim_rst_module(dev);
+	    	}
+	    }
 	}
 
 	return 0;
@@ -638,8 +676,7 @@ i2c_nvtim_xfer_msg_vd(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
  * Low level master read/write transaction. This function is called
  * from i2c_nvtim_xfer.
  */
-static int
-i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int stop)
+static int i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int stop)
 {
 	struct nvtim_i2c_dev *dev = i2c_get_adapdata(adap);
 	struct nvtim_i2c_platform_data *pdata = dev->pdata;
@@ -672,7 +709,6 @@ i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int stop)
 		}
 
 		ret = wait_for_completion_timeout(&dev->cmd_complete, dev->adapter.timeout);
-
 
 		if (dev->berr) {
 			dev_err(dev->dev, "%s(%d) NACK!\n",__func__,__LINE__);
@@ -823,8 +859,7 @@ static void i2c_upd_rtytimes_dft(struct nvtim_i2c_dev *dev)
 /*
  * Prepare controller for a transaction and call i2c_nvtim_xfer_msg
  */
-static int
-i2c_nvtim_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
+static int i2c_nvtim_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 {
 	struct nvtim_i2c_dev *dev = i2c_get_adapdata(adap);
 	int i, is_upd[3], ret;
@@ -844,23 +879,23 @@ i2c_nvtim_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	}
 
 	if ((num == 1) && (msgs[0].flags & NVT_I2C_CONFIG_MASK)) {
-		loc_cpu();
+		down(&dev->sem_lock);
 		nvt_i2c_config(adap, msgs, num);
-		unl_cpu();
+		up(&dev->sem_lock);
 		return num;
 	}
 
 	if ((num == 1) && (msgs[0].flags == NVT_I2C_SET_CFG_FLG)) {
-		loc_cpu();
+		down(&dev->sem_lock);
 		nvt_i2c_config(adap, msgs, num);
-		unl_cpu();
+		up(&dev->sem_lock);
 		return num;
 	}
 
 	if (msgs[0].flags & NVT_I2C_VD_SEND) {
-		loc_cpu();
+		down(&dev->sem_lock);
 		ret = i2c_nvtim_xfer_msg_vd(adap, msgs, num);
-		unl_cpu();
+		up(&dev->sem_lock);
 		if (ret < 0) {
 			return ret;
 		}
@@ -868,7 +903,7 @@ i2c_nvtim_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	}
 
 	for (i = 0; i < num; i++) {
-		loc_cpu();
+		down(&dev->sem_lock);
 
 		is_upd[0] = i2c_upd_freq_dtsi(dev, msgs[i].addr); // set frequency to dtsi setting
 		is_upd[1] = i2c_upd_timeout_dtsi(dev, msgs[i].addr); // set timeout to dtsi setting
@@ -892,7 +927,7 @@ retry:
 			i2c_upd_rtytimes_dft(dev); // set retry times to default setting
 		}
 
-		unl_cpu();
+		up(&dev->sem_lock);
 		dev_dbg(dev->dev, "%s [%d/%d] ret: %d\n", __func__, i + 1, num, ret);
 		if (ret < 0) {
 			return ret;
@@ -904,7 +939,11 @@ retry:
 
 static u32 i2c_nvtim_func(struct i2c_adapter *adap)
 {
+#if IS_ENABLED(CONFIG_I2C_SLAVE)
+	return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL | I2C_FUNC_SLAVE;
+#else
 	return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL;
+#endif
 }
 
 /*
@@ -955,9 +994,154 @@ static irqreturn_t i2c_nvtim_isr(int this_irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static irqreturn_t i2c_nvtim_isr_slave(int this_irq, void *dev_id)
+{
+#if IS_ENABLED(CONFIG_I2C_SLAVE)
+	u8  value;
+#endif
+	u32 sts_reg, dat_reg;
+	struct nvtim_i2c_dev *dev = (struct nvtim_i2c_dev *)dev_id;
+
+	/* read interrupt status */
+	sts_reg = nvtim_i2c_read_reg(dev, I2C_STS_REG);
+
+	/* clear interrupt status*/
+	nvtim_i2c_write_reg(dev, I2C_STS_REG, sts_reg);
+
+	/* read rx data */
+	dat_reg = nvtim_i2c_read_reg(dev, I2C_DATA_REG);
+
+#if IS_ENABLED(CONFIG_I2C_SLAVE)
+	/* master sent stop */
+	if (sts_reg & BIT(I2C_STS_STOP)) {
+		i2c_slave_event(dev->slave, I2C_SLAVE_STOP, &value);
+	}
+
+	/* slave address matched */
+	if (sts_reg & BIT(I2C_STS_SAM)) {
+		if (sts_reg & BIT(I2C_STS_RW)) {    ///< master request read, slave transmit mode
+			i2c_slave_event(dev->slave, I2C_SLAVE_READ_REQUESTED, &value);
+			nvtim_i2c_write_reg(dev, I2C_DATA_REG, value);
+		}
+		else {                              ///< master request write, slave receive mode
+			i2c_slave_event(dev->slave, I2C_SLAVE_WRITE_REQUESTED, &value);
+		}
+	}
+
+	/* master send data, slave to receive */
+	if ((sts_reg & BIT(I2C_STS_DR)) && !(sts_reg & BIT(I2C_STS_STOP)) && !(sts_reg & BIT(I2C_STS_SAM))) {
+		value = (u8)(dat_reg & 0xff);
+		i2c_slave_event(dev->slave, I2C_SLAVE_WRITE_RECEIVED, &value);
+	}
+
+	/* slave send data, master to receive */
+	if ((sts_reg & BIT(I2C_STS_DT)) && !(sts_reg & BIT(I2C_STS_STOP)) && !(sts_reg & BIT(I2C_STS_SAM))) {
+		i2c_slave_event(dev->slave, I2C_SLAVE_READ_PROCESSED, &value);
+		nvtim_i2c_write_reg(dev, I2C_DATA_REG, value);
+	}
+#endif
+
+	/* enable tx/rx */
+	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, (nvtim_i2c_read_reg(dev, I2C_CTRL_REG)|BIT(I2C_CTRL_TB_EN)));
+
+	dev_dbg(dev->dev, "isr sts:0x%08x dat:0x%08x\n", sts_reg, dat_reg);
+
+	return IRQ_HANDLED;
+}
+
+static void i2c_nvtim_set_slave(struct nvtim_i2c_dev *dev, u16 slave_addr)
+{
+	u32 value;
+
+	/* disable controller */
+	value = nvtim_i2c_read_reg(dev, I2C_CTRL_REG);
+	value &= ~(BIT(I2C_CTRL_TB_EN) | BIT(I2C_CTRL_I2C_EN));
+	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, value);
+
+	/* set slave address */
+	nvtim_i2c_write_reg(dev, I2C_SAR_REG, ((slave_addr>>1) & 0x7f));    ///< 7-bit mode
+
+	/* set receive byte count to 1 for slave data receive */
+	value = nvtim_i2c_read_reg(dev, I2C_CONFIG_REG);
+	value &= ~(0x7<<I2C_CONFIG_PIO_DATASIZE);
+	value |=  (0x1<<I2C_CONFIG_PIO_DATASIZE);
+	nvtim_i2c_write_reg(dev, I2C_CONFIG_REG, value);
+
+	/* clear interrupts status */
+	nvtim_i2c_write_reg(dev, I2C_STS_REG, I2C_ALL_BIT);
+
+	/* enable controller */
+	value = nvtim_i2c_read_reg(dev, I2C_CTRL_REG);
+	value |= BIT(I2C_CTRL_I2C_EN);
+	if (slave_addr) {
+		value |= BIT(I2C_CTRL_TB_EN);
+	}
+	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, value);
+}
+
+#if IS_ENABLED(CONFIG_I2C_SLAVE)
+static int i2c_nvtim_reg_slave(struct i2c_client *slave)
+{
+	int ret = 0;
+	struct nvtim_i2c_dev *dev = i2c_get_adapdata(slave->adapter);
+	unsigned long flags;
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	if (dev->slave) {
+		ret = -EBUSY;
+		goto exit;
+	}
+
+	if (dev->flags & I2C_CLIENT_TEN) {
+		ret = -EAFNOSUPPORT;
+		goto exit;
+	}
+
+	dev->slave = slave;
+
+	/* set slave address and enable data receive */
+	i2c_nvtim_set_slave(dev, slave->addr);
+
+exit:
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return ret;
+}
+
+static int i2c_nvtim_unreg_slave(struct i2c_client *slave)
+{
+	int ret = 0;
+	struct nvtim_i2c_dev *dev = i2c_get_adapdata(slave->adapter);
+	unsigned long flags;
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	if (!dev->slave) {
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	/* clear slave address and disable data receive */
+	i2c_nvtim_set_slave(dev, 0x00);
+
+	dev->slave = NULL;
+
+exit:
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return ret;
+}
+#endif
+
 static struct i2c_algorithm i2c_nvtim_algo = {
 	.master_xfer    = i2c_nvtim_xfer,
 	.functionality  = i2c_nvtim_func,
+
+#if IS_ENABLED(CONFIG_I2C_SLAVE)
+	.reg_slave      = i2c_nvtim_reg_slave,
+	.unreg_slave    = i2c_nvtim_unreg_slave,
+#endif
 };
 
 static int dtsi_i2c_id = -1;
@@ -966,15 +1150,23 @@ static int dtsi_i2c_id = -1;
 static int nvtim_i2c_of_probe(struct platform_device *pdev, struct nvtim_i2c_dev *i2c)
 {
 	struct device_node *np = pdev->dev.of_node;
-	u32 clock_frequency, gsr, tsr, user_data_u32;
+	u32 slave_mode, clock_frequency, wdt_time, gsr, tsr, user_data_u32;
 	int rt, cnt, i;
 	unsigned int *user_data = NULL;
 	struct nvtim_i2c_clk_info clk_info = {0};
 
+	if (of_property_read_u32(np, "slave_mode", &slave_mode)) {
+		slave_mode = 0;
+	}
+	i2c->slave_mode = slave_mode;
+
+	if (of_property_read_u32(np, "wdt_time", &wdt_time)) {
+		wdt_time = NVTIM_I2C_WDT_TIME_MS;
+	}
+	i2c->wdt_time = wdt_time ? wdt_time : NVTIM_I2C_WDT_TIME_MS;
 
 	if (of_property_read_u32(np, "clock-frequency", &clock_frequency)) {
-		dev_err(&pdev->dev, "Missing required parameter 'clock-frequency'\n");
-		return -ENODEV;
+		clock_frequency = I2C_BUS_CLOCK_100KHZ;
 	}
 	(i2c->pdata)->bus_freq = clock_frequency;
 
@@ -1169,12 +1361,76 @@ static int nvtim_i2c_of_remove(struct platform_device *pdev, struct nvtim_i2c_de
 #define nvtim_i2c_of_remove(pdev, i2c) -ENODEV
 #endif
 
+static int nvtim_i2c_slave_watchdog(void *data)
+{
+	struct nvtim_i2c_dev *dev = (struct nvtim_i2c_dev *)data;
+	u32 ctrl_reg, sts_reg, bus_reg, dat_reg;
+	int do_reset;
+	unsigned long flags;
+
+	do {
+			spin_lock_irqsave(&dev->lock, flags);
+
+			do_reset = 0;
+			if (dev->slave) {
+				ctrl_reg = nvtim_i2c_read_reg(dev, I2C_CTRL_REG);
+				sts_reg  = nvtim_i2c_read_reg(dev, I2C_STS_REG);
+				dat_reg  = nvtim_i2c_read_reg(dev, I2C_DATA_REG);
+				bus_reg  = nvtim_i2c_read_reg(dev, I2C_BUS_REG);
+
+				if (!(ctrl_reg & BIT(I2C_CTRL_TB_EN))) {
+					if (sts_reg & BIT(I2C_STS_BUSBUSY)) {
+						/* disable */
+						nvtim_i2c_write_reg(dev, I2C_CTRL_REG, 0x0);
+						do_reset++;
+						dev_err(dev->dev, "trigger reset ctrl:0x%08x sts:0x%08x dat:0x%08x bus:0x%08x\n", ctrl_reg, sts_reg, dat_reg, bus_reg);
+					}
+					else {
+						if ((sts_reg & BIT(I2C_STS_BUSFREE)) ||
+							((sts_reg & BIT(I2C_STS_SCLTIMEOUT)) && !(bus_reg & BIT(I2C_BUS_SCL)))) {
+							dev_dbg(dev->dev, "enable tx/rx ctrl:0x%08x sts:0x%08x dat:0x%08x bus:0x%08x\n", ctrl_reg, sts_reg, dat_reg, bus_reg);
+
+							/* clear status */
+							nvtim_i2c_write_reg(dev, I2C_STS_REG, I2C_ALL_BIT);
+
+							/* enable tx/rx */
+							nvtim_i2c_write_reg(dev, I2C_CTRL_REG, (ctrl_reg | BIT(I2C_CTRL_I2C_EN) | BIT(I2C_CTRL_TB_EN)));
+						}
+					}
+				}
+			}
+
+			spin_unlock_irqrestore(&dev->lock, flags);
+
+			/* something wrong, do hardware reset */
+			if (do_reset) {
+				clk_disable_unprepare(dev->clk);
+				clk_prepare(dev->clk);
+				clk_enable(dev->clk);
+
+				spin_lock_irqsave(&dev->lock, flags);
+
+				i2c_nvtim_init(dev);
+				i2c_nvtim_set_slave(dev, dev->slave->addr);
+
+				spin_unlock_irqrestore(&dev->lock, flags);
+			}
+
+			/* sleep */
+			schedule_timeout_interruptible(msecs_to_jiffies(dev->wdt_time));
+
+	} while(!kthread_should_stop());
+
+	return 0;
+}
+
 static int nvtim_i2c_probe(struct platform_device *pdev)
 {
 	struct nvtim_i2c_dev *dev;
-	struct i2c_adapter *adap;
+	struct i2c_adapter   *adap;
 	struct resource *mem, *irq;
 	int r;
+	char wd_name[32];
 
 	/* NOTE: driver uses the static register mapping */
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1189,15 +1445,15 @@ static int nvtim_i2c_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	dev = devm_kzalloc(&pdev->dev, sizeof(struct nvtim_i2c_dev),
-					   GFP_KERNEL);
+	dev = devm_kzalloc(&pdev->dev, sizeof(struct nvtim_i2c_dev), GFP_KERNEL);
 	if (!dev) {
 		dev_err(&pdev->dev, "Memory allocation failed\n");
 		return -ENOMEM;
 	}
 
+	spin_lock_init(&dev->lock);
+	sema_init(&dev->sem_lock, 1);
 	init_completion(&dev->cmd_complete);
-	sema_init(&i2c_sem, 1);
 
 	dev->dev   = &pdev->dev;
 	dev->irq   = irq->start;
@@ -1233,8 +1489,12 @@ static int nvtim_i2c_probe(struct platform_device *pdev)
 
 	i2c_nvtim_init(dev);
 
-	r = devm_request_irq(&pdev->dev, dev->irq, i2c_nvtim_isr, 0,
-						 pdev->name, dev);
+	r = devm_request_irq(&pdev->dev,
+						 dev->irq,
+						 ((dev->slave_mode) ? i2c_nvtim_isr_slave : i2c_nvtim_isr),
+						 0,
+						 pdev->name,
+						 dev);
 	if (r) {
 		dev_err(&pdev->dev, "failure requesting irq %i\n", dev->irq);
 		goto err_unuse_clocks;
@@ -1248,7 +1508,6 @@ static int nvtim_i2c_probe(struct platform_device *pdev)
 	adap->algo = &i2c_nvtim_algo;
 	adap->dev.parent = &pdev->dev;
 	adap->timeout = NVTIM_I2C_TIMEOUT;
-
 
 	if (dtsi_i2c_id == -1) {
 		adap->nr = pdev->id;
@@ -1266,6 +1525,21 @@ static int nvtim_i2c_probe(struct platform_device *pdev)
 		goto err_unuse_clocks;
 	}
 
+	/* create slave watchdog task for monitor controller status */
+	if (dev->slave_mode) {
+		sprintf(wd_name, "i2c%d_slv_wd", adap->nr);
+		dev->slave_watchdog = kthread_create(nvtim_i2c_slave_watchdog, (void *)dev, wd_name);
+		if (!IS_ERR(dev->slave_watchdog)) {
+			wake_up_process(dev->slave_watchdog);
+		}
+		else {
+			dev_err(&pdev->dev, "create i2c%d slave watchdog thread failed\n", pdev->id);
+			dev->slave_watchdog = NULL;
+			r = -EFAULT;
+			goto err_unuse_clocks;
+		}
+	}
+
 	dev_info(&pdev->dev, "Register %s successfully ver:%s\n", __func__, DRV_VERSION);
 
 	return 0;
@@ -1280,14 +1554,22 @@ static int nvtim_i2c_remove(struct platform_device *pdev)
 {
 	struct nvtim_i2c_dev *dev = platform_get_drvdata(pdev);
 
+	/* stop watchdog */
+	if(dev->slave_watchdog) {
+		kthread_stop(dev->slave_watchdog);
+	}
+
+	/* disable */
+	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, 0);
+
+	/* free private data */
 	nvtim_i2c_of_remove(pdev, dev);
 
 	i2c_del_adapter(&dev->adapter);
 
 	clk_disable_unprepare(dev->clk);
-	dev->clk = NULL;
 
-	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, 0);
+	dev->clk = NULL;
 
 	return 0;
 }
@@ -1359,5 +1641,5 @@ module_exit(nvtim_i2c_exit_driver);
 
 MODULE_AUTHOR("Novatek");
 MODULE_VERSION(DRV_VERSION);
-MODULE_DESCRIPTION("NT96680 I2C bus adapter");
+MODULE_DESCRIPTION("Novatek I2C bus adapter");
 MODULE_LICENSE("GPL");

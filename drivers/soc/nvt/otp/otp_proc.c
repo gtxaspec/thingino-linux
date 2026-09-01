@@ -238,7 +238,7 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 	}
 
 	if (!strcmp(argv[0], "trim")) {
-//#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
+
 		UINT16  data;
 		if (efuse_readParamOps(EFUSE_ETHERNET_TRIM_DATA, &data) != E_OK) {
 			pr_err("[0] data = NULL\n");
@@ -261,6 +261,23 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 		} else {
 			pr_info("[4] data = 0x%08x\r\n", data);
 		}
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
+		if (efuse_readParamOps(EFUSE_ADC_TRIM_A_DATA, &data) != E_OK) {			
+			pr_err("[trim_A] data = NULL\n");
+		} else {
+			//Trim A @ bit[13..7]
+			data = ((data & 0x3F80)>>7);
+			pr_info("[trim_A] data = 0x%08x\r\n", data);
+		}
+
+		if (efuse_readParamOps(EFUSE_ADC_TRIM_B_DATA, &data) != E_OK) {			
+			pr_err("[trim_A] data = NULL\n");
+		} else {
+			//Trim B @ bit[8..0]
+			data = (data & 0x1FF);
+			pr_info("[trim_B] data = 0x%08x\r\n", data);
+		}
+#endif
 #if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 		if (efuse_readParamOps(EFUSE_ADC_TRAM_A_DATA, &data) != E_OK) {
 			pr_err("[3] data = NULL\n");

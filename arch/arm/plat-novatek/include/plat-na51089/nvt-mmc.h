@@ -44,4 +44,5 @@ enum {
 	MMC_CTLR_VERSION_2,	/* DA830 */
 };
 
+extern int nvt_mmc_check_preload_finish(void);
 #endif /* __ASM_ARCH_NA51000_NVT_MMC_H */

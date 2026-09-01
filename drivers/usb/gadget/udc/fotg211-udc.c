@@ -28,7 +28,7 @@
 #include <plat/nvt-gpio.h>
 
 #define	DRIVER_DESC	"FOTG211 USB Device Controller Driver"
-#define	DRIVER_VERSION	"1.00.019"
+#define	DRIVER_VERSION	"1.00.020"
 
 static bool is_cdc_class = 0;
 u32 vbus_gpio_no = D_GPIO(7);
@@ -152,40 +152,54 @@ static void fotg210_disable_fifo_int(struct fotg210_ep *ep)
 {
 	u32 value;
 
-	if(gEPMap[ep->epnum - 1] < 8)
-		value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
-	else
-		value = ioread32(ep->fotg210->reg + FOTG210_DMISGR2);
-
 	if (ep->dir_in)
+	{
+		value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
 		value |= DMISGR1_MF_IN_INT(gEPMap[ep->epnum - 1]);
+
+		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
+	}
 	else
+	{
+		if(gEPMap[ep->epnum - 1] < 8)
+			value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
+		else
+			value = ioread32(ep->fotg210->reg + FOTG210_DMISGR2);
+
 		value |= DMISGR1_MF_OUTSPK_INT(gEPMap[ep->epnum - 1]);
 
-	if(gEPMap[ep->epnum - 1] < 8)
-		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
-	else
-		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR2);
+		if(gEPMap[ep->epnum - 1] < 8)
+			iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
+		else
+			iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR2);
+	}
 }
 
 static void fotg210_enable_fifo_int(struct fotg210_ep *ep)
 {
 	u32 value;
 
-	if(gEPMap[ep->epnum - 1] < 8)
-		value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
-	else
-		value = ioread32(ep->fotg210->reg + FOTG210_DMISGR2);
-
 	if (ep->dir_in)
+	{
+		value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
 		value &= ~DMISGR1_MF_IN_INT(gEPMap[ep->epnum - 1]);
+
+		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
+	}
 	else
+	{
+		if(gEPMap[ep->epnum - 1] < 8)
+			value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
+		else
+			value = ioread32(ep->fotg210->reg + FOTG210_DMISGR2);
+
 		value &= ~DMISGR1_MF_OUTSPK_INT(gEPMap[ep->epnum - 1]);
 
-	if(gEPMap[ep->epnum - 1] < 8)
-		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
-	else
-		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR2);
+		if(gEPMap[ep->epnum - 1] < 8)
+			iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
+		else
+			iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR2);
+	}
 }
 
 static void fotg210_set_cxdone(struct fotg210_udc *fotg210)
@@ -2077,7 +2091,7 @@ static void fotg210_clear_tx0byte(struct fotg210_udc *fotg210)
 	u32 value = ioread32(fotg210->reg + FOTG210_TX0BYTE);
 
 	value &= (TX0BYTE_EP1 | TX0BYTE_EP2 | TX0BYTE_EP3
-		   | TX0BYTE_EP4);
+		   | TX0BYTE_EP4 | TX0BYTE_EP5 | TX0BYTE_EP6 | TX0BYTE_EP7 | TX0BYTE_EP8);
 	iowrite32(value, fotg210->reg + FOTG210_TX0BYTE);
 }
 
@@ -2086,7 +2100,7 @@ static void fotg210_clear_rx0byte(struct fotg210_udc *fotg210)
 	u32 value = ioread32(fotg210->reg + FOTG210_RX0BYTE);
 
 	value &= ~(RX0BYTE_EP1 | RX0BYTE_EP2 | RX0BYTE_EP3
-		   | RX0BYTE_EP4);
+		   | RX0BYTE_EP4 | RX0BYTE_EP5 | RX0BYTE_EP6 | RX0BYTE_EP7 | RX0BYTE_EP8);
 	iowrite32(value, fotg210->reg + FOTG210_RX0BYTE);
 }
 
@@ -2607,6 +2621,7 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 		if (int_grp2 & DISGR2_TX0BYTE_INT) {
 			iowrite32(DISGR2_TX0BYTE_INT, reg);
 			fotg210_clear_tx0byte(fotg210);
+
 			if (debug_on)
 				numsg("fotg210 transferred 0 byte\n");
 		}

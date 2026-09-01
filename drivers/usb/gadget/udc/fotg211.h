@@ -52,7 +52,7 @@
 #define DCFESR_CX_DATAPORT_EN	(1 << 31)
 #define DCFESR_CX_FNT_OUT	(0x7F << 24)
 #define DCFESR_CX_FNT_IN	(0x7F << 16)
-#define DCFESR_FIFO_EMPTY(fifo)	(fifo < 8) ? (1 << 8 << (fifo)):(1 << 16 << (fifo))
+#define DCFESR_FIFO_EMPTY(fifo)	1 << 8 << fifo
 #define DCFESR_CX_EMP		(1 << 5)
 #define DCFESR_CX_CLR		(1 << 3)
 #define DCFESR_CX_STL		(1 << 2)

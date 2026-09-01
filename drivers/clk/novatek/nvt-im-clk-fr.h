@@ -353,6 +353,9 @@ struct nvt_clk_gating_init {
 
 struct nvt_clk_rate_keeper {
 	char name[CLK_NAME_STR_SIZE];
+	unsigned int do_reset;
+	unsigned long rate;
+	unsigned int parent_idx;
 };
 
 void nvt_fastboot_detect(int fastboot_init);

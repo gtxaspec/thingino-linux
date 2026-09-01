@@ -24,6 +24,7 @@ static const DRV_SEM v_sem[] = {SEMID_ARB};
 
 static SEM_HANDLE *v_sem[1];
 static SEM_HANDLE SEMID_OTP;
+static vk_spinlock_t	v_otp_spin_locks;
 #else
 #include <plat/hardware.h>
 #include "otp_platform.h"
@@ -36,6 +37,7 @@ static SEM_HANDLE SEMID_OTP;
 UINT32 IOADDR_EFUSE_REG_BASE = 0x0;
 DEFINE_SEMAPHORE(otp_sem);
 //static struct semaphore otp_sem;
+DEFINE_SPINLOCK(v_otp_spin_locks);
 #endif
 
 
@@ -63,6 +65,33 @@ ER otp_platform_sem_signal(void)
 	return E_OK;
 #endif
 }
+
+unsigned long otp_platform_spin_lock(void)
+{
+#if defined __UITRON || defined __ECOS
+	loc_cpu();
+#elif defined(__FREERTOS)
+	unsigned long flags;
+	vk_spin_lock_irqsave(&v_otp_spin_locks, flags);
+	return flags;
+#else
+	unsigned long flags;
+	spin_lock_irqsave(&v_otp_spin_locks, flags);
+	return flags;
+#endif
+}
+
+void otp_platform_spin_unlock(unsigned long flags)
+{
+#if defined __UITRON || defined __ECOS
+	unl_cpu();
+#elif defined(__FREERTOS)
+	vk_spin_unlock_irqrestore(&v_otp_spin_locks, flags);
+#else
+	spin_unlock_irqrestore(&v_otp_spin_locks, flags);
+#endif
+}
+
 
 void otp_platform_delay_ms(UINT32 ms)
 {

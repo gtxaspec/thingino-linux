@@ -268,6 +268,7 @@ struct drv_nand_dev_info {
 #define CACHE_LINE_SIZE         64
 #define TOSHIBA_TC58CVG         0xC298
 #define TOSHIBA_TC58CVG2        0xED98
+#define TOSHIBA_TC58CVG3        0xCB98
 #define MXIC25L25635F_SFDP      0xF3
 #define MXIC_MX35LF2G14AC       0x20C2
 #define MICRON_MT29F2G01AB      0x242C

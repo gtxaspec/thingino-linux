@@ -133,6 +133,8 @@ typedef enum {
 //  EFUSE_VER_DIE_UID,
     EFUSE_VER_ENGINEER_SIM_PKG_UID,
 	EFUSE_VER_EXTEND_UID,
+	EFUSE_ADC_TRIM_A_DATA,
+	EFUSE_ADC_TRIM_B_DATA,
 	EFUSE_PARAM_CNT,
 	ENUM_DUMMY4WORD(EFUSE_PARAM_DATA)
 } EFUSE_PARAM_DATA;
@@ -162,10 +164,11 @@ typedef struct {
 */
 //@{
 typedef enum {
-	EFUSE_ABILITY_CDC_RESOLUTION    =0x1001,        //< Check package resoltion of codec
-	EFUSE_ABILITY_CDC_PLL_FREQ		=0x1002,		//< Check package PLL freq of codec
-	EFUSE_ABILITY_CLK_FREQ			=0x1003, 		//< Max freq
-	EFUSE_ABILITY_CPU_PLL_FREQ		=0x1004,		//< Check package PLL freq of CPU
+	EFUSE_ABILITY_CDC_RESOLUTION    = 0x1001,       //< Check package resoltion of codec
+	EFUSE_ABILITY_CDC_PLL_FREQ      = 0x1002,       //< Check package PLL freq of codec
+	EFUSE_ABILITY_CLK_FREQ          = 0x1003,       //< Max freq
+	EFUSE_ABILITY_CPU_PLL_FREQ      = 0x1004,       //< Check package PLL freq of CPU
+	EFUSE_ABILITY_VPE_PLL_FREQ      = 0x1005,       //< Check VPE Max freq
 	///< Context are :
 	///< - @b UINT32 * : starting address of CDC_ABILITY
 
@@ -177,81 +180,85 @@ typedef enum {
     Crypto engine check
 */
 typedef enum {
-	SECUREBOOT_SECURE_EN = 0x00,       	///< Quary if secure enable or not
+	SECUREBOOT_SECURE_EN = 0x00,        ///< Quary if secure enable or not
 	SECUREBOOT_DATA_AREA_ENCRYPT,       ///< Quary if data area encrypt to cypher text or not
-	SECUREBOOT_SIGN_RSA,				///< Quary if Signature methed is RSA or not(AES)
-	SECUREBOOT_SIGN_RSA_CHK,			///< Quary if Signature hash checksum RSA key correct or not
-	SECUREBOOT_JTAG_DISABLE_EN,			///< Quary if JTAG is disable or not(TRUE : disable)
+	SECUREBOOT_SIGN_RSA,                ///< Quary if Signature methed is RSA or not(AES)
+	SECUREBOOT_SIGN_RSA_CHK,            ///< Quary if Signature hash checksum RSA key correct or not
+	SECUREBOOT_JTAG_DISABLE_EN,         ///< Quary if JTAG is disable or not(TRUE : disable)
 
-	SECUREBOOT_1ST_KEY_SET_PROGRAMMED,	///< Quary if 1st key set programmed or not
-	SECUREBOOT_2ND_KEY_SET_PROGRAMMED,	///< Quary if 2nd key set programmed or not
-	SECUREBOOT_3RD_KEY_SET_PROGRAMMED,	///< Quary if 3rd key set programmed or not
-	SECUREBOOT_4TH_KEY_SET_PROGRAMMED,	///< Quary if 4th key set programmed or not
-	SECUREBOOT_5TH_KEY_SET_PROGRAMMED,	///< Quary if 5th key set programmed or not
+	SECUREBOOT_1ST_KEY_SET_PROGRAMMED,  ///< Quary if 1st key set programmed or not
+	SECUREBOOT_2ND_KEY_SET_PROGRAMMED,  ///< Quary if 2nd key set programmed or not
+	SECUREBOOT_3RD_KEY_SET_PROGRAMMED,  ///< Quary if 3rd key set programmed or not
+	SECUREBOOT_4TH_KEY_SET_PROGRAMMED,  ///< Quary if 4th key set programmed or not
+	SECUREBOOT_5TH_KEY_SET_PROGRAMMED,  ///< Quary if 5th key set programmed or not
 
-	SECUREBOOT_1ST_KEY_SET_READ_LOCK,	///< Quary if 1st key read lock already or not
-	SECUREBOOT_2ND_KEY_SET_READ_LOCK,	///< Quary if 2nd key read lock already or not
-	SECUREBOOT_3RD_KEY_SET_READ_LOCK,	///< Quary if 3rd key read lock already or not
-	SECUREBOOT_4TH_KEY_SET_READ_LOCK,	///< Quary if 4th key read lock already or not
-	SECUREBOOT_5TH_KEY_SET_READ_LOCK,	///< Quary if 5th key read lock already or not
+	SECUREBOOT_1ST_KEY_SET_READ_LOCK,   ///< Quary if 1st key read lock already or not
+	SECUREBOOT_2ND_KEY_SET_READ_LOCK,   ///< Quary if 2nd key read lock already or not
+	SECUREBOOT_3RD_KEY_SET_READ_LOCK,   ///< Quary if 3rd key read lock already or not
+	SECUREBOOT_4TH_KEY_SET_READ_LOCK,   ///< Quary if 4th key read lock already or not
+	SECUREBOOT_5TH_KEY_SET_READ_LOCK,   ///< Quary if 5th key read lock already or not
 
 	SECUREBOOT_STATUS_NUM,
 
+	SECUREBOOT_VPE_OVER_CLOCKING,       ///< Quary if VPE can over clocking or not
+
 } SECUREBOOT_STATUS;
 
-#define EFUSE_SUCCESS                	E_OK
-#define EFUSE_FREEZE_ERR             	-1001          // Programmed already, only can read
-#define EFUSE_INACTIVE_ERR           	-1002          // This field is empty(not programmed yet)
-#define EFUSE_INVALIDATE_ERR         	-1003          // This field force invalidate already
-#define EFUSE_UNKNOW_PARAM_ERR       	-1004          // efuse param field not defined
-#define EFUSE_OPS_ERR                	-1005          // efuse operation error
-#define EFUSE_SECURITY_ERR           	-1006          // efuse under security mode => can not read back
-#define EFUSE_PARAM_ERR              	-1007          // efuse param error
-#define EFUSE_CONTENT_ERR            	-1008          // efuse operation error
-#define OTP_HW_SECURE_EN				(1 << 0)
-#define OTP_FW_SECURE_EN				(1 << 5)
-#define OTP_DATA_ENCRYPT_EN				(1 << 7)
-#define OTP_SIGNATURE_RSA				(1 << 1)
-#define OTP_SIGNATURE_RSA_CHK_EN		(1 << 3)
-#define OTP_JTAG_DISABLE_EN				(1 << 2)
+#define EFUSE_SUCCESS                   E_OK
+#define EFUSE_FREEZE_ERR                -1001          // Programmed already, only can read
+#define EFUSE_INACTIVE_ERR              -1002          // This field is empty(not programmed yet)
+#define EFUSE_INVALIDATE_ERR            -1003          // This field force invalidate already
+#define EFUSE_UNKNOW_PARAM_ERR          -1004          // efuse param field not defined
+#define EFUSE_OPS_ERR                   -1005          // efuse operation error
+#define EFUSE_SECURITY_ERR              -1006          // efuse under security mode => can not read back
+#define EFUSE_PARAM_ERR                 -1007          // efuse param error
+#define EFUSE_CONTENT_ERR               -1008          // efuse operation error
+#define OTP_HW_SECURE_EN                (1 << 0)
+#define OTP_FW_SECURE_EN                (1 << 5)
+#define OTP_DATA_ENCRYPT_EN             (1 << 7)
+#define OTP_SIGNATURE_RSA               (1 << 1)
+#define OTP_SIGNATURE_RSA_CHK_EN        (1 << 3)
+#define OTP_JTAG_DISABLE_EN             (1 << 2)
+
+#define OTP_VPE_OVER_CLOCKING_BIT       19
+#define OTP_VPE_OVER_CLOCKING           (1<<OTP_VPE_OVER_CLOCKING_BIT)
 
 
+#define OTP_1ST_KEY_PROGRAMMED_BIT      27
+#define OTP_2ND_KEY_PROGRAMMED_BIT      28
+#define OTP_3RD_KEY_PROGRAMMED_BIT      29
+#define OTP_4TH_KEY_PROGRAMMED_BIT      30
+#define OTP_5TH_KEY_PROGRAMMED_BIT      31
 
-#define OTP_1ST_KEY_PROGRAMMED_BIT		27
-#define OTP_2ND_KEY_PROGRAMMED_BIT		28
-#define OTP_3RD_KEY_PROGRAMMED_BIT		29
-#define OTP_4TH_KEY_PROGRAMMED_BIT		30
-#define OTP_5TH_KEY_PROGRAMMED_BIT		31
+#define OTP_1ST_KEY_PROGRAMMED          (1 << OTP_1ST_KEY_PROGRAMMED_BIT)
+#define OTP_2ND_KEY_PROGRAMMED          (1 << OTP_2ND_KEY_PROGRAMMED_BIT)
+#define OTP_3RD_KEY_PROGRAMMED          (1 << OTP_3RD_KEY_PROGRAMMED_BIT)
+#define OTP_4TH_KEY_PROGRAMMED          (1 << OTP_4TH_KEY_PROGRAMMED_BIT)
+#define OTP_5TH_KEY_PROGRAMMED          (1 << OTP_5TH_KEY_PROGRAMMED_BIT)
 
-#define OTP_1ST_KEY_PROGRAMMED			(1 << OTP_1ST_KEY_PROGRAMMED_BIT)
-#define OTP_2ND_KEY_PROGRAMMED			(1 << OTP_2ND_KEY_PROGRAMMED_BIT)
-#define OTP_3RD_KEY_PROGRAMMED			(1 << OTP_3RD_KEY_PROGRAMMED_BIT)
-#define OTP_4TH_KEY_PROGRAMMED			(1 << OTP_4TH_KEY_PROGRAMMED_BIT)
-#define OTP_5TH_KEY_PROGRAMMED			(1 << OTP_5TH_KEY_PROGRAMMED_BIT)
+#define OTP_1ST_KEY_READ_LOCK_BIT       22
+#define OTP_2ND_KEY_READ_LOCK_BIT       23
+#define OTP_3RD_KEY_READ_LOCK_BIT       24
+#define OTP_4TH_KEY_READ_LOCK_BIT       25
+#define OTP_5TH_KEY_READ_LOCK_BIT       26
 
-#define OTP_1ST_KEY_READ_LOCK_BIT		22
-#define OTP_2ND_KEY_READ_LOCK_BIT		23
-#define OTP_3RD_KEY_READ_LOCK_BIT		24
-#define OTP_4TH_KEY_READ_LOCK_BIT		25
-#define OTP_5TH_KEY_READ_LOCK_BIT		26
-
-#define OTP_1ST_KEY_READ_LOCK			(1 << OTP_1ST_KEY_READ_LOCK_BIT)
-#define OTP_2ND_KEY_READ_LOCK			(1 << OTP_2ND_KEY_READ_LOCK_BIT)
-#define OTP_3RD_KEY_READ_LOCK			(1 << OTP_3RD_KEY_READ_LOCK_BIT)
-#define OTP_4TH_KEY_READ_LOCK			(1 << OTP_4TH_KEY_READ_LOCK_BIT)
-#define OTP_5TH_KEY_READ_LOCK			(1 << OTP_5TH_KEY_READ_LOCK_BIT)
+#define OTP_1ST_KEY_READ_LOCK           (1 << OTP_1ST_KEY_READ_LOCK_BIT)
+#define OTP_2ND_KEY_READ_LOCK           (1 << OTP_2ND_KEY_READ_LOCK_BIT)
+#define OTP_3RD_KEY_READ_LOCK           (1 << OTP_3RD_KEY_READ_LOCK_BIT)
+#define OTP_4TH_KEY_READ_LOCK           (1 << OTP_4TH_KEY_READ_LOCK_BIT)
+#define OTP_5TH_KEY_READ_LOCK           (1 << OTP_5TH_KEY_READ_LOCK_BIT)
 
 
-#define OTP_1ST_KEY_BIT_START			(0xF << 16)
-#define OTP_2ND_KEY_BIT_START			(0xF << 20)
-#define OTP_3RD_KEY_BIT_START			(0xF << 24)
-#define OTP_4TH_KEY_BIT_START			(0xF << 28)
-#define OTP_5TH_KEY_BIT_START			(0xF << 12)
+#define OTP_1ST_KEY_BIT_START           (0xF << 16)
+#define OTP_2ND_KEY_BIT_START           (0xF << 20)
+#define OTP_3RD_KEY_BIT_START           (0xF << 24)
+#define OTP_4TH_KEY_BIT_START           (0xF << 28)
+#define OTP_5TH_KEY_BIT_START           (0xF << 12)
 
 
 // System parameter usage
-#define EFUSE_SUCCESS_PRI            	EFUSE_SUCCESS  // Operation success from primary field
-#define EFUSE_SUCCESS_SEC            	1              // Operation success from secondary field
+#define EFUSE_SUCCESS_PRI               EFUSE_SUCCESS  // Operation success from primary field
+#define EFUSE_SUCCESS_SEC               1              // Operation success from secondary field
 
 typedef struct {
 	UINT32  uiTPDGroup;
@@ -428,27 +435,28 @@ extern INT32 trigger_efuse_key(EFUSE_KEY_MANAGER_DST key_dst, UINT32 key_word_of
 
     @Note: Can not re enable once disabled
 */
-#define otp_jtag_dis()					enable_secure_boot(SECUREBOOT_JTAG_DISABLE_EN)
+#define otp_jtag_dis()                  enable_secure_boot(SECUREBOOT_JTAG_DISABLE_EN)
 
 //Query API collection
-#define is_secure_enable()				quary_secure_boot(SECUREBOOT_SECURE_EN)
-#define is_data_area_encrypted()		quary_secure_boot(SECUREBOOT_DATA_AREA_ENCRYPT)
-#define is_signature_rsa()				quary_secure_boot(SECUREBOOT_SIGN_RSA)
-#define is_signature_rsa_chsum_enable()	quary_secure_boot(SECUREBOOT_SIGN_RSA_CHK)
-#define is_signature_aes()				!quary_secure_boot(SECUREBOOT_SIGN_RSA)
-#define is_JTAG_DISABLE_en()			quary_secure_boot(SECUREBOOT_JTAG_DISABLE_EN)
+#define is_secure_enable()              quary_secure_boot(SECUREBOOT_SECURE_EN)
+#define is_data_area_encrypted()        quary_secure_boot(SECUREBOOT_DATA_AREA_ENCRYPT)
+#define is_signature_rsa()              quary_secure_boot(SECUREBOOT_SIGN_RSA)
+#define is_signature_rsa_chsum_enable() quary_secure_boot(SECUREBOOT_SIGN_RSA_CHK)
+#define is_signature_aes()              !quary_secure_boot(SECUREBOOT_SIGN_RSA)
+#define is_JTAG_DISABLE_en()            quary_secure_boot(SECUREBOOT_JTAG_DISABLE_EN)
 
-#define is_1st_key_programmed()			quary_secure_boot(SECUREBOOT_1ST_KEY_SET_PROGRAMMED)
-#define is_2nd_key_programmed()			quary_secure_boot(SECUREBOOT_2ND_KEY_SET_PROGRAMMED)
-#define is_3rd_key_programmed()			quary_secure_boot(SECUREBOOT_3RD_KEY_SET_PROGRAMMED)
-#define is_4th_key_programmed()			quary_secure_boot(SECUREBOOT_4TH_KEY_SET_PROGRAMMED)
-#define is_5th_key_programmed()			quary_secure_boot(SECUREBOOT_5TH_KEY_SET_PROGRAMMED)
+#define is_1st_key_programmed()         quary_secure_boot(SECUREBOOT_1ST_KEY_SET_PROGRAMMED)
+#define is_2nd_key_programmed()         quary_secure_boot(SECUREBOOT_2ND_KEY_SET_PROGRAMMED)
+#define is_3rd_key_programmed()         quary_secure_boot(SECUREBOOT_3RD_KEY_SET_PROGRAMMED)
+#define is_4th_key_programmed()         quary_secure_boot(SECUREBOOT_4TH_KEY_SET_PROGRAMMED)
+#define is_5th_key_programmed()         quary_secure_boot(SECUREBOOT_5TH_KEY_SET_PROGRAMMED)
 
-#define is_1st_key_read_lock()			quary_secure_boot(SECUREBOOT_1ST_KEY_SET_READ_LOCK)
-#define is_2nd_key_read_lock()			quary_secure_boot(SECUREBOOT_2ND_KEY_SET_READ_LOCK)
-#define is_3rd_key_read_lock()			quary_secure_boot(SECUREBOOT_3RD_KEY_SET_READ_LOCK)
-#define is_4th_key_read_lock()			quary_secure_boot(SECUREBOOT_4TH_KEY_SET_READ_LOCK)
-#define is_5th_key_read_lock()			quary_secure_boot(SECUREBOOT_5TH_KEY_SET_READ_LOCK)
+#define is_1st_key_read_lock()          quary_secure_boot(SECUREBOOT_1ST_KEY_SET_READ_LOCK)
+#define is_2nd_key_read_lock()          quary_secure_boot(SECUREBOOT_2ND_KEY_SET_READ_LOCK)
+#define is_3rd_key_read_lock()          quary_secure_boot(SECUREBOOT_3RD_KEY_SET_READ_LOCK)
+#define is_4th_key_read_lock()          quary_secure_boot(SECUREBOOT_4TH_KEY_SET_READ_LOCK)
+#define is_5th_key_read_lock()          quary_secure_boot(SECUREBOOT_5TH_KEY_SET_READ_LOCK)
+#define is_vpe_over_clocking()          quary_secure_boot(SECUREBOOT_VPE_OVER_CLOCKING)
 
 extern void otp_platform_earily_create_resource(void);
 extern void otp_platform_earily_release_resource(void);
