@@ -20,7 +20,7 @@
 #include <linux/list.h>
 #include <linux/dma-direction.h>
 
-#define NVT_FMEM_VERSION	"0.0.1"
+#define NVT_FMEM_VERSION	"0.0.2"
 
 struct nvt_cma_info_t {
 	struct list_head	list;			// List for cma area

@@ -39,7 +39,7 @@
 #include <linux/of_device.h>
 #endif
 
-#define DRV_VERSION		"1.00.050"
+#define DRV_VERSION		"1.00.051"
 static UCHAR dev_addr[6] = {0, 0x55, 0x7b, 0xb5, 0x7d, 0xf7};
 
 void __iomem *ETH_QOS_REG_BASE;

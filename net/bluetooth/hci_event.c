@@ -4147,7 +4147,7 @@ static void hci_extended_inquiry_result_evt(struct hci_dev *hdev,
 
 	BT_DBG("%s num_rsp %d", hdev->name, num_rsp);
 
-	if (!num_rsp)
+	if (!num_rsp || skb->len < num_rsp * sizeof(*info) + 1)
 		return;
 
 	if (hci_dev_test_flag(hdev, HCI_PERIODIC_INQ))
@@ -4716,6 +4716,7 @@ static void hci_loglink_complete_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		return;
 
 	hchan->handle = le16_to_cpu(ev->handle);
+	hchan->amp = true;
 
 	BT_DBG("hcon %p mgr %p hchan %p", hcon, hcon->amp_mgr, hchan);
 
@@ -4748,7 +4749,7 @@ static void hci_disconn_loglink_complete_evt(struct hci_dev *hdev,
 	hci_dev_lock(hdev);
 
 	hchan = hci_chan_lookup_handle(hdev, le16_to_cpu(ev->handle));
-	if (!hchan)
+	if (!hchan || !hchan->amp)
 		goto unlock;
 
 	amp_destroy_logical_link(hchan, ev->reason);

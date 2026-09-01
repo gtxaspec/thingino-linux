@@ -1308,6 +1308,9 @@ static void l2cap_sock_close_cb(struct l2cap_chan *chan)
 {
 	struct sock *sk = chan->data;
 
+	if (!sk)
+		return;
+
 	l2cap_sock_kill(sk);
 }
 
@@ -1315,6 +1318,9 @@ static void l2cap_sock_teardown_cb(struct l2cap_chan *chan, int err)
 {
 	struct sock *sk = chan->data;
 	struct sock *parent;
+
+	if (!sk)
+		return;
 
 	BT_DBG("chan %p state %s", chan, state_to_string(chan->state));
 
@@ -1464,6 +1470,19 @@ static void l2cap_sock_suspend_cb(struct l2cap_chan *chan)
 	sk->sk_state_change(sk);
 }
 
+static int l2cap_sock_filter(struct l2cap_chan *chan, struct sk_buff *skb)
+{
+	struct sock *sk = chan->data;
+
+	switch (chan->mode) {
+	case L2CAP_MODE_ERTM:
+	case L2CAP_MODE_STREAMING:
+		return sk_filter(sk, skb);
+	}
+
+	return 0;
+}
+
 static const struct l2cap_ops l2cap_chan_ops = {
 	.name			= "L2CAP Socket Interface",
 	.new_connection		= l2cap_sock_new_connection_cb,
@@ -1478,14 +1497,17 @@ static const struct l2cap_ops l2cap_chan_ops = {
 	.set_shutdown		= l2cap_sock_set_shutdown_cb,
 	.get_sndtimeo		= l2cap_sock_get_sndtimeo_cb,
 	.alloc_skb		= l2cap_sock_alloc_skb_cb,
+	.filter			= l2cap_sock_filter,
 };
 
 static void l2cap_sock_destruct(struct sock *sk)
 {
 	BT_DBG("sk %p", sk);
 
-	if (l2cap_pi(sk)->chan)
+	if (l2cap_pi(sk)->chan) {
+		l2cap_pi(sk)->chan->data = NULL;
 		l2cap_chan_put(l2cap_pi(sk)->chan);
+	}
 
 	if (l2cap_pi(sk)->rx_busy_skb) {
 		kfree_skb(l2cap_pi(sk)->rx_busy_skb);

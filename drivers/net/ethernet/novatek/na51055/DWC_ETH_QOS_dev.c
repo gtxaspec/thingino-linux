@@ -2987,14 +2987,14 @@ static INT enable_dma_interrupts(UINT qInx)
 	    ((0x1) << 6) | ((0x1) << 7) | ((0x1) << 8) | ((0x1) << 15) |
 	    ((0x1) << 16) | ((0x1) << 12);
 #else
-	varDMA_IER = varDMA_IER | ((0x1) << 1) | ((0x1) << 2) |
+	varDMA_IER = varDMA_IER | ((0x1) << 1) |
 	    ((0x1) << 6) | ((0x1) << 7) | ((0x1) << 8) | ((0x1) << 14) |
 	    ((0x1) << 15) | ((0x1) << 12);
 #endif
 #ifndef DWC_ETH_QOS_TXPOLLING_MODE_ENABLE
 	/* TIE - Transmit Interrupt Enable */
 	/* TBUE - Transmit Buffer Unavailable Enable */
-	varDMA_IER |= ((0x1) << 0) | ((0x1) << 2);
+	varDMA_IER |= ((0x1) << 0);
 #endif
 	DMA_IER_RgWr(qInx, varDMA_IER);
 

@@ -164,6 +164,7 @@ static int pwm_pwmConfig(struct nvt_pwm *pwm_dev, u32 uiPWMId, PPWM_CFG pPWMCfg)
 	}
 
 	reg_pwm_period_buf = ((pPWMCfg->rise & 0xFF) + ((pPWMCfg->fall & 0xFF) << 8) + ((pPWMCfg->base_period & 0xFF) << 16));
+	reg_pwm_period_buf |= (org_pwm_period_buf&CTRL_INVERT)?CTRL_INVERT:0;
 
 	if (uiOffset < 8) {
 		exp_period_buf = nvt_pwm_read_reg(pwm_dev, REG_EXT_PERIOD(uiOffset));
@@ -598,4 +599,4 @@ module_exit(nvt_pwm_exit_driver);
 MODULE_DESCRIPTION("NVT PWM Driver");
 MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.00.010");
+MODULE_VERSION("1.00.011");

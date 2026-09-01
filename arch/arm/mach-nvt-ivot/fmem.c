@@ -51,7 +51,7 @@
 #define DEBUG_WRONG_CACHE_VA    0x1
 #define DEBUG_WRONG_CACHE_LEN   0x2
 
-#define CACHE_ALIGN_MASK        0x3F  //cache line with 64 bytes
+#define CACHE_ALIGN_MASK  L1_CACHE_BYTES  //cache line with 64 bytes: arch/${CPU}/include/asm/cache.h
 #define MAX_CMD_LENGTH          30
 #define MAX_CACHE_TRY_LOCK      10
 
@@ -677,6 +677,63 @@ release_cma_exit:
  * fmem proc handling
  *************************************************************************************************************/
 
+/* counter info
+ */
+static int proc_show_dbgcounter(struct seq_file *sfile, void *v)
+{
+	seq_printf(sfile, "\n");
+
+	seq_printf(sfile, "L1 Cache line size: %d Bytes\n", CACHE_ALIGN_MASK);
+	seq_printf(sfile, "linear cpu_addr flush: %d \n", cpuaddr_flush);
+	seq_printf(sfile, "non-linear cpu_addr flush: %d \n", nonlinear_cpuaddr_flush);
+	seq_printf(sfile, "vaddr is not cache alignment: %d \n", va_not_64align);
+	seq_printf(sfile, "len is not cache alignment: %d \n", length_not_64align);
+	seq_printf(sfile, "debug_counter = 0x%x \n\n", debug_counter);
+
+	seq_printf(sfile, "DEBUG_WRONG_CACHE_API = 0x%x \n", DEBUG_WRONG_CACHE_API);
+	seq_printf(sfile, "DEBUG_WRONG_CACHE_VA = 0x%x \n", DEBUG_WRONG_CACHE_VA);
+	seq_printf(sfile, "DEBUG_WRONG_CACHE_LEN = 0x%x \n\n", DEBUG_WRONG_CACHE_LEN);
+
+	seq_printf(sfile, "\rUsage:\n");
+	seq_printf(sfile, "\r\tEnable: CACHE_API/CACHE_VA/CACHE_LEN \
+			\t=> echo 7 > /proc/fmem/dbg_info\n");
+	seq_printf(sfile, "\r\tEnable: CACHE_API/CACHE_VA \
+			\t\t=> echo 3 > /proc/fmem/dbg_info\n");
+	seq_printf(sfile, "\r\tEnable: CACHE_VA/CACHE_LEN \
+			\t\t=> echo 6 > /proc/fmem/dbg_info\n");
+
+	return 0;
+}
+
+/* debug counter */
+static ssize_t proc_write_dbgcounter(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
+{
+	unsigned char value[30];
+
+	if (copy_from_user(value, buffer, count))
+		return 0;
+
+	sscanf(value, "%x\n", &debug_counter);
+
+	printk("debug counter: 0x%x \n", debug_counter);
+
+	return count;
+}
+
+static int dbgcounter_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, proc_show_dbgcounter, NULL);
+}
+
+static const struct file_operations dbgcounter_proc_fops = {
+	.owner		= THIS_MODULE,
+	.open		= dbgcounter_proc_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+	.write		= proc_write_dbgcounter,
+};
+
 static ssize_t proc_resolve_pa(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
 {
 	unsigned char value[30];
@@ -837,6 +894,11 @@ static int __init fmem_proc_init(void)
 	myproc = proc_create("version", S_IRUGO, fmem_proc_root, &version_proc_fops);
 	if (myproc == NULL)
 		panic("FMEM: Fail to create proc version info!\n");
+
+	/* counter */
+	myproc = proc_create("dbg_info", S_IRUGO, fmem_proc_root, &dbgcounter_proc_fops);
+	if (myproc == NULL)
+		panic("FMEM: Fail to create proc dbg_info!\n");
 
 	return 0;
 }
@@ -1067,7 +1129,7 @@ unsigned long fmem_dcache_sync_op(void *vaddr, u32 len, enum dma_data_direction 
 	* for safe. Others we regard them as warning cases in coding.
 	*/
 	if (dir != DMA_BIDIRECTIONAL) {
-		if ((u32)vaddr & CACHE_ALIGN_MASK) {
+		if (!IS_ALIGNED((uintptr_t)vaddr, CACHE_ALIGN_MASK)) {
 			va_not_64align ++;
 			if (debug_counter & (0x1 << DEBUG_WRONG_CACHE_VA)) {
 				printk("%s, warning, vaddr: 0x%x not cache alignment! \n", __func__, (u32)vaddr);
@@ -1075,7 +1137,7 @@ unsigned long fmem_dcache_sync_op(void *vaddr, u32 len, enum dma_data_direction 
 			}
 		}
 
-		if (len & CACHE_ALIGN_MASK) {
+		if (!IS_ALIGNED(len, CACHE_ALIGN_MASK)) {
 			length_not_64align ++;
 			if (debug_counter & (0x1 << DEBUG_WRONG_CACHE_LEN)) {
 				printk("%s, warning, len: %d not cache alignment! \n", __func__, len);
@@ -1184,7 +1246,7 @@ void fmem_dcache_sync_vb(void *vaddr, u32 len, enum dma_data_direction dir)
 	* for safe. Others we regard them as warning cases in coding.
 	*/
 	if (dir != DMA_BIDIRECTIONAL) {
-		if ((u32)vaddr & CACHE_ALIGN_MASK) {
+		if (!IS_ALIGNED((uintptr_t)vaddr, CACHE_ALIGN_MASK)) {
 			va_not_64align ++;
 			if (debug_counter & (0x1 << DEBUG_WRONG_CACHE_VA)) {
 				printk("%s, warning, vaddr: 0x%x not cache alignment! \n", __func__, (u32)vaddr);
@@ -1192,7 +1254,7 @@ void fmem_dcache_sync_vb(void *vaddr, u32 len, enum dma_data_direction dir)
 			}
 		}
 
-		if (len & CACHE_ALIGN_MASK) {
+		if (!IS_ALIGNED(len, CACHE_ALIGN_MASK)) {
 			length_not_64align ++;
 			if (debug_counter & (0x1 << DEBUG_WRONG_CACHE_LEN)) {
 				printk("%s, warning, len: %d not cache alignment! \n", __func__, len);

@@ -1825,6 +1825,7 @@ static int pinmux_config_sensor2(uint32_t config)
 			}
 			break;
 		case PIN_SENSOR2_CFG_12BITS:
+		case (PIN_SENSOR2_CFG_12BITS|PIN_SENSOR2_CFG_MIPI):
 			top_reg_pgpio0.bit.PGPIO_0 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_1 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_2 = GPIO_ID_EMUM_GPIO;
@@ -1842,6 +1843,11 @@ static int pinmux_config_sensor2(uint32_t config)
 			top_reg_sgpio0.bit.SGPIO_5 = GPIO_ID_EMUM_FUNC; //HD
 
 			top_reg3.bit.SENSOR2 = SENSOR2_ENUM_12BITS;
+
+			if(tmp&PIN_SENSOR2_CFG_MIPI){
+				top_reg3.bit.SENSOR = SENSOR_ENUM_CSIMODE;
+				mipi_lvds_sensor[1] = PIN_SENSOR2_CFG_MIPI;
+			}
 
 			break;
 		case PIN_SENSOR2_CFG_CCIR16BITS:
@@ -1936,10 +1942,10 @@ static int pinmux_config_mipi_lvds(uint32_t config)
 		}
 
 		if (config & (PIN_MIPI_LVDS_CFG_DAT1 | PIN_MIPI_LVDS_CFG_DAT2 | PIN_MIPI_LVDS_CFG_DAT3 | PIN_MIPI_LVDS_CFG_DAT4)) {
-			if (top_reg3.bit.SENSOR != SENSOR_ENUM_CSIMODE) {
-				pr_err("MIPI D1~4, CK0 conflict with SENSOR\r\n");
-				return E_OBJ;
-			}
+			//if (top_reg3.bit.SENSOR != SENSOR_ENUM_CSIMODE) {
+			//	pr_err("MIPI D1~4, CK0 conflict with SENSOR\r\n");
+			//	return E_OBJ;
+			//}
 
 			if (config & PIN_MIPI_LVDS_CFG_DAT1) {
 				top_reg_hgpio0.bit.HSIGPIO_2 = GPIO_ID_EMUM_FUNC;

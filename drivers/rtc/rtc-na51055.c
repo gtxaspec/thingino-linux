@@ -26,7 +26,7 @@
 #include <linux/proc_fs.h>
 #include <linux/of.h>
 
-#define DRV_VERSION		"1.11.020"
+#define DRV_VERSION		"1.11.030"
 
 #ifdef CONFIG_RTC_NVT_PWBC_SDT_USER
 #define RTC_PWBC_SDT_ISR_DISABLE	1
@@ -151,6 +151,7 @@ void nvt_rtc_power_control(int reboot_sec)
 
 	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
 		printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+        unl_cpu();
 		return;
 	}
 
@@ -472,6 +473,7 @@ static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	/*wait for cset done*/
 	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
 		dev_err(dev, "RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+        unl_cpu();
 		return -ETXTBSY;
 	}
 	complete(&cset_completion);
@@ -832,6 +834,7 @@ static int data_proc_show(struct seq_file *seq, void *v)
 	/*wait for cset done*/
 	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
 		printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+        unl_cpu();
 		return -ETXTBSY;
 	}
 	complete(&cset_completion);
@@ -885,21 +888,22 @@ static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
         /*wait for cset done*/
 	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
 		printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+        unl_cpu();
 		return -ETXTBSY;
 	}
 
-        ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
-        ctrl_reg.bit.cset = 0;
-        ctrl_reg.bit.data0_sel = 1;
-        rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+    ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+    ctrl_reg.bit.cset = 0;
+    ctrl_reg.bit.data0_sel = 1;
+    rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
 
 	data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
 	data_reg.bit.data0 = val;
-        rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
+    rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
 
-        rtc_trigger_cset();
+    rtc_trigger_cset();
 
-        unl_cpu();
+    unl_cpu();
 
 	return size;
 }
