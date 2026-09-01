@@ -243,7 +243,7 @@ config RAVE_SP_WATCHDOG
 
 config NA51055_WATCHDOG
 	tristate "Novatek NA51055 Watchdog"
-	depends on (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51068)
+	depends on (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51089)
 	select WATCHDOG_CORE
 	help
 	  Support for Novatek NA51055 watch dog timer.  Say 'Y'

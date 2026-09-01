@@ -227,7 +227,7 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 				return E_PAR;
 			}
 		} else {
-			if (name >= PAD_DS_HSIGPIO0) {
+			if ((name >= PAD_DS_HSIGPIO0) && !(name & PAD_DS_GROUP_16)) {
 				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2) + 0x28;
 			} else {
 				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
@@ -381,8 +381,7 @@ ER pad_get_drivingsink(PAD_DS name, PAD_DRIVINGSINK *driving)
 			}
 		} else {
 			/* 10MA GROUP */
-
-			if (name >= PAD_DS_HSIGPIO0) {
+			if ((name >= PAD_DS_HSIGPIO0) && !(name & PAD_DS_GROUP_16)) {
 				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2) + 0x28;
 			} else {
 				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);

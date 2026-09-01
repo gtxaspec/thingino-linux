@@ -535,6 +535,10 @@ void nand_phy_config(struct drv_nand_dev_info *info)
 			reg_phy_dly.bit.phy_src_clk_sel = 0;
 			reg_phy_dly2.bit.indly_sel = 0x0;
 		}
+	} else if (nvt_get_chip_id() == CHIP_NA51089) {
+	    reg_phy_dly.bit.phy_src_clk_sel = 0;
+		reg_phy_dly.bit.phy_pad_clk_sel = 1;
+		reg_phy_dly2.bit.indly_sel = 0x5;
 	} else {
 		reg_phy_dly.bit.phy_src_clk_sel = 0;
 		reg_phy_dly.bit.phy_pad_clk_sel = 1;

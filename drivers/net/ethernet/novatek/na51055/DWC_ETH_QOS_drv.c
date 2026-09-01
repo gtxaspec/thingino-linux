@@ -62,6 +62,9 @@ module_param_array(q_op_mode, int, NULL, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(q_op_mode,
 	"MTL queue operation mode [0-DISABLED, 1-AVB, 2-DCB, 3-GENERIC]");
 
+static int __tx_log_debug = 0;
+module_param_named(tx_log_debug, __tx_log_debug, int, 0600);
+
 void DWC_ETH_QOS_stop_all_ch_tx_dma(struct DWC_ETH_QOS_prv_data *pdata)
 {
 	struct hw_if_struct *hw_if = &(pdata->hw_if);
@@ -333,6 +336,7 @@ static void DWC_ETH_QOS_start_dev(struct DWC_ETH_QOS_prv_data *pdata)
 	DWC_ETH_QOS_napi_enable_mq(pdata);
 
 	/* reinit descriptor */
+	DWC_ETH_QOS_set_rx_mode(pdata->dev);
 	desc_if->wrapper_tx_desc_init(pdata);
 	desc_if->wrapper_rx_desc_init(pdata);
 
@@ -453,6 +457,44 @@ void DWC_ETH_QOS_enable_all_ch_rx_interrpt(
 
 	for (qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++)
 		hw_if->enable_rx_interrupt(qInx);
+
+	spin_unlock_irqrestore(&pdata->rx_int_lock, flags);
+
+	DBGPR("<--DWC_ETH_QOS_enable_all_ch_rx_interrpt\n");
+}
+
+void DWC_ETH_QOS_disable_all_ch_dma_interrpt(
+			struct DWC_ETH_QOS_prv_data *pdata)
+{
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+	UINT qInx;
+	unsigned long flags;
+
+	DBGPR("-->DWC_ETH_QOS_disable_all_ch_rx_interrpt\n");
+
+	spin_lock_irqsave(&pdata->rx_int_lock, flags);
+
+	for (qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++)
+		hw_if->disable_dma_interrupt(qInx);
+
+	spin_unlock_irqrestore(&pdata->rx_int_lock, flags);
+
+	DBGPR("<--DWC_ETH_QOS_disable_all_ch_rx_interrpt\n");
+}
+
+void DWC_ETH_QOS_enable_all_ch_dma_interrpt(
+			struct DWC_ETH_QOS_prv_data *pdata)
+{
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+	UINT qInx;
+	unsigned long flags;
+
+	DBGPR("-->DWC_ETH_QOS_enable_all_ch_rx_interrpt\n");
+
+	spin_lock_irqsave(&pdata->rx_int_lock, flags);
+
+	for (qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++)
+		hw_if->enable_dma_interrupt(qInx);
 
 	spin_unlock_irqrestore(&pdata->rx_int_lock, flags);
 
@@ -1386,6 +1428,7 @@ static void DWC_ETH_QOS_default_tx_confs_single_q(
 	desc_data->vlan_tag_present = 0;
 	desc_data->context_setup = 0;
 	desc_data->default_mss = 0;
+	desc_data->vlan_tag_id= 0;
 
 	DBGPR("<--DWC_ETH_QOS_default_tx_confs_single_q\n");
 }
@@ -1724,13 +1767,17 @@ static int DWC_ETH_QOS_close(struct net_device *dev)
 	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
 	struct hw_if_struct *hw_if = &pdata->hw_if;
 	struct desc_if_struct *desc_if = &pdata->desc_if;
+	UINT qInx;
 
 	DBGPR("-->DWC_ETH_QOS_close\n");
+	printk("-->DWC_ETH_QOS_close\n");
 
 #ifdef DWC_ETH_QOS_CONFIG_EEE
 	if (pdata->eee_enabled)
 		del_timer_sync(&pdata->eee_ctrl_timer);
 #endif
+
+	DWC_ETH_QOS_disable_all_ch_dma_interrpt(pdata);
 
 #ifndef DWC_ETH_QOS_CONFIG_PGTEST
 	netif_tx_disable(dev);
@@ -1738,6 +1785,12 @@ static int DWC_ETH_QOS_close(struct net_device *dev)
 #endif /* end of DWC_ETH_QOS_CONFIG_PGTEST */
 
 	/* issue software reset to device */
+	/* stop DMA TX/RX */
+	for(qInx = 0; qInx < DWC_ETH_QOS_TX_QUEUE_CNT; qInx++)
+		hw_if->stop_dma_tx(qInx);
+	for(qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++)
+		hw_if->stop_dma_rx(qInx);
+	hw_if->stop_mac_tx_rx();
 	hw_if->exit(pdata);
 	desc_if->tx_free_mem(pdata);
 	desc_if->rx_free_mem(pdata);
@@ -1749,8 +1802,10 @@ static int DWC_ETH_QOS_close(struct net_device *dev)
 	del_timer(&pdata->pg_timer);
 #endif /* end of DWC_ETH_QOS_CONFIG_PGTEST */
 
-	if (pdata->phydev)
+	if (pdata->phydev) {
+		printk("phydev exist: stop phy\n");
 		phy_stop(pdata->phydev);
+	}
 
 	netif_carrier_off(dev);
 
@@ -2059,6 +2114,16 @@ static void DWC_ETH_QOS_set_rx_mode(struct net_device *dev)
 	DBGPR("<--DWC_ETH_QOS_set_rx_mode\n");
 }
 
+static unsigned int tcp_udp_hdrlen(struct sk_buff *skb)
+{
+	if (skb_shinfo(skb)->gso_type & (SKB_GSO_UDP)){
+		return (sizeof(struct udphdr));
+	}
+	else{
+		return (tcp_hdrlen(skb));
+	}
+}
+
 /*!
 * \brief API to calculate number of descriptor.
 *
@@ -2079,27 +2144,73 @@ UINT DWC_ETH_QOS_get_total_desc_cnt(struct DWC_ETH_QOS_prv_data *pdata,
 {
 	UINT count = 0, size = 0;
 	INT length = 0;
-#ifdef DWC_ETH_QOS_ENABLE_VLAN_TAG
-	struct hw_if_struct *hw_if = &pdata->hw_if;
-	struct s_tx_pkt_features *tx_pkt_features = GET_TX_PKT_FEATURES_PTR;
+	ULONG mss;
+	unsigned int frag_cnt = skb_shinfo(skb)->nr_frags;
+	unsigned int i;
+	unsigned int hdr_len = 0;
+	int vartso_enable = 0;
 	struct DWC_ETH_QOS_tx_wrapper_descriptor *desc_data =
 	    GET_TX_WRAPPER_DESC(qInx);
+#ifdef DWC_ETH_QOS_ENABLE_VLAN_TAG
+	struct s_tx_pkt_features *tx_pkt_features = GET_TX_PKT_FEATURES_PTR;
+	struct hw_if_struct *hw_if = &pdata->hw_if;
 #endif
 
+	vartso_enable = skb_is_gso(skb);
+	if (skb_shinfo(skb)->gso_type & (SKB_GSO_UDP)){
+		mss = skb_shinfo(skb)->gso_size - sizeof(struct udphdr);
+	} else {
+		mss = skb_shinfo(skb)->gso_size;
+	}
+	if (vartso_enable && (desc_data->default_mss != mss)) {
+		count++;
+	}
+
+#if 0
 	/* SG fragment count */
 	count += skb_shinfo(skb)->nr_frags;
+#endif
 
 	/* descriptors required based on data limit per descriptor */
-	length = (skb->len - skb->data_len);
+	if (vartso_enable) {
+		hdr_len = skb_transport_offset(skb) + tcp_udp_hdrlen(skb);
+		length = hdr_len;
+	} else {
+		length = (skb->len - skb->data_len);
+	}
+//	length = (skb->len - skb->data_len);
 	while (length) {
 		size = min(length, DWC_ETH_QOS_MAX_DATA_PER_TXD);
 		count++;
 		length = length - size;
 	}
 
+	if (vartso_enable) {
+		length = ((skb->len - skb->data_len) - hdr_len);
+		while (length > 0) {
+			size = min(length, DWC_ETH_QOS_MAX_DATA_PER_TXD);
+			length -= size;
+			count++;
+		}
+	}
+
+	/* Process fragmented skb's */
+	for (i = 0; i < frag_cnt; i++) {
+		struct skb_frag_struct *frag = &skb_shinfo(skb)->frags[i];
+
+		length = frag->size;
+		while (length) {
+			size = min(length, DWC_ETH_QOS_MAX_DATA_PER_TXD);
+			length -= size;
+			count++;
+		}
+	}
+
+#if 0
 	/* we need one context descriptor to carry tso details */
 	if (skb_shinfo(skb)->gso_size != 0)
 		count++;
+#endif
 
 #ifdef DWC_ETH_QOS_ENABLE_VLAN_TAG
 	desc_data->vlan_tag_present = 0;
@@ -2132,7 +2243,6 @@ UINT DWC_ETH_QOS_get_total_desc_cnt(struct DWC_ETH_QOS_prv_data *pdata,
 		count++;
 	}
 #endif /* End of DWC_ETH_QOS_ENABLE_DVLAN */
-
 	return count;
 }
 
@@ -2170,6 +2280,10 @@ static int DWC_ETH_QOS_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #endif
 	int tso;
 
+	if (__tx_log_debug) {
+		printk("-->DWC_ETH_QOS_start_xmit: skb->len = %d, qInx = %u\n",
+		skb->len, qInx);
+	}
 	DBGPR("-->DWC_ETH_QOS_start_xmit: skb->len = %d, qInx = %u\n",
 		skb->len, qInx);
 
@@ -3473,6 +3587,7 @@ static int DWC_ETH_QOS_clean_rx_irq(struct DWC_ETH_QOS_prv_data *pdata,
 				 * performance for small pkts with large amount
 				 * of reassembly being done in the stack
 				 * */
+#if 0
 				if (pkt_len < DWC_ETH_QOS_COPYBREAK_DEFAULT) {
 					struct sk_buff *new_skb =
 					    netdev_alloc_skb_ip_align(dev,
@@ -3489,6 +3604,7 @@ static int DWC_ETH_QOS_clean_rx_irq(struct DWC_ETH_QOS_prv_data *pdata,
 						/* just continue with the old skb */
 					}
 				}
+#endif
 				skb_put(skb, pkt_len);
 
 				DWC_ETH_QOS_config_rx_csum(pdata, skb,
@@ -3545,7 +3661,8 @@ static int DWC_ETH_QOS_clean_rx_irq(struct DWC_ETH_QOS_prv_data *pdata,
 				DWC_ETH_QOS_receive_skb(pdata, dev, skb, qInx);
 				received++;
 			} else {
-				dump_rx_desc(qInx, RX_NORMAL_DESC, desc_data->cur_rx);
+				if (net_ratelimit())
+					dump_rx_desc(qInx, RX_NORMAL_DESC, desc_data->cur_rx);
 				if (!(RX_NORMAL_DESC->RDES3 & DWC_ETH_QOS_RDESC3_LD))
 					DBGPR("Received oversized pkt, spanned across multiple desc\n");
 
@@ -3635,6 +3752,11 @@ int DWC_ETH_QOS_poll_mq(struct napi_struct *napi, int budget)
 	int received = 0, per_q_received = 0;
 
 	DBGPR("-->DWC_ETH_QOS_poll_mq: budget = %d\n", budget);
+
+	if (pdata->mau_dummy_ptr) {
+		writel(0, pdata->mau_dummy_ptr);
+		readl(pdata->mau_dummy_ptr);
+	}
 
 	pdata->xstats.napi_poll_n++;
 	for (qInx = 0; qInx < DWC_ETH_QOS_RX_QUEUE_CNT; qInx++) {

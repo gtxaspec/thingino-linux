@@ -232,7 +232,7 @@ typedef enum {
 	PIN_SENSOR_CFG_MES3_2ND = 0x10000000, ///< Not support (Backward compatible)
 
 	PIN_SENSOR_CFG_SHUTTER1 = 0x20000000,     ///< Not support (Backward compatible)
-	PIN_SENSOR_CFG_12BITS_2ND = 0x40000000,    ///< 12 bits sensor 2nd. Enable SN_D[0..11]/SN_PXCLK/SN_VD/SN_HD on PWM8~PWM11, PWM0~PWM7,PGPIO12/SN_VD/SN_HD (P_GPIO[0..12]/S_GPIO[2..3])
+	PIN_SENSOR_CFG_12BITS_2ND = 0x40000000,    ///< 12 bits sensor 2nd. Enable SN_D[0..11]/SN_PXCLK/SN_VD/SN_HD on PWM8~PWM11, PWM0~PWM7,PGPIO12/SN_VD/SN_HD (P_GPIO[0..11]/P_GPIO[12]/S_GPIO[2..3])
 
 	ENUM_DUMMY4WORD(PIN_SENSOR_CFG)
 } PIN_SENSOR_CFG;
@@ -246,17 +246,19 @@ typedef enum {
 */
 typedef enum {
 	PIN_SENSOR2_CFG_NONE,
-	PIN_SENSOR2_CFG_CCIR8BITS = 0x08,   ///< CCIR 8 bits sensor. Enable CCIR_YC[0..7]/CCIR_VD/CCIR_HD/CCIR_CLK on HSI_D[5..9]N/HSI_D[5..9]P/SN_DGPIO[4] (S_GPI[12..21]/SN_DGPIO[4])
+	PIN_SENSOR2_CFG_CCIR8BITS = 0x08,   ///< CCIR 8 bits sensor. Enable CCIR2_YC[0..7]/CCIR2_CLK/CCIR2_VD/CCIR2_HD/CCIR2_FIELD on PWM[0..7]/PWM[8]/PWM[9]/PWM[10]/PWM[11] (P_GPIO[0..11])
 	PIN_SENSOR2_CFG_CCIR16BITS = 0x10,  ///< Not support. (Backward compatible)
 	PIN_SENSOR2_CFG_MIPI = 0x20,        ///< MIPI sensor. PIN/PAD is configured by PIN_FUNC_MIPI_LVDS group.
 	PIN_SENSOR2_CFG_LVDS = 0x40,        ///< LVDS sensor. PIN/PAD is configured by PIN_FUNC_MIPI_LVDS group.
 	PIN_SENSOR2_CFG_LVDS_VDHD = 0x80,   ///< Enable SN2_XVS/SN2_XHS on SN2_VD/SN2_HD (SN_SGPIO[4..5])
-	PIN_SENSOR2_CFG_12BITS = 0x100,     ///< Support 12 bits sensor.
+	PIN_SENSOR2_CFG_12BITS = 0x100,     ///< Support 12 bits sensor. Enable SN2_D[0..11]/SN2_PXCLK/SN2_VD/SN2_HD on PWM8~PWM11, PWM0~PWM7,PGPIO12/SN2_VD/SN2_HD (P_GPIO[0..11]/P_GPIO[12]/S_GPIO[4..5])
 	PIN_SENSOR2_CFG_MCLK = 0x200,       ///< Enable SN2_MCLK on SN_PXCLK (S_GPIO[1])
 	PIN_SENSOR2_CFG_MCLK_2ND = 0x400,   ///< Enable SN2_MCLK on S_GPIO12 (S_GPIO[12])
 	PIN_SENSOR2_CFG_SN3_MCLK = 0x800,   ///< Enable SN3_MCLK on P_GPIO12 (P_GPIO[12])
 	
 	PIN_SENSOR2_CFG_SN_MCLK = 0x1000,      ///< Enable SN_MCLK on S_GPIO[0]
+	PIN_SENSOR2_CFG_CCIR8BITS_FIELD = 0x2000,   ///< Enable CCIR8bit mode field
+        PIN_SENSOR2_CFG_CCIR8BITS_VDHD = 0x4000,   ///< Enable CCIR8bit mode with VD/HD
 
 	ENUM_DUMMY4WORD(PIN_SENSOR2_CFG)
 } PIN_SENSOR2_CFG;
@@ -584,8 +586,8 @@ typedef enum {
 	PIN_AUDIO_CFG_I2S = 0x01,              ///< Enable I2S channel 1. Enable @P_GPIO17[I2S_BCLK_1]|P_GPIO18[I2S_SYNC_1]|P_GPIO19[I2S_SDATAO_1]|P_GPIO20[I2S_SDATAI_1]
 	PIN_AUDIO_CFG_I2S_2ND_PINMUX = 0x02,///< Enable I2S channel 2. Enable @MC4[I2S_BCLK_2]|MC5[I2S_SYNC_2]|MC6[I2S_SDATAO_2]|MC7[I2S_SDATAI_2]
 
-	PIN_AUDIO_CFG_MCLK = 0x10,             ///< Enable audio I2S_MCLK_1. Enable I2S_MCLK_1@P_GPIO[16])
-	PIN_AUDIO_CFG_MCLK_2ND_PINMUX = 0x20,///< Enable audio I2S_MCLK_2. Enable I2S_MCLK_2@D_GPIO[7])
+	PIN_AUDIO_CFG_MCLK = 0x10,             ///< Enable audio I2S_MCLK_1. Enable I2S_MCLK_1@P_GPIO16[I2S_1_MCLK])
+	PIN_AUDIO_CFG_MCLK_2ND_PINMUX = 0x20,///< Enable audio I2S_MCLK_2. Enable I2S_MCLK_2@D_GPIO7[I2S_2_MCLK])
 
 	PIN_AUDIO_CFG_DMIC = 0x100,           ///< Enable Digital Mic channel 1. Enable @P_GPIO9[DMCLK_1]|P_GPIO7[DMDAT0_1]|P_GPIO8[DMDAT1_1]
 	PIN_AUDIO_CFG_DMIC_2ND = 0x200,       ///< Enable Digital Mic channel 2. Enable @D_GPIO8[DMCLK_2]|D_GPIO9[DMDAT0_2]|D_GPIO10[DMDAT1_2]
@@ -604,7 +606,7 @@ typedef enum {
 */
 typedef enum {
 	PINMUX_LCDMODE_RGB_SERIAL           =    0,     ///< LCD MODE is RGB Serial or UPS051
-	PINMUX_LCDMODE_RGB_PARALL           =    1,     ///< LCD MODE is RGB Parallel (888)
+	PINMUX_LCDMODE_RGB_PARALL           =    1,     ///< LCD MODE is RGB Parallel (888)@L_GPIO12[LCD12]
 	PINMUX_LCDMODE_YUV640               =    2,     ///< LCD MODE is YUV640
 	PINMUX_LCDMODE_YUV720               =    3,     ///< LCD MODE is YUV720
 	PINMUX_LCDMODE_RGBD360              =    4,     ///< LCD MODE is RGB Dummy 360
@@ -612,8 +614,8 @@ typedef enum {
 	PINMUX_LCDMODE_RGB_THROUGH          =    6,     ///< LCD MODE is RGB through mode
 	PINMUX_LCDMODE_CCIR601              =    7,     ///< LCD MODE is CCIR601
 	PINMUX_LCDMODE_CCIR656              =    8,     ///< LCD MODE is CCIR656
-	PINMUX_LCDMODE_RGB_PARALL666        =    9,     ///< LCD MODE is RGB Parallel 666
-	PINMUX_LCDMODE_RGB_PARALL565        =   10,     ///< LCD MODE is RGB Parallel 565
+	PINMUX_LCDMODE_RGB_PARALL666        =    9,     ///< LCD MODE is RGB Parallel 666@L_GPIO12[LCD12]
+	PINMUX_LCDMODE_RGB_PARALL565        =   10,     ///< LCD MODE is RGB Parallel 565@L_GPIO12[LCD12]
 	PINMUX_LCDMODE_RGB_PARALL_DELTA     =   11,     ///< LCD MODE is RGB Parallel Delta
 	PINMUX_LCDMODE_MIPI                 =   12,     ///< LCD MODE is MIPI Display
 
@@ -803,7 +805,7 @@ typedef enum {
 */
 typedef enum {
 	PINMUX_DISPMUX_SEL_NONE = 0x00 << 28,           ///< PINMUX none
-	PINMUX_DISPMUX_SEL_LCD = 0x01 << 28,            ///< PINMUX at LCD interface
+	PINMUX_DISPMUX_SEL_LCD = 0x01 << 28,            ///< PINMUX at LCD interface@L_GPIO2[LCD2]
 	PINMUX_DISPMUX_SEL_LCD2 = 0x02 << 28,           ///< PINMUX at LCD2 interface (Not supported)
 
 	PINMUX_DISPMUX_SEL_MASK = 0x03 << 28,
@@ -833,16 +835,19 @@ typedef enum {
             to select ethernet interface.
 */
 typedef enum {
-	PIN_ETH_CFG_NONE   = 0x00,                      ///< PINMUX none
-	PIN_ETH_CFG_RMII   = 0x01,                      ///< ETH RMII.  Enable RMII on @ LCD0~LCD10
-	PIN_ETH_CFG_INTERANL = 0x02,                    ///< ETH INTERNAL MII
-	PIN_ETH_CFG_EXTPHYCLK = 0x04,                   ///< ETH EXT_PHY_CLK
+	PIN_ETH_CFG_NONE   = 0x00,                     ///< PINMUX none
+	PIN_ETH_CFG_RMII   = 0x01,                      ///< ETH RMII.  Enable RMII on @L_GPIO0[TXD0]|L_GPIO1[TXD1]|L_GPIO2[TX_EN]|L_GPIO3[RXD0]|L_GPIO4[RXD1]|L_GPIO5[CRS_DV]|L_GPIO6[RX_ER]|L_GPIO8[REFCLK]|L_GPIO9[MDC]|L_GPIO10[MDIO]|L_GPIO7[ETH_PHYCLK]
+	PIN_ETH_CFG_INTERANL = 0x02,                ///< ETH INTERNAL MII. [Note] Must config with PIN_ETH_CFG_LED1 or PIN_ETH_CFG_LED2
+	PIN_ETH_CFG_EXTPHYCLK = 0x04,              ///< ETH EXT_PHY_CLK
 
 	PIN_ETH_CFG_LED1   = 0x10,                      ///< ETH INTERNAL PHY LED1
 	PIN_ETH_CFG_LED2   = 0x20,                      ///< ETH INTERNAL PHY LED2
 
-	PIN_ETH_CFG_RMII_2   = 0x40,                    ///< ETH RMII_2.  Enable RMII_2
-	PIN_ETH_CFG_RGMII    = 0x80,                    ///< ETH RGMII.  Enable RGMII
+	PIN_ETH_CFG_RMII_2   = 0x40,                  ///< ETH RMII_2.  Enable RMII_2 @L_GPIO11[TX_EN]|L_GPIO12[TXD0]|L_GPIO13[TXD1]|L_GPIO16[REFCLK]|L_GPIO17[CRS_DV]|L_GPIO18[RXD0]|L_GPIO19[RXD1]|L_GPIO23[MDC]|L_GPIO24[MDIO]|D_GPIO0[ETH_PHYCLK]
+	PIN_ETH_CFG_RGMII    = 0x80,                  ///< ETH RGMII.  Enable RGMII @L_GPIO11[TX_CTL]|L_GPIO12[TXD0]|L_GPIO13[TXD1]|L_GPIO14[TXD2]|L_GPIO15[TXD3]|L_GPIO16[RX_CLK]|L_GPIO17[RX_CTL]|L_GPIO18[RXD0]|L_GPIO19[RXD1]|L_GPIO20[RXD2]|L_GPIO21[RXD3]|L_GPIO22[TX_CLK]|L_GPIO23[MDC]|L_GPIO24[MDIO]|D_GPIO0[ETH_PHYCLK]
+
+	PIN_ETH_CFG_LED_1ST_ONLY = 0x100,		///< only select 1st LED pin (D_GPIO0 if PIN_ETH_CFG_LED1, JTAG_TDI if PIN_ETH_CFG_LED2)
+	PIN_ETH_CFG_LED_2ND_ONLY = 0x200,		///< only select 2nd LED pin (D_GPIO1 if PIN_ETH_CFG_LED1, JTAG_TDO if PIN_ETH_CFG_LED2)
 
 	ENUM_DUMMY4WORD(PINMUX_ETH_CFG)
 } PINMUX_ETH_CFG;
@@ -1229,7 +1234,8 @@ typedef struct {
 
 enum CHIP_ID {
 	CHIP_NA51055 = 0x4821,
-	CHIP_NA51084 = 0x5021
+	CHIP_NA51084 = 0x5021,
+	CHIP_NA51089 = 0x7021
 };
 
 int nvt_pinmux_capture(PIN_GROUP_CONFIG *pinmux_config, int count);

@@ -61,6 +61,14 @@ void nvt_smc_l2_write_sec(unsigned long val, unsigned reg)
 		smc_op = NVT_L2CACHE_PREFETCH_CTRL;
 		break;
 
+	case L310_TAG_LATENCY_CTRL:
+		smc_op = NVT_L2CACHE_TAG_LATENCY_CTRL;
+		break;
+
+	case L310_DATA_LATENCY_CTRL:
+		smc_op = NVT_L2CACHE_DATA_LATENCY_CTRL;
+		break;
+
 	case L310_POWER_CTRL:
 		pr_info_once("NVT L2C310: ROM does not support power control setting\n");
 		return;

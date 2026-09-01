@@ -13,8 +13,11 @@
 #include <linux/of_address.h>
 #include <plat/cg-reg.h>
 #include "nvt-im-clk.h"
+#include "nvt-im-maxfreq.h"
 #include <linux/of.h>
+#include <mach/rcw_macro.h>
 #include <plat/top.h>
+#include <plat/efuse_protected.h>
 
 #define IOADDR_CG_REG_SIZE 0x12A0
 
@@ -57,6 +60,18 @@ static int fastboot_determination(void)
 	}
 
 	return m_fastboot;
+}
+
+static int logoboot_determination(void)
+{
+	u32 m_logo = 0x0;
+	struct device_node* of_node = of_find_node_by_path("/logo");
+
+	if (of_node) {
+		of_property_read_u32(of_node, "enable", &m_logo);
+	}
+
+	return m_logo;
 }
 
 #define CPU_CLK_SEL_PLL8 1
@@ -225,23 +240,23 @@ static struct nvt_pll_clk novatek_pll528[] __initdata = {
 static struct nvt_composite_gate_clk novatek_cgate_clk[] __initdata = {
 	COMP_GATE_CONF("f0220000.i2c", "fix48m", 48000000, 0, 0, 0,
 		       CG_CLK_EN_REG1_OFFSET, BIT4, NOT_ENABLE,
-		       CG_SYS_RESET_REG1_OFFSET, BIT4, NOT_RESET,
+		       CG_SYS_RESET_REG1_OFFSET, BIT4, DO_RESET,
 		       CG_APB_CLK_AUTO_GATING_REG0_OFFSET, BIT22, DO_AUTOGATING),
 	COMP_GATE_CONF("f0350000.i2c2", "fix48m", 48000000, 0, 0, 0,
 		       CG_CLK_EN_REG1_OFFSET, BIT5, NOT_ENABLE,
-		       CG_SYS_RESET_REG1_OFFSET, BIT5, NOT_RESET,
+		       CG_SYS_RESET_REG1_OFFSET, BIT5, DO_RESET,
 		       CG_APB_CLK_AUTO_GATING_REG0_OFFSET, BIT23, DO_AUTOGATING),
 	COMP_GATE_CONF("f03a0000.i2c3", "fix48m", 48000000, 0, 0, 0,
 		       CG_CLK_EN_REG1_OFFSET, BIT31, NOT_ENABLE,
-		       CG_SYS_RESET_REG1_OFFSET, BIT31, NOT_RESET,
+		       CG_SYS_RESET_REG1_OFFSET, BIT31, DO_RESET,
 		       CG_APB_CLK_AUTO_GATING_REG1_OFFSET, BIT24, DO_AUTOGATING),
 	COMP_GATE_CONF("f03b0000.i2c4", "fix48m", 48000000, 0, 0, 0,
 		       CG_CLK_EN_REG1_OFFSET, BIT26, NOT_ENABLE,
-		       CG_SYS_RESET_REG1_OFFSET, BIT20, NOT_RESET,
+		       CG_SYS_RESET_REG1_OFFSET, BIT20, DO_RESET,
 		       CG_APB_CLK_AUTO_GATING_REG1_OFFSET, BIT22, DO_AUTOGATING),
 	COMP_GATE_CONF("f03c0000.i2c5", "fix48m", 48000000, 0, 0, 0,
 		       CG_CLK_EN_REG1_OFFSET, BIT27, NOT_ENABLE,
-		       CG_SYS_RESET_REG1_OFFSET, BIT21, NOT_RESET,
+		       CG_SYS_RESET_REG1_OFFSET, BIT21, DO_RESET,
 		       CG_APB_CLK_AUTO_GATING_REG1_OFFSET, BIT23, DO_AUTOGATING),
 	COMP_GATE_CONF("f0050000.wdt", "osc_in", 12000000, 0, 0, 0,
 		       CG_CLK_EN_REG1_OFFSET, BIT17, NOT_ENABLE,
@@ -1068,7 +1083,7 @@ static struct nvt_composite_mux_clk novatek_cmux_clk[] __initdata = {
 		      CG_SYS_RESET_REG0_OFFSET, BIT16, NOT_RESET,
 		      CG_APB_CLK_AUTO_GATING_REG0_OFFSET, BIT10, DO_AUTOGATING),
 	COMP_MUX_CONF("f0800000.ideif", ide_clk_parent, 297000000, 1,
-		      0, 0, 0,
+		      CG_PERI_CLK_RATE_REG0_OFFSET, BIT16, WID2,
 		      CG_VIDEO_CLK_DIV_REG_OFFSET, BIT8, WID8,
 		      0, 0, 0,
 		      0, 0, 0,
@@ -1311,15 +1326,17 @@ static int novatek_misc_clk_register(void)
 			pr_err("apb_clk prepare & enable failed!\n");
 	}
 
-	clk = clk_register_fixed_factor(NULL, "pll6div6", "pll6", 0, 1, 6);
-	if (IS_ERR(clk)) {
-		pr_err("%s: failed to register clock hardware \"pll6div6\"\n",
-		       __func__);
-		ret = -EPERM;
-	} else {
-		ret = clk_prepare_enable(clk);
-		if (ret < 0)
-			pr_err("pll6div6 prepare & enable failed!\n");
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		clk = clk_register_fixed_factor(NULL, "pll6div6", "pll6", 0, 1, 6);
+		if (IS_ERR(clk)) {
+			pr_err("%s: failed to register clock hardware \"pll6div6\"\n",
+			       __func__);
+			ret = -EPERM;
+		} else {
+			ret = clk_prepare_enable(clk);
+			if (ret < 0)
+				pr_err("pll6div6 prepare & enable failed!\n");
+		}
 	}
 
 	return ret;
@@ -1369,16 +1386,137 @@ static int novatek_eth_clk_register(void)
 
 }
 
+static int max_freq_node = 0;
+static int freq_index = 0;
+static void nvt_get_max_frequency(struct nvt_composite_mux_clk composite_mux_clks[], int cmux_array_size,
+				struct nvt_composite_gate_clk composite_gate_clks[], int cgate_array_size)
+{
+	int i = 0, j = 0;
+
+	otp_platform_earily_create_resource();
+	if (efuse_check_available_extend(EFUSE_ABILITY_CLK_FREQ , 0x0) == TRUE)
+		freq_index = 1;
+	else
+		freq_index = 0;
+	otp_platform_earily_release_resource();
+
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		max_freq_node = ARRAY_SIZE(nvt_fixed_max_freq);
+
+		for (i = 0; i < cmux_array_size; i++) {
+			composite_mux_clks[i].max_rate = 0;
+			for (j = 0; j < max_freq_node; j++) {
+				if (strncmp(composite_mux_clks[i].name, nvt_fixed_max_freq[j].name, strlen(composite_mux_clks[i].name)) == 0) {
+					composite_mux_clks[i].max_rate = nvt_fixed_max_freq[j].max_freq[freq_index];
+				}
+			}
+		}
+
+		for (i = 0; i < cgate_array_size; i++) {
+			composite_gate_clks[i].max_rate = 0;
+			for (j = 0; j < max_freq_node; j++) {
+				if (strncmp(composite_gate_clks[i].name, nvt_fixed_max_freq[j].name, strlen(composite_gate_clks[i].name)) == 0) {
+					composite_gate_clks[i].max_rate = nvt_fixed_max_freq[j].max_freq[freq_index];
+				}
+			}
+		}
+	} else {
+		max_freq_node = ARRAY_SIZE(nvt_fixed_max_freq_528);
+
+		for (i = 0; i < cmux_array_size; i++) {
+			composite_mux_clks[i].max_rate = 0;
+			for (j = 0; j < max_freq_node; j++) {
+				if (strncmp(composite_mux_clks[i].name, nvt_fixed_max_freq_528[j].name, strlen(composite_mux_clks[i].name)) == 0) {
+					composite_mux_clks[i].max_rate = nvt_fixed_max_freq_528[j].max_freq[freq_index];
+				}
+			}
+		}
+
+		for (i = 0; i < cgate_array_size; i++) {
+			composite_gate_clks[i].max_rate = 0;
+			for (j = 0; j < max_freq_node; j++) {
+				if (strncmp(composite_gate_clks[i].name, nvt_fixed_max_freq_528[j].name, strlen(composite_gate_clks[i].name)) == 0) {
+					composite_gate_clks[i].max_rate = nvt_fixed_max_freq_528[j].max_freq[freq_index];
+				}
+			}
+		}
+	}
+}
+
+int nvt_get_max_freq_node(void)
+{
+	return max_freq_node;
+}
+
+void nvt_get_max_freq_info(int index, char *name, int *freq)
+{
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		strncpy(name, nvt_fixed_max_freq[index].name, CLK_NAME_STR_SIZE);
+		*freq = nvt_fixed_max_freq[index].max_freq[freq_index];
+	} else {
+		strncpy(name, nvt_fixed_max_freq_528[index].name, CLK_NAME_STR_SIZE);
+		*freq = nvt_fixed_max_freq_528[index].max_freq[freq_index];
+	}
+}
+
+static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks[], int cmux_array_size,
+				struct nvt_composite_gate_clk composite_gate_clks[], int cgate_array_size)
+{
+	struct device_node *node, *keeper_node;
+	int i, j, keeper_count = 0;
+	struct nvt_clk_rate_keeper *keeper;
+	const char *name_ptr = NULL;
+
+	keeper = kzalloc(CLK_NAME_STR_CNT * sizeof(struct nvt_clk_rate_keeper), GFP_KERNEL);
+	node = of_find_node_by_path("/cg_keeper@0");
+	if (node) {
+		for_each_child_of_node(node, keeper_node) {
+			name_ptr = keeper[keeper_count].name;
+			if (!of_property_read_string(keeper_node, "keeper_name", &name_ptr)) {
+				strncpy(keeper[keeper_count].name, name_ptr, CLK_NAME_STR_SIZE);
+				keeper_count++;
+				if (keeper_count == CLK_NAME_STR_CNT) {
+					pr_err("exceed keeper limitation");
+					break;
+				}
+			}
+		}
+	}
+
+	for (i = 0; i < cmux_array_size; i++) {
+		composite_mux_clks[i].keep_rate = 0;
+		for (j = 0; j < keeper_count; j++) {
+			if (strncmp(composite_mux_clks[i].name, keeper[j].name, strlen(keeper[j].name)) == 0) {
+				composite_mux_clks[i].keep_rate = 1;
+			}
+		}
+	}
+
+	for (i = 0; i < cgate_array_size; i++) {
+		composite_gate_clks[i].keep_rate = 0;
+		for (j = 0; j < keeper_count; j++) {
+			if (strncmp(composite_gate_clks[i].name, keeper[j].name, strlen(keeper[j].name)) == 0) {
+				composite_gate_clks[i].keep_rate = 1;
+			}
+		}
+	}
+}
+
 static void __init novatek_clock_init(struct device_node *node)
 {
 	int ret;
 	int fastboot_init = 0;
+	int logoboot_init = 0;
 
 	pr_info("novatek_clock_init\n");
 
 	fastboot_init = fastboot_determination();
 
 	nvt_fastboot_detect(fastboot_init);
+
+	logoboot_init = logoboot_determination();
+
+	nvt_logoboot_detect(logoboot_init);
 
 	spin_lock_init(&cg_lock);
 
@@ -1413,6 +1551,12 @@ static void __init novatek_clock_init(struct device_node *node)
 	ret = novatek_misc_clk_register();
 	if (ret < 0)
 		pr_err("Failed to register misc clk!\n");
+
+	nvt_get_max_frequency(novatek_cmux_clk, ARRAY_SIZE(novatek_cmux_clk),
+			novatek_cgate_clk, ARRAY_SIZE(novatek_cgate_clk));
+
+	nvt_get_keeper_array(novatek_cmux_clk, ARRAY_SIZE(novatek_cmux_clk),
+			novatek_cgate_clk, ARRAY_SIZE(novatek_cgate_clk));
 
 	ret =
 	    nvt_composite_gate_clk_register(novatek_cgate_clk,

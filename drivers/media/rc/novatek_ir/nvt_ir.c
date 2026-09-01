@@ -27,7 +27,7 @@
 
 #include <plat/top.h>
 
-#define DRIVER_VERSION		"2.0.1"
+#define DRIVER_VERSION		"2.0.2"
 
 #define DRIVER_NAME		"nvt_ir"
 

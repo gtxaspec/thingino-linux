@@ -32,6 +32,7 @@
 #define MAX_ARG_NUM     6
 
 extern u32 top_reg_addr;
+extern UINT32 efuse_getPkgVersion(void);
 
 typedef struct proc_pinmux {
 	struct proc_dir_entry *pproc_module_root;
@@ -41,6 +42,7 @@ typedef struct proc_pinmux {
 	struct proc_dir_entry *pproc_gpio_entry;
 	struct proc_dir_entry *pproc_efuse_entry;
 	struct proc_dir_entry *pproc_chipid_entry;
+	struct proc_dir_entry *pproc_packageid_entry;
 	struct proc_dir_entry *pproc_version_entry;
 } proc_pinmux_t;
 proc_pinmux_t proc_pinmux;
@@ -591,6 +593,30 @@ static struct file_operations proc_help_fops = {
 };
 
 /*=============================================================================
+ * proc "package_id" file operation functions
+ *=============================================================================
+ */
+static int nvt_pinmux_proc_packageid_show(struct seq_file *sfile, void *v)
+{
+	seq_printf(sfile, "0x%x\n", efuse_getPkgVersion());
+	return 0;
+}
+
+static int nvt_pinmux_proc_packageid_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, nvt_pinmux_proc_packageid_show, NULL);
+}
+
+static struct file_operations proc_package_fops = {
+	.owner  = THIS_MODULE,
+	.open   = nvt_pinmux_proc_packageid_open,
+	.release = single_release,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+};
+
+
+/*=============================================================================
  * proc "chip_id" file operation functions
  *=============================================================================
  */
@@ -697,6 +723,14 @@ int nvt_pinmux_proc_init(void)
 		goto remove_proc;
 	}
 	proc_pinmux.pproc_chipid_entry = pentry;
+
+	pentry = proc_create("package_id", S_IRUGO | S_IXUGO, pmodule_root, &proc_package_fops);
+	if (pentry == NULL) {
+		pr_err("failed to create proc efuse!\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_pinmux.pproc_packageid_entry = pentry;
 
 	pentry = proc_create("version", S_IRUGO | S_IXUGO, pmodule_root, &proc_version_fops);
 	if (pentry == NULL) {

@@ -83,7 +83,7 @@
  *
  */
 
-#define DRV_VERSION		"1.05.000"
+#define DRV_VERSION		"1.05.010"
 
 #define loc_cpu(lock, flags) spin_lock_irqsave(lock, flags)
 #define unl_cpu(lock, flags) spin_unlock_irqrestore(lock, flags)
@@ -287,8 +287,13 @@ static u64 nvt_gpio_int_get_status(struct nvt_gpio_chip *chip)
 	/* To read the CPU interrupt status */
 	reg = GPIO_GETREG(NVT_GPIO_STS_CPU);
 
-	/* To read DGPIO interrupt status, only provide DGPIO0~DGPIO31 */
-	reg |= ((u64)GPIO_GETREG(NVT_DGPIO_STS_CPU) & 0x1fff) << 32;
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		/* To read DGPIO interrupt status, only provide DGPIO0~DGPIO11 */
+		reg |= ((u64)GPIO_GETREG(NVT_DGPIO_STS_CPU) & 0x1fff) << 32;
+	} else {
+		/* To read DGPIO interrupt status, only provide DGPIO0~DGPIO31 */
+		reg |= ((u64)GPIO_GETREG(NVT_DGPIO_STS_CPU)) << 32;
+	}
 
 	/* The irq_request_record will record request_threaded_irq applied irq
 	number, the driver is only used to handle these number */

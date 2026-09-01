@@ -468,17 +468,22 @@ static int DWC_ETH_QOS_init_phy(struct net_device *dev)
 	snprintf(phy_id_fmt, MII_BUS_ID_SIZE + 3, PHY_ID_FMT, bus_id,
 		 pdata->phyaddr);
 
-	DBGPR_MDIO("trying to attach to %s\n", phy_id_fmt);
-
-	phydev = phy_connect(dev, phy_id_fmt, &DWC_ETH_QOS_adjust_link,
-			     pdata->interface);
+	if (pdata->phy_node) {
+		printk("%s: trying to attach fixed phy\r\n", __func__);
+		phydev = of_phy_connect(dev, pdata->phy_node,
+			&DWC_ETH_QOS_adjust_link, 0, pdata->interface);
+	} else {
+		DBGPR_MDIO("trying to attach to %s\n", phy_id_fmt);
+		phydev = phy_connect(dev, phy_id_fmt, &DWC_ETH_QOS_adjust_link,
+				     pdata->interface);
+	}
 
 	if (IS_ERR(phydev)) {
 		printk(KERN_ALERT "%s: Could not attach to PHY\n", dev->name);
 		return PTR_ERR(phydev);
 	}
 
-	if (phydev->phy_id == 0) {
+	if (!pdata->phy_node && phydev->phy_id == 0) {
 		phy_disconnect(phydev);
 		return -ENODEV;
 	}

@@ -1091,7 +1091,8 @@ static unsigned int DWC_ETH_QOS_map_skb(struct net_device *dev,
 			"(VLAN Context descriptor)\n\n", index);
 		INCR_TX_DESC_INDEX(index, 1);
 		buffer = GET_TX_BUF_PTR(qInx, index);
-	} else if ((vartso_enable == 0x1) && (desc_data->default_mss != tx_pkt_features->mss)) {
+	}
+	if ((vartso_enable == 0x1) && (desc_data->default_mss != tx_pkt_features->mss)) {
 		/* keep space for CONTEXT descriptor in the RING */
 		INCR_TX_DESC_INDEX(index, 1);
 		buffer = GET_TX_BUF_PTR(qInx, index);

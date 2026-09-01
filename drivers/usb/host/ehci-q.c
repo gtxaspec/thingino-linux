@@ -549,6 +549,18 @@ halt:
 
 		/* reinit the xacterr counter for the next qtd */
 		qh->xacterrs = 0;
+
+
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+                /*CX transfer: Status stage shall not have PING bit set*/
+                if ((usb_pipetype(urb->pipe) == PIPE_CONTROL) &&
+                    (token & QTD_IOC) && (token & QTD_STS_PING)) {
+                        token &= ~QTD_STS_PING;
+                        qtd->hw_token = cpu_to_hc32(ehci, token);
+                        wmb();
+                        hw->hw_token = cpu_to_hc32(ehci, token);
+                }
+#endif
 	}
 
 	/* last urb's completion might still need calling */

@@ -41,6 +41,19 @@ static int enable_erase_cnt = 0;
 static u32 erase_count[4096] = {};
 static u32 total_block_cnt = 0;
 
+typedef struct nand_2plane_id {
+	char    *name;
+	int     mfr_id;
+	int     dev_id;
+} NAND_2PLANE_ID;
+
+static NAND_2PLANE_ID nand_2plane_list[] = {
+	// flash name / Manufacturer ID / Device ID
+	{ "MXIC_MX35LF2G14AC",		0xC2,	0x20	},
+	{ "MICRON_MT29F2G01AB",		0x2C,	0x24	}
+};
+#define NUM_OF_2PLANE_ID (sizeof(nand_2plane_list) / sizeof(NAND_2PLANE_ID))
+
 #define MAX_CMD_LENGTH 30
 #define MAX_ARG_NUM     6
 
@@ -410,6 +423,18 @@ static struct nand_flash_dev spinand_flash_ids[] = {
 	{"XT26G04A 4GiB 3.3V",
 		{ .id = {MFG_ID_XTX, 0xE3} },
 		SZ_2K, SZ_512, SZ_256K, 0, 2, 64 },
+	// XTX 1G
+	{"XT26G01B 1GiB 3.3V",
+		{ .id = {MFG_ID_XTX, 0xF1} },
+		SZ_2K, SZ_128, SZ_128K, 0, 2, 64 },
+	// XTX 1G
+	{"XT26G01C 1GiB 3.3V",
+		{ .id = {MFG_ID_XTX, 0x11} },
+		SZ_2K, SZ_128, SZ_128K, 0, 2, 64 },
+	// GigaDevice 4G
+	{"GD5F4GQ4UAYIG 4GiB 3.3V",
+		{ .id = {MFG_ID_GD, 0xF4} },
+		SZ_2K, SZ_512, SZ_128K, 0, 2, 64 },    
 };
 
 #ifdef CONFIG_MTD_SPINAND_HWECC
@@ -682,6 +707,13 @@ static int drv_nand_reset(struct drv_nand_dev_info *info, struct platform_device
 		pad_set_drivingsink(PAD_DS_CGPIO3, PAD_DRIVINGSINK_10MA);
 		pad_set_drivingsink(PAD_DS_CGPIO8, PAD_DRIVINGSINK_16MA);
 		pad_set_drivingsink(PAD_DS_CGPIO10, PAD_DRIVINGSINK_10MA);
+	} else if (nvt_get_chip_id() == CHIP_NA51089) {
+		pad_set_drivingsink(PAD_DS_CGPIO0, PAD_DRIVINGSINK_8MA);
+		pad_set_drivingsink(PAD_DS_CGPIO1, PAD_DRIVINGSINK_8MA);
+		pad_set_drivingsink(PAD_DS_CGPIO2, PAD_DRIVINGSINK_8MA);
+		pad_set_drivingsink(PAD_DS_CGPIO3, PAD_DRIVINGSINK_8MA);
+		pad_set_drivingsink(PAD_DS_CGPIO8, PAD_DRIVINGSINK_8MA);
+		pad_set_drivingsink(PAD_DS_CGPIO10, PAD_DRIVINGSINK_8MA);
 	} else {
 		pad_set_drivingsink(PAD_DS_CGPIO0, PAD_DRIVINGSINK_4MA);
 		pad_set_drivingsink(PAD_DS_CGPIO1, PAD_DRIVINGSINK_4MA);
@@ -706,6 +738,7 @@ static int spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 {
 	struct drv_nand_dev_info *info = nand_get_controller_data(chip);
 	u8 status = 0, chip_id = info->flash_info->chip_id & 0xFF;
+	u8 dev_id = (info->flash_info->chip_id >> 8) & 0xFF;
 	u32 full_id = info->flash_info->chip_id;
 	int ret = 0, count = 0, i = 0;
 
@@ -738,12 +771,39 @@ static int spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 				mtd->ecc_stats.corrected += count;
 				ret = count;
 			} else if (chip_id == MFG_ID_XTX) {
-				status = nand_cmd_read_status(info, \
-					NAND_SPI_STS_FEATURE_3);
+				if (dev_id == (XTX_XT26G01C>>8)) {
+					status = nand_cmd_read_status(info, \
+						NAND_SPI_STS_FEATURE_3);
 
-				count = (status >> 2) & 0xF;
-				mtd->ecc_stats.corrected += count;
-				ret = count;
+					// ECC sts = b[7..4]
+					count = (status >> 4) & 0xF;
+					mtd->ecc_stats.corrected += count;
+					ret = count;
+				} else {
+					status = nand_cmd_read_status(info, \
+						NAND_SPI_STS_FEATURE_3);
+
+					count = (status >> 2) & 0xF;
+					mtd->ecc_stats.corrected += count;
+					ret = count;
+				}
+            } else if (chip_id == MFG_ID_MICRON) {
+                status = nand_cmd_read_status(info, \
+    				NAND_SPI_STS_FEATURE_3);
+
+                if (((status >> 4) & 0x7) == 0) {
+                    mutex_unlock(&info->lock);
+    	            return 0;
+                } else if (((status >> 4) & 0x7) == 0x1) {
+                    count = 1;
+                } else if (((status >> 4) & 0x7) == 0x3) {
+                    count = 6;
+                } else {
+                    count = 8;
+                }
+
+    			mtd->ecc_stats.corrected += count;
+    			ret = count;
 			} else {
 				mtd->ecc_stats.corrected++;
 				ret = 1;
@@ -800,11 +860,19 @@ static int drv_nand_read_id(struct drv_nand_dev_info *info, uint32_t *id)
 				info->flash_info->block_size = spinand_flash_ids[i].erasesize;
 				info->flash_info->page_per_block = \
 					(spinand_flash_ids[i].erasesize / spinand_flash_ids[i].pagesize);
+                info->nand_chip.ecc.strength = spinand_flash_ids[i].ecc.strength_ds;
 				break;
 			}
 		}
 		*id = card_id[0] | (card_id[1] << 8) | (card_id[2] << 16) | \
 			(card_id[3] << 24);
+
+		if ((*id & 0xFFFF) == XTX_XT26G01C) {
+			//pr_debug("Flash is XT26G01C, use special ecc_sts type. \n");
+			info->ecc_status_type = 1;
+		} else {
+			info->ecc_status_type = 0;
+		}
 
 		ret = E_OK;
 	}
@@ -1058,6 +1126,20 @@ static int drv_nand_ecc_correct(struct mtd_info *mtd,
 }
 #endif
 
+static int nvt_nand_scan_2plane_id(uint32_t id)
+{
+	int32_t i, read_id, flash_id;
+
+	read_id = (id & 0x0000FFFF);
+	
+	for (i = 0 ; i < NUM_OF_2PLANE_ID; i++) {
+		flash_id = (nand_2plane_list[i].mfr_id + (nand_2plane_list[i].dev_id << 8));
+		if (read_id == flash_id)
+			return 1;
+    }
+	return 0;
+}
+
 static int drv_nand_identify(struct drv_nand_dev_info *info)
 {
 	uint32_t id;
@@ -1084,11 +1166,11 @@ static int drv_nand_identify(struct drv_nand_dev_info *info)
 
 	total_block_cnt = info->flash_info->num_blocks;
 	
-	if ((info->flash_info->chip_id == MXIC_MX35LF2G14AC) || \
-		(info->flash_info->chip_id == MICRON_MT29F2G01AB))
+	if (nvt_nand_scan_2plane_id(id) == 1) {
 		info->flash_info->plane_flags = 1;
-	else
+	} else {
 		info->flash_info->plane_flags = 0;
+	}
 
 	mutex_lock(&info->lock);
 	status = nand_cmd_read_status(info, NAND_SPI_STS_FEATURE_2);
@@ -1154,7 +1236,9 @@ static void spinand_init_mtd(struct drv_nand_dev_info *info)
 	chip->ecc.bytes	= 0x8;
 	chip->ecc.steps	= 0x4;
 
-	chip->ecc.strength = 1;
+    if (!chip->ecc.strength) {
+	    chip->ecc.strength = 4;
+    }
 	chip->ecc.total	= chip->ecc.steps * chip->ecc.bytes;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
 	if (chip_id == MFG_ID_ETRON)
@@ -1311,9 +1395,16 @@ static int spinand_probe(struct platform_device *pdev)
 				mtd->bitflip_threshold = 6;
 			} else
 				mtd->bitflip_threshold = 1;
-		} else if ((chip_id == MFG_ID_MXIC) || (chip_id == MFG_ID_MICRON)) {
+		} else if (chip_id == MFG_ID_MXIC) {
 			info->nand_chip.ecc.strength = 4;
 			mtd->bitflip_threshold = 3;
+        } else if (chip_id == MFG_ID_MICRON) {
+            if (((info->flash_info->chip_id) & 0xFFFF) == MICRON_MT29F1G01AA) {
+                mtd->bitflip_threshold = 1;
+            } else {
+                info->nand_chip.ecc.strength = 8;
+        		mtd->bitflip_threshold = 6;
+            }
 		} else if (chip_id == MFG_ID_TOSHIBA) {
 			if (info->flash_info->page_size == 4096) {
 				info->nand_chip.ecc.strength = 8;
@@ -1325,8 +1416,9 @@ static int spinand_probe(struct platform_device *pdev)
 		} else if (chip_id == MFG_ID_XTX) {
 			info->nand_chip.ecc.strength = 8;
 			mtd->bitflip_threshold = 6;
-		} else
-			mtd->bitflip_threshold = 8;
+		} else {
+            mtd->bitflip_threshold = DIV_ROUND_UP(info->nand_chip.ecc.strength * 3, 4);
+		}
 	}
 
 #ifndef CONFIG_FLASH_ONLY_DUAL
@@ -1463,5 +1555,5 @@ module_exit(spinand_exit);
 MODULE_DESCRIPTION("SPI NAND driver");
 MODULE_AUTHOR("Howard Chang");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.04.170");
+MODULE_VERSION("1.04.230");
 

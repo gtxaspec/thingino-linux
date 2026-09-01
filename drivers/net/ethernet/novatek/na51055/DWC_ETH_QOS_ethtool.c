@@ -265,6 +265,9 @@ static const struct ethtool_ops DWC_ETH_QOS_ethtool_ops = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,13,00)
 	.get_settings = DWC_ETH_QOS_getsettings,
 	.set_settings = DWC_ETH_QOS_setsettings,
+#else
+	.get_link_ksettings = DWC_ETH_QOS_get_link_settings,
+	.set_link_ksettings = DWC_ETH_QOS_set_link_settings,
 #endif
 	.get_wol = DWC_ETH_QOS_get_wol,
 	.set_wol = DWC_ETH_QOS_set_wol,
@@ -585,6 +588,194 @@ static int DWC_ETH_QOS_setsettings(struct net_device *dev,
         mutex_lock(&pdata->ethtool_lock);
 		ret = phy_ethtool_sset(pdata->phydev, cmd);
         mutex_unlock(&pdata->ethtool_lock);
+	}
+
+	printk(KERN_ALERT "<--DWC_ETH_QOS_setsettings\n");
+
+	return ret;
+}
+#else
+/*!
+ * \details This function is invoked by kernel when user request to get the
+ * various device settings through standard ethtool command. This function
+ * support to get the PHY related settings like link status, interface type,
+ * auto-negotiation parameters and pause parameters etc.
+ *
+ * \param[in] dev – pointer to net device structure.
+ * \param[in] cmd – pointer to ethtool_cmd structure.
+ *
+ * \return int
+ *
+ * \retval zero on success and -ve number on failure.
+ */
+#define SPEED_UNKNOWN -1
+#define DUPLEX_UNKNOWN 0xff
+static int DWC_ETH_QOS_get_link_settings(struct net_device *dev,
+				   struct ethtool_link_ksettings *cmd)
+{
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+	unsigned int pause, duplex;
+	unsigned int lp_pause, lp_duplex;
+	int ret = 0;
+
+	DBGPR("-->DWC_ETH_QOS_getsettings\n");
+
+	if (pdata->hw_feat.pcs_sel) {
+		u32 advertising, supported, lp_advertising;
+
+		if (!pdata->pcs_link) {
+//			ethtool_cmd_speed_set(cmd, SPEED_UNKNOWN);
+			cmd->base.speed = SPEED_UNKNOWN;
+			cmd->base.duplex = DUPLEX_UNKNOWN;
+			return 0;
+		}
+		ethtool_convert_link_mode_to_legacy_u32(
+			&supported, cmd->link_modes.supported);
+		ethtool_convert_link_mode_to_legacy_u32(
+			&advertising, cmd->link_modes.advertising);
+		ethtool_convert_link_mode_to_legacy_u32(
+			&lp_advertising, cmd->link_modes.lp_advertising);
+
+//		ethtool_cmd_speed_set(cmd, pdata->pcs_speed);
+		cmd->base.duplex = pdata->pcs_duplex;
+
+		pause = hw_if->get_an_adv_pause_param();
+		duplex = hw_if->get_an_adv_duplex_param();
+		lp_pause = hw_if->get_lp_an_adv_pause_param();
+		lp_duplex = hw_if->get_lp_an_adv_duplex_param();
+
+		if (pause == 1)
+			advertising |= ADVERTISED_Pause;
+		if (pause == 2)
+			advertising |= ADVERTISED_Asym_Pause;
+		/* MAC always supports Auto-negotiation */
+		cmd->base.autoneg = ADVERTISED_Autoneg;
+		supported |= SUPPORTED_Autoneg;
+		advertising |= ADVERTISED_Autoneg;
+
+		if (duplex) {
+			supported |= (SUPPORTED_1000baseT_Full |
+				SUPPORTED_100baseT_Full |
+				SUPPORTED_10baseT_Full);
+			advertising |= (ADVERTISED_1000baseT_Full |
+				ADVERTISED_100baseT_Full |
+				ADVERTISED_10baseT_Full);
+		} else {
+			supported |= (SUPPORTED_1000baseT_Half |
+				SUPPORTED_100baseT_Half |
+				SUPPORTED_10baseT_Half);
+			advertising |= (ADVERTISED_1000baseT_Half |
+				ADVERTISED_100baseT_Half |
+				ADVERTISED_10baseT_Half);
+		}
+
+		/* link partner features */
+		lp_advertising |= ADVERTISED_Autoneg;
+		if (lp_pause == 1)
+			lp_advertising |= ADVERTISED_Pause;
+		if (lp_pause == 2)
+			lp_advertising |= ADVERTISED_Asym_Pause;
+
+		if (lp_duplex)
+			lp_advertising |= (ADVERTISED_1000baseT_Full |
+				ADVERTISED_100baseT_Full |
+				ADVERTISED_10baseT_Full);
+		else
+			lp_advertising |= (ADVERTISED_1000baseT_Half |
+				ADVERTISED_100baseT_Half |
+				ADVERTISED_10baseT_Half);
+
+		cmd->base.port = PORT_OTHER;
+
+		ethtool_convert_legacy_u32_to_link_mode(
+			cmd->link_modes.supported, supported);
+		ethtool_convert_legacy_u32_to_link_mode(
+			cmd->link_modes.advertising, advertising);
+		ethtool_convert_legacy_u32_to_link_mode(
+			cmd->link_modes.lp_advertising, lp_advertising);
+
+		return 0;
+	} else {
+		if (pdata->phydev == NULL) {
+			printk(KERN_ALERT "%s: PHY is not registered\n", dev->name);
+			return -ENODEV;
+		}
+
+		if (!netif_running(dev)) {
+			printk(KERN_ALERT "%s: interface is disabled: we cannot track "\
+			       "link speed / duplex settings\n", dev->name);
+			return -EBUSY;
+		}
+
+		cmd->base.transceiver = XCVR_EXTERNAL;
+
+		mutex_lock(&pdata->ethtool_lock);
+		phy_ethtool_ksettings_get(pdata->phydev, cmd);
+		mutex_unlock(&pdata->ethtool_lock);
+		ret = 0;
+	}
+
+	DBGPR("<--DWC_ETH_QOS_getsettings\n");
+
+	return ret;
+}
+
+/*!
+ * \details This function is invoked by kernel when user request to set the
+ * various device settings through standard ethtool command. This function
+ * support to set the PHY related settings like link status, interface type,
+ * auto-negotiation parameters and pause parameters etc.
+ *
+ * \param[in] dev – pointer to net device structure.
+ * \param[in] cmd – pointer to ethtool_cmd structure.
+ *
+ * \return int
+ *
+ * \retval zero on success and -ve number on failure.
+ */
+
+static int DWC_ETH_QOS_set_link_settings(struct net_device *dev,
+				   const struct ethtool_link_ksettings *cmd)
+{
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+//	unsigned int speed;
+	//unsigned int pause, duplex, speed;
+	//unsigned int lp_pause, lp_duplex;
+	int ret = 0;
+
+	printk(KERN_ALERT "-->DWC_ETH_QOS_setsettings\n");
+
+	if (pdata->hw_feat.pcs_sel) {
+//		speed = ethtool_cmd_speed(cmd);
+
+		/* verify the settings we care about */
+		if ((cmd->base.autoneg != AUTONEG_ENABLE) &&
+			(cmd->base.autoneg != AUTONEG_DISABLE))
+			return -EINVAL;
+/*
+		if ((cmd->autoneg == AUTONEG_ENABLE) &&
+			(cmd->advertising == 0))
+			return -EINVAL;
+		if ((cmd->autoneg == AUTONEG_DISABLE) &&
+			(speed != SPEED_1000 &&
+			 speed != SPEED_100 &&
+			 speed != SPEED_10) ||
+			(cmd->duplex != DUPLEX_FULL &&
+			 cmd->duplex != DUPLEX_HALF))
+			 return -EINVAL;
+*/
+		spin_lock_irq(&pdata->lock);
+		if (cmd->base.autoneg == AUTONEG_ENABLE)
+			hw_if->control_an(1, 1);
+		else
+			hw_if->control_an(0, 0);
+		spin_unlock_irq(&pdata->lock);
+	} else {
+		mutex_lock(&pdata->ethtool_lock);
+		ret = phy_ethtool_ksettings_set(pdata->phydev, cmd);
+		mutex_unlock(&pdata->ethtool_lock);
 	}
 
 	printk(KERN_ALERT "<--DWC_ETH_QOS_setsettings\n");

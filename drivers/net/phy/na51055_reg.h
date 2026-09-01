@@ -80,6 +80,13 @@
         iowrite32(0x312, (void *)0xFD2B300C);\
 }while(0)
 
+#define set_led_inv() do { \
+        unsigned long v; \
+        v = ioread32((void *)0xFD2B300C); \
+	v &= ~(0x3<<8); \
+        iowrite32(v, (void *)0xFD2B300C);\
+} while (0)
+
 #define set_best_setting() do { \
         unsigned long v; \
         v = ioread32((void *)0xFD2B3AF8); \

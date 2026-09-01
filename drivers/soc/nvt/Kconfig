@@ -31,18 +31,13 @@ config NVT_PROFILER
 	select EVENT_TRACING
 	default n
 
-if NVT_HDAL_BUILD_IN
-source "drivers/soc/nvt/nvt_hdal/Kconfig"
-endif
+config NVT_PERF_MEASURE
+        bool "Enable nvt_perf driver for ivot Linux kernel performance measurement"
+        depends on ARCH_NVT_IVOT_V7 || ARCH_NVT_IVOT_V8
+        default n
+        help
+                Enable nvt_perf driver for ivot Linux kernel performance measurement
 
-config NVT_PROFILER
-	bool "Novatek Profilers"
-	depends on ARCH_NOVATEK
-	depends on ARM || ARM64
-	select KPROBES
-	select KRETPROBES
-	select EVENT_TRACING
-	select IRQSOFF_TRACER
-	default y if ARCH_NOVATEK
+source "drivers/soc/nvt/nvt_hdal/Kconfig"
 
 endmenu

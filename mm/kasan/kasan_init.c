@@ -69,11 +69,7 @@ static inline bool kasan_pmd_table(pud_t pud)
 	return 0;
 }
 #endif
-#ifdef CONFIG_ARM
-pte_t kasan_zero_pte[PTRS_PER_PTE * 2] __page_aligned_bss;
-#else
 pte_t kasan_zero_pte[PTRS_PER_PTE] __page_aligned_bss;
-#endif
 
 static inline bool kasan_pte_table(pmd_t pmd)
 {

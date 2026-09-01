@@ -19,6 +19,8 @@ static uint32_t mipi_lvds_sensor[2] = {0, 0};
 static int mclk_sensor[3] = {0, 0, 0};
 static int mclk2_sensor[2][2] = {{0, 0}, {0, 0}};
 static int sn_mclk_en[2] = {0,0};
+static uint32_t lcd_mask = 0x0;
+static uint32_t lgpio_mask = 0x1ffffff;  /*LCD0 ~ LCD24*/
 
 typedef int (*PINMUX_CONFIG_HDL)(uint32_t);
 
@@ -129,6 +131,21 @@ uint32_t nvt_get_chip_id(void)
 	return top_version.bit.CHIP_ID;
 }
 EXPORT_SYMBOL(nvt_get_chip_id);
+
+static int logo_determination(u32 *lcd_type)
+{
+	u32 m_logo = 0x0;
+	struct device_node* of_node = of_find_node_by_path("/logo");
+
+	if (of_node) {
+        of_property_read_u32(of_node, "enable", &m_logo);
+
+        of_property_read_u32(of_node, "lcd_type", lcd_type);
+	}
+
+	return m_logo;
+}
+
 
 static void gpio_info_show(struct nvt_pinctrl_info *info, u32 gpio_number, u32 start_offset)
 {
@@ -253,6 +270,8 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	union TOP_REG9 local_top_reg9;
 	union TOP_REGSGPIO0 local_top_reg_sgpio0;
 	union TOP_REGHGPIO0 local_top_reg_hgpio0;
+	union TOP_REGDGPIO0 local_top_reg_dgpio0;
+	union TOP_REGPGPIO0 local_top_reg_pgpio0;
 
 	loc_cpu(&top_lock, flags);
 
@@ -268,6 +287,8 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	local_top_reg9.reg = TOP_GETREG(info, TOP_REG9_OFS);
 	local_top_reg_sgpio0.reg = TOP_GETREG(info, TOP_REGSGPIO0_OFS);
 	local_top_reg_hgpio0.reg = TOP_GETREG(info, TOP_REGHGPIO0_OFS);
+	local_top_reg_dgpio0.reg = TOP_GETREG(info, TOP_REGDGPIO0_OFS);
+	local_top_reg_pgpio0.reg = TOP_GETREG(info, TOP_REGPGPIO0_OFS);
 
 
 	/*Parsing SDIO1*/
@@ -368,6 +389,13 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	if ((mipi_lvds_sensor[1] != 0) && (local_top_reg_sgpio0.bit.SGPIO_4 == GPIO_ID_EMUM_FUNC) \
 			&& (local_top_reg_sgpio0.bit.SGPIO_5 == GPIO_ID_EMUM_FUNC))
 		value |= PIN_SENSOR2_CFG_LVDS_VDHD;
+
+	if ((top_reg3.bit.SENSOR2 == SENSOR2_ENUM_CCIR8BITS) && (local_top_reg_pgpio0.bit.PGPIO_11 == GPIO_ID_EMUM_FUNC))
+		value |= PIN_SENSOR2_CFG_CCIR8BITS_FIELD;
+
+	if ((top_reg3.bit.SENSOR2 == SENSOR2_ENUM_CCIR8BITS) && (local_top_reg_pgpio0.bit.PGPIO_9 == GPIO_ID_EMUM_FUNC) \
+			&& (local_top_reg_pgpio0.bit.PGPIO_10 == GPIO_ID_EMUM_FUNC))
+		value |= PIN_SENSOR2_CFG_CCIR8BITS_VDHD;
 
 
 	if ((local_top_reg_sgpio0.bit.SGPIO_0 == GPIO_ID_EMUM_FUNC) && sn_mclk_en[1])
@@ -1072,9 +1100,23 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	switch (local_top_reg6.bit.ETH_LED) {
 	case ETH_LED_ENUM_LED1:
 		value |= PIN_ETH_CFG_INTERANL | PIN_ETH_CFG_LED1;
+		if (local_top_reg_dgpio0.bit.DGPIO_0 == 1) {
+			// 1st is GPIO => 2nd only
+			value |= PIN_ETH_CFG_LED_2ND_ONLY;
+		} else if (local_top_reg_dgpio0.bit.DGPIO_1 == 1) {
+			// 2nd is GPIO => 1st only
+			value |= PIN_ETH_CFG_LED_1ST_ONLY;
+		}
 		break;
 	case ETH_LED_ENUM_LED2:
 		value |= PIN_ETH_CFG_INTERANL | PIN_ETH_CFG_LED2;
+		if (local_top_reg_dgpio0.bit.DGPIO_5 == 1) {
+			// 1st is GPIO => 2nd only
+			value |= PIN_ETH_CFG_LED_2ND_ONLY;
+		} else if (local_top_reg_dgpio0.bit.DGPIO_6 == 1) {
+			// 2nd is GPIO => 1st only
+			value |= PIN_ETH_CFG_LED_1ST_ONLY;
+		}
 		break;
 	default:
 		break;
@@ -1155,6 +1197,9 @@ ER pinmux_init(struct nvt_pinctrl_info *info)
 	uint32_t i, j;
 	int err;
 	unsigned long flags = 0;
+    u32 lcd_type = 0x0;
+	int logoboot = logo_determination(&lcd_type);
+	static int boot_hint = 1;
 
 	/*Assume all PINMUX is GPIO*/
 	top_reg1.reg = 0;
@@ -1177,6 +1222,10 @@ ER pinmux_init(struct nvt_pinctrl_info *info)
 		top_reg_dgpio0.reg = 0x00000783;
 	} else
 		top_reg_dgpio0.reg = 0x000007FF;
+
+	if (boot_hint && logoboot) {
+		top_reg_lgpio0.reg = TOP_GETREG(info, TOP_REGLGPIO0_OFS);
+	}
 
 	/*Enter critical section*/
 	loc_cpu(&top_lock, flags);
@@ -1221,12 +1270,22 @@ ER pinmux_init(struct nvt_pinctrl_info *info)
 	TOP_SETREG(info, TOP_REGCGPIO0_OFS, top_reg_cgpio0.reg);
 	TOP_SETREG(info, TOP_REGPGPIO0_OFS, top_reg_pgpio0.reg);
 	TOP_SETREG(info, TOP_REGSGPIO0_OFS, top_reg_sgpio0.reg);
-	TOP_SETREG(info, TOP_REGLGPIO0_OFS, top_reg_lgpio0.reg);
+	if (lcd_mask & (~top_reg_lgpio0.reg & lgpio_mask)) {
+		pr_err("Conflict with locked LCD, lcd_mask = 0x%x, ~(lgpio0) = 0x%x\r\n", lcd_mask, (~top_reg_lgpio0.reg & lgpio_mask));
+	}
+	TOP_SETREG(info, TOP_REGLGPIO0_OFS, top_reg_lgpio0.reg & (~lcd_mask & lgpio_mask));  /*Lock lcd pin*/
 	TOP_SETREG(info, TOP_REGDGPIO0_OFS, top_reg_dgpio0.reg);
 	TOP_SETREG(info, TOP_REGHGPIO0_OFS, top_reg_hgpio0.reg);
 
 	/*Leave critical section*/
 	unl_cpu(&top_lock, flags);
+
+    if (boot_hint && logoboot) {
+        pr_info("logoboot enable, lcd_type = %08x\r\n",lcd_type);
+		pinmux_set_config(PINMUX_FUNC_ID_LCD, lcd_type);
+		boot_hint = 0;
+	}
+
 
 	return E_OK;
 }
@@ -1372,15 +1431,6 @@ static int pinmux_config_sdio3(uint32_t config)
 				return E_PAR;
 			}
 
-			if ((top_reg7.bit.PWM0 == PWM_ENUM_PWM_4TH) ||
-				(top_reg7.bit.PWM1 == PWM_ENUM_PWM_4TH) ||
-				(top_reg7.bit.PWM2 == PWM_ENUM_PWM_4TH) ||
-				(top_reg7.bit.PWM3 == PWM_ENUM_PWM_4TH)) {
-
-				pr_err("SDIO3 conflict with PWM0_4 ~PWM3_4 \r\n");
-				return E_PAR;
-			}
-
 			if(top_reg6.bit.AUDIO == AUDIO_ENUM_I2S_2ND_PINMUX) {
 				pr_err("SDIO3 conflict with I2S_2\r\n");
 				return E_PAR;
@@ -1392,6 +1442,32 @@ static int pinmux_config_sdio3(uint32_t config)
 			}
 
 			if (config & PIN_SDIO_CFG_8BITS) {
+				if (nvt_get_chip_id() == CHIP_NA51084) {
+					if (top_reg9.bit.UART4 == UART4_ENUM_2ND_PINMUX) {
+						pr_err("SDIO3 8-bit conflict with UART4_2\r\n");
+						return E_PAR;
+					}
+
+					if(top_reg5.bit.I2C4 == I2C_ENUM_I2C_2ND) {
+						pr_err("SDIO3 8-bit conflict with I2C4_2\r\n");
+						return E_PAR;
+					}
+
+					if(top_reg4.bit.SPI4 == SPI4_2ND_PINMUX) {
+						pr_err("SDIO3 8-bit conflict with SPI4_2\r\n");
+						return E_PAR;
+					}
+				}
+
+				if ((top_reg7.bit.PWM0 == PWM_ENUM_PWM_4TH) ||
+					(top_reg7.bit.PWM1 == PWM_ENUM_PWM_4TH) ||
+					(top_reg7.bit.PWM2 == PWM_ENUM_PWM_4TH) ||
+					(top_reg7.bit.PWM3 == PWM_ENUM_PWM_4TH)) {
+
+					pr_err("SDIO3 8-bit conflict with PWM0_4 ~PWM3_4 \r\n");
+					return E_PAR;
+				}
+
 				top_reg1.bit.SDIO3_BUS_WIDTH = SDIO3_BUS_WIDTH_8BITS;
 
 				top_reg_cgpio0.bit.CGPIO_4 = GPIO_ID_EMUM_FUNC;
@@ -1717,6 +1793,7 @@ static int pinmux_config_sensor2(uint32_t config)
 				PIN_SENSOR2_CFG_CCIR16BITS | PIN_SENSOR2_CFG_MIPI | PIN_SENSOR2_CFG_LVDS);
 		switch (tmp) {
 		case PIN_SENSOR2_CFG_CCIR8BITS:
+		case (PIN_SENSOR2_CFG_CCIR8BITS|PIN_SENSOR2_CFG_MIPI):
 			top_reg_pgpio0.bit.PGPIO_0 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_1 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_2 = GPIO_ID_EMUM_GPIO;
@@ -1726,11 +1803,26 @@ static int pinmux_config_sensor2(uint32_t config)
 			top_reg_pgpio0.bit.PGPIO_6 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_7 = GPIO_ID_EMUM_GPIO;
 			top_reg_pgpio0.bit.PGPIO_8 = GPIO_ID_EMUM_FUNC; // SN2_PXCLK
-			top_reg_pgpio0.bit.PGPIO_9 = GPIO_ID_EMUM_FUNC; // SN2_XVS
-			top_reg_pgpio0.bit.PGPIO_10 = GPIO_ID_EMUM_FUNC; // SN2_XHS
-			top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_FUNC; // SN2_Field
+			top_reg_pgpio0.bit.PGPIO_9 = GPIO_ID_EMUM_GPIO; // SN2_XVS
+			top_reg_pgpio0.bit.PGPIO_10 = GPIO_ID_EMUM_GPIO; // SN2_XHS
+
+			if (config & PIN_SENSOR2_CFG_CCIR8BITS_FIELD) {
+				top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_FUNC; // SN2_Field
+			} else {
+				top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_GPIO; // SN2_Field
+			}
+
+                        if (config & PIN_SENSOR2_CFG_CCIR8BITS_VDHD) {
+				top_reg_pgpio0.bit.PGPIO_9 = GPIO_ID_EMUM_FUNC; // SN2_XVS
+				top_reg_pgpio0.bit.PGPIO_10 = GPIO_ID_EMUM_FUNC; // SN2_XHS
+			}
 
 			top_reg3.bit.SENSOR2 = SENSOR2_ENUM_CCIR8BITS;
+
+			if(tmp&PIN_SENSOR2_CFG_MIPI){
+				top_reg3.bit.SENSOR = SENSOR_ENUM_CSIMODE;
+				mipi_lvds_sensor[1] = PIN_SENSOR2_CFG_MIPI;
+			}
 			break;
 		case PIN_SENSOR2_CFG_12BITS:
 			top_reg_pgpio0.bit.PGPIO_0 = GPIO_ID_EMUM_GPIO;
@@ -1759,12 +1851,12 @@ static int pinmux_config_sensor2(uint32_t config)
 			}
 			break;
 		case PIN_SENSOR2_CFG_MIPI:
-			top_reg3.bit.SENSOR = SENSOR_ENUM_CSIMODE;
+			//top_reg3.bit.SENSOR = SENSOR_ENUM_CSIMODE;
 			mipi_lvds_sensor[1] = PIN_SENSOR2_CFG_MIPI;
 			break;
 
 		case PIN_SENSOR2_CFG_LVDS:
-			top_reg3.bit.SENSOR = SENSOR_ENUM_CSIMODE;
+			//top_reg3.bit.SENSOR = SENSOR_ENUM_CSIMODE;
 			mipi_lvds_sensor[1] = PIN_SENSOR2_CFG_LVDS;
 			break;
 
@@ -2006,12 +2098,41 @@ static int pinmux_config_i2c(uint32_t config)
 		if (nvt_get_chip_id() == CHIP_NA51084) {
 
 			if (config & PIN_I2C_CFG_CH4) {
+
+				if(top_reg7.bit.PI_CNT == PICNT_ENUM_PICNT) {
+					pr_err("I2C4_1 conflict with PICNT_1\r\n");
+					return E_PAR;
+				}
+
 				top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_FUNC;
 				top_reg_pgpio0.bit.PGPIO_12 = GPIO_ID_EMUM_FUNC;
 				top_reg5.bit.I2C4 = I2C_ENUM_I2C;
 			}
 
 			if (config & PIN_I2C_CFG_CH4_2ND_PINMUX) {
+
+				if (top_reg9.bit.UART4_CTSRTS == UART_CTSRTS_PINMUX) {
+					pr_err("I2C4_2 conflict with UART4_2 CTSRTS\r\n");
+					return E_PAR;
+				}
+
+				if(top_reg1.bit.SDIO3_BUS_WIDTH == SDIO3_BUS_WIDTH_8BITS) {
+					pr_err("I2C4_2 conflict with SDIO3 8bit\r\n");
+					return E_PAR;
+				}
+
+				if(top_reg4.bit.SPI4 == SPI4_2ND_PINMUX) {
+					pr_err("I2C4_2 conflict with SPI4_2\r\n");
+					return E_PAR;
+				}
+
+				if (	(top_reg7.bit.PWM2 == PWM_ENUM_PWM_4TH) ||
+					(top_reg7.bit.PWM3 == PWM_ENUM_PWM_4TH)) {
+
+					pr_err("I2C4_2 conflict with PWM2_4 ~PWM3_4 \r\n");
+					return E_PAR;
+				}
+
 				top_reg_cgpio0.bit.CGPIO_6 = GPIO_ID_EMUM_FUNC;
 				top_reg_cgpio0.bit.CGPIO_7 = GPIO_ID_EMUM_FUNC;
 				top_reg5.bit.I2C4 = I2C_ENUM_I2C_2ND;
@@ -2024,6 +2145,12 @@ static int pinmux_config_i2c(uint32_t config)
 			}
 
 			if (config & PIN_I2C_CFG_CH5_2ND_PINMUX) {
+
+				if(top_reg9.bit.UART5_CTSRTS != UART_CTSRTS_GPIO) {
+					pr_err("I2C5_2 conflict with UART5_2 CTSRTS \r\n");
+					return E_PAR;
+				}
+
 				top_reg_dgpio0.bit.DGPIO_17 = GPIO_ID_EMUM_FUNC;
 				top_reg_dgpio0.bit.DGPIO_18 = GPIO_ID_EMUM_FUNC;
 
@@ -2383,16 +2510,57 @@ static int pinmux_config_uart(uint32_t config)
 
 		if (config & PIN_UART_CFG_CH4) {
 			if (config & PIN_UART_CFG_CH4_2ND) {
-                if (config & PIN_UART_CFG_CH4_CTSRTS) {
+				if (config & PIN_UART_CFG_CH4_CTSRTS) {
+					if(top_reg5.bit.I2C4 == I2C_ENUM_I2C_2ND) {
+						pr_err("UART4_2 RTSCTS conflict with I2C4_2\r\n");
+						return E_PAR;
+					}
+
+					if (	(top_reg7.bit.PWM2 == PWM_ENUM_PWM_4TH) ||
+						(top_reg7.bit.PWM3 == PWM_ENUM_PWM_4TH)) {
+
+						pr_err("UART4_2 RTSCTS conflict with PWM2_4 ~PWM3_4 \r\n");
+						return E_PAR;
+					}
+
 					top_reg_cgpio0.bit.CGPIO_6 = GPIO_ID_EMUM_FUNC;
 					top_reg_cgpio0.bit.CGPIO_7 = GPIO_ID_EMUM_FUNC;
 					top_reg9.bit.UART4_CTSRTS = UART_CTSRTS_PINMUX;
 				}
 
 				if (config & PIN_UART_CFG_CH4_DIROE) {
-					top_reg_cgpio0.bit.CGPIO_6 = GPIO_ID_EMUM_FUNC;
 
+					if (top_reg7.bit.PWM2 == PWM_ENUM_PWM_4TH) {
+
+						pr_err("UART4_2 DIROE conflict with PWM2_4 \r\n");
+						return E_PAR;
+					}
+
+					if(top_reg5.bit.I2C4 == I2C_ENUM_I2C_2ND) {
+						pr_err("UART4_2 DIROE conflict with I2C4_2\r\n");
+						return E_PAR;
+					}
+
+					top_reg_cgpio0.bit.CGPIO_6 = GPIO_ID_EMUM_FUNC;
 					top_reg9.bit.UART4_CTSRTS = UART_CTSRTS_DIROE;
+				}
+
+
+				if(top_reg1.bit.SDIO3_BUS_WIDTH == SDIO3_BUS_WIDTH_8BITS) {
+					pr_err("UART4_2 conflict with SDIO3 8bit\r\n");
+					return E_PAR;
+				}
+
+				if(top_reg4.bit.SPI4 == SPI4_2ND_PINMUX) {
+					pr_err("UART4_2 conflict with SPI4_2\r\n");
+					return E_PAR;
+				}
+
+				if (	(top_reg7.bit.PWM0 == PWM_ENUM_PWM_4TH) ||
+					(top_reg7.bit.PWM1 == PWM_ENUM_PWM_4TH)) {
+
+					pr_err("UART4_2 conflict with PWM0_4 ~PWM1_4 \r\n");
+					return E_PAR;
 				}
 
 				top_reg_cgpio0.bit.CGPIO_4 = GPIO_ID_EMUM_FUNC;
@@ -2417,17 +2585,24 @@ static int pinmux_config_uart(uint32_t config)
 			}
 		}
 
-        if (config & PIN_UART_CFG_CH5) {
+		if (config & PIN_UART_CFG_CH5) {
 			if (config & PIN_UART_CFG_CH5_2ND) {
-                if (config & PIN_UART_CFG_CH5_CTSRTS) {
+				if (config & PIN_UART_CFG_CH5_CTSRTS) {
+					if(top_reg4.bit.I2C5 == I2C_ENUM_I2C_2ND) {
+						pr_err("UART5_2 CTSRTS conflict with I2C5_2\r\n");
+						return E_PAR;
+					}
 					top_reg_dgpio0.bit.DGPIO_17 = GPIO_ID_EMUM_FUNC;
 					top_reg_dgpio0.bit.DGPIO_18 = GPIO_ID_EMUM_FUNC;
 					top_reg9.bit.UART5_CTSRTS = UART_CTSRTS_PINMUX;
 				}
 
 				if (config & PIN_UART_CFG_CH5_DIROE) {
+					if(top_reg4.bit.I2C5 == I2C_ENUM_I2C_2ND) {
+						pr_err("UART5_2 DIROE conflict with I2C5_2\r\n");
+						return E_PAR;
+					}
 					top_reg_dgpio0.bit.DGPIO_17 = GPIO_ID_EMUM_FUNC;
-
 					top_reg9.bit.UART5_CTSRTS = UART_CTSRTS_DIROE;
 				}
 
@@ -2453,9 +2628,9 @@ static int pinmux_config_uart(uint32_t config)
 			}
 		}
 
-        if (config & PIN_UART_CFG_CH6) {
+		if (config & PIN_UART_CFG_CH6) {
 			if (config & PIN_UART_CFG_CH6_2ND) {
-                if (config & PIN_UART_CFG_CH6_CTSRTS) {
+				if (config & PIN_UART_CFG_CH6_CTSRTS) {
 					pr_err("CHIP_NA51084 not support UART6_2 flow control\r\n");
 				}
 
@@ -2780,7 +2955,7 @@ static int pinmux_config_spi(uint32_t config)
 
 					top_reg4.bit.SPI4 = SPI4_2ND_PINMUX;
 				} else {
-					if (config & PIN_SPI_CFG_CH2_2BITS) {
+					if (config & PIN_SPI_CFG_CH4_2BITS) {
 						top_reg_pgpio0.bit.PGPIO_3 = GPIO_ID_EMUM_FUNC;
 						top_reg4.bit.SPI4_DAT = SPI_DAT_ENUM_2BIT;
 					}
@@ -2816,8 +2991,6 @@ static int pinmux_config_spi(uint32_t config)
 					top_reg4.bit.SPI5 = SPI5_1ST_PINMUX;
 				}
 			}
-
-
        	}else {
 		if (config & (PIN_SPI_CFG_CH4 | PIN_SPI_CFG_CH4_2ND_PINMUX | PIN_SPI_CFG_CH4_2BITS | PIN_SPI_CFG_CH4_RDY)) {
 			pr_err("Not support SPI4\r\n");
@@ -3445,12 +3618,24 @@ static int pinmux_config_eth(uint32_t config)
 	if (config == PIN_ETH_CFG_NONE) {
 	} else if (config & PIN_ETH_CFG_INTERANL) {
 		if (config & PIN_ETH_CFG_LED1) {
-			top_reg_dgpio0.bit.DGPIO_0 = GPIO_ID_EMUM_FUNC;
-			top_reg_dgpio0.bit.DGPIO_1 = GPIO_ID_EMUM_FUNC;
+			if (config & PIN_ETH_CFG_LED_1ST_ONLY) {
+				top_reg_dgpio0.bit.DGPIO_0 = GPIO_ID_EMUM_FUNC;
+			} else if (config & PIN_ETH_CFG_LED_2ND_ONLY) {
+				top_reg_dgpio0.bit.DGPIO_1 = GPIO_ID_EMUM_FUNC;
+			} else {
+				top_reg_dgpio0.bit.DGPIO_0 = GPIO_ID_EMUM_FUNC;
+				top_reg_dgpio0.bit.DGPIO_1 = GPIO_ID_EMUM_FUNC;
+			}
 			top_reg6.bit.ETH_LED = ETH_LED_ENUM_LED1;
 		} else if (config & PIN_ETH_CFG_LED2) {
-			top_reg_dgpio0.bit.DGPIO_5 = GPIO_ID_EMUM_FUNC;
-			top_reg_dgpio0.bit.DGPIO_6 = GPIO_ID_EMUM_FUNC;
+			if (config & PIN_ETH_CFG_LED_1ST_ONLY) {
+				top_reg_dgpio0.bit.DGPIO_5 = GPIO_ID_EMUM_FUNC;
+			} else if (config & PIN_ETH_CFG_LED_2ND_ONLY) {
+				top_reg_dgpio0.bit.DGPIO_6 = GPIO_ID_EMUM_FUNC;
+			} else {
+				top_reg_dgpio0.bit.DGPIO_5 = GPIO_ID_EMUM_FUNC;
+				top_reg_dgpio0.bit.DGPIO_6 = GPIO_ID_EMUM_FUNC;
+			}
 			top_reg6.bit.ETH_LED = ETH_LED_ENUM_LED2;
 		}
 	} else if (config & (PIN_ETH_CFG_RMII)) {
@@ -3688,6 +3873,7 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 	union TOP_REG2 local_top_reg2;
 	union TOP_REGLGPIO0 local_top_reg_lgpio0;
 	unsigned long flags = 0;
+	lcd_mask = 0x0;
 
 	local_top_reg2.reg = TOP_GETREG(info, TOP_REG2_OFS);
 	local_top_reg_lgpio0.reg = TOP_GETREG(info, TOP_REGLGPIO0_OFS);
@@ -3774,6 +3960,7 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 	case PINMUX_LCD_SEL_MIPI:
 		local_top_reg2.bit.LCD_TYPE = LCDTYPE_ENUM_MIPI_DSI;
 		if (pinmux & PINMUX_LCD_SEL_TE_ENABLE) {
+			lcd_mask |= BIT(22);
 			local_top_reg_lgpio0.bit.LGPIO_22 = GPIO_ID_EMUM_FUNC;
 			local_top_reg2.bit.TE_SEL = TE_SEL_EN;
 		}
@@ -3789,6 +3976,7 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 	}
 
 	if (pinmux & PINMUX_LCD_SEL_DE_ENABLE) {
+		lcd_mask |= BIT(11);
 		local_top_reg_lgpio0.bit.LGPIO_11 = GPIO_ID_EMUM_FUNC;
 		local_top_reg2.bit.PLCD_DE = PLCD_DE_ENUM_DE;
 	}
@@ -3796,6 +3984,7 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 	if ((pinmux_type >= PINMUX_LCD_SEL_CCIR656) && (pinmux_type <= PINMUX_LCD_SEL_RGB_16BITS)) {
 		if ((pinmux_type != PINMUX_LCD_SEL_CCIR656) && (pinmux_type != PINMUX_LCD_SEL_CCIR656_16BITS)) {
 			if (!(pinmux & PINMUX_LCD_SEL_NO_HVSYNC)) {
+				lcd_mask |= (BIT(9) | BIT(10));
 				local_top_reg_lgpio0.bit.LGPIO_9 = GPIO_ID_EMUM_FUNC;
 				local_top_reg_lgpio0.bit.LGPIO_10 = GPIO_ID_EMUM_FUNC;
 			} else {
@@ -3806,10 +3995,12 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 			}
 		}
 		if (pinmux_type != PINMUX_LCD_SEL_SERIAL_RGB_6BITS) {
+			lcd_mask |= (BIT(0) | BIT(1));
 			local_top_reg_lgpio0.bit.LGPIO_0 = GPIO_ID_EMUM_FUNC;
 			local_top_reg_lgpio0.bit.LGPIO_1 = GPIO_ID_EMUM_FUNC;
 		}
 
+		lcd_mask |= (BIT(2) | BIT(3) | BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(8));
 		local_top_reg_lgpio0.bit.LGPIO_2 = GPIO_ID_EMUM_FUNC;
 		local_top_reg_lgpio0.bit.LGPIO_3 = GPIO_ID_EMUM_FUNC;
 		local_top_reg_lgpio0.bit.LGPIO_4 = GPIO_ID_EMUM_FUNC;
@@ -3821,6 +4012,7 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 		if ((pinmux_type == PINMUX_LCD_SEL_CCIR656_16BITS) || (pinmux_type == PINMUX_LCD_SEL_CCIR601_16BITS) ||
 			(pinmux_type == PINMUX_LCD_SEL_PARALLE_RGB565) || (pinmux_type == PINMUX_LCD_SEL_PARALLE_RGB666) ||
 			(pinmux_type == PINMUX_LCD_SEL_RGB_16BITS)) {
+			lcd_mask |= (BIT(12) | BIT(13) | BIT(14) | BIT(15) | BIT(16) | BIT(17) | BIT(18) | BIT(19));
 			local_top_reg_lgpio0.bit.LGPIO_12 = GPIO_ID_EMUM_FUNC;
 			local_top_reg_lgpio0.bit.LGPIO_13 = GPIO_ID_EMUM_FUNC;
 			local_top_reg_lgpio0.bit.LGPIO_14 = GPIO_ID_EMUM_FUNC;
@@ -3832,16 +4024,19 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 		}
 
 		if ((pinmux_type == PINMUX_LCD_SEL_PARALLE_RGB666)) {
+			lcd_mask |= (BIT(20) | BIT(21));
 			local_top_reg_lgpio0.bit.LGPIO_20 = GPIO_ID_EMUM_FUNC;
 			local_top_reg_lgpio0.bit.LGPIO_21 = GPIO_ID_EMUM_FUNC;
 		}
 
 		if ((pinmux_type == PINMUX_LCD_SEL_CCIR601)) {
 			if (pinmux & PINMUX_LCD_SEL_HVLD_VVLD) {
+				lcd_mask |= (BIT(12) | BIT(13));
 				local_top_reg_lgpio0.bit.LGPIO_12 = GPIO_ID_EMUM_FUNC;
 				local_top_reg_lgpio0.bit.LGPIO_13 = GPIO_ID_EMUM_FUNC;
 			}
 			if (pinmux & PINMUX_LCD_SEL_FIELD) {
+				lcd_mask |= BIT(14);
 				local_top_reg_lgpio0.bit.LGPIO_14 = GPIO_ID_EMUM_FUNC;
 			}
 		}
@@ -3852,6 +4047,7 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 
 	TOP_SETREG(info, TOP_REG2_OFS, local_top_reg2.reg);
 	TOP_SETREG(info, TOP_REGLGPIO0_OFS, local_top_reg_lgpio0.reg);
+	pr_debug("%s: pinmux_type = 0x%x, lcd_mask = 0x%x\r\n", __func__, pinmux_type, lcd_mask);
 
 	/*Leave critical section*/
 	unl_cpu(&top_lock, flags);

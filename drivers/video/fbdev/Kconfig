@@ -2338,7 +2338,7 @@ config FB_SM712
 
 config NVT_FB_FR
 	tristate "Novatek Frontend series framebuffer support"
-	depends on FB && ARCH_NVT_IVOT_V7 && NVT_IVOT_PLAT_NA51055
+	depends on FB && ARCH_NVT_IVOT_V7 && ( NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089)
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT

@@ -34,7 +34,6 @@
 #endif
 
 
-#define SDIO_TR             pr_info
 static unsigned rw_threshold = 32;
 module_param(rw_threshold, uint, S_IRUGO);
 MODULE_PARM_DESC(rw_threshold,
@@ -44,9 +43,41 @@ static unsigned __initdata use_dma = 1;
 module_param(use_dma, uint, 0);
 MODULE_PARM_DESC(use_dma, "Whether to use DMA or not. Default = 1");
 
-static unsigned debug_on = 0;
-module_param(debug_on, uint, S_IRUGO);
-MODULE_PARM_DESC(debug_on, "Whether to enable debug message. Default = 0");
+static unsigned int debug_on = 0;
+module_param_named(debug_on, debug_on, uint, 0600);
+
+static unsigned int scan_indly_engineering_mode = 0;
+module_param_named(scan_indly_engineering_mode, scan_indly_engineering_mode, uint, 0600);
+
+static int indly_debug = -1;
+module_param_named(indly_debug, indly_debug, int, 0600);
+
+static unsigned int flow_debug_on = 0;
+module_param_named(flow_debug_on, flow_debug_on, uint, 0600);
+
+static unsigned int routine_debug_on = 0;
+module_param_named(routine_debug_on, routine_debug_on, uint, 0600);
+
+#define SDIO_TR(fmt, ...) do { \
+	if (debug_on && host) \
+		pr_info("SDIO%d: "fmt, host->id, ##__VA_ARGS__); \
+	else \
+		pr_debug("SDIO%d: "fmt, host->id,##__VA_ARGS__); \
+} while (0)
+
+#define SDIO_FLOW(fmt, ...) do { \
+	if (flow_debug_on && host) \
+		dev_info(mmc_dev(host->mmc), fmt, ##__VA_ARGS__); \
+	else \
+		dev_dbg(mmc_dev(host->mmc), fmt, ##__VA_ARGS__); \
+} while (0)
+
+#define SDIO_ROUTINE(fmt, ...) do { \
+	if (routine_debug_on && host) \
+		dev_info(mmc_dev(host->mmc), fmt, ##__VA_ARGS__); \
+	else \
+		dev_dbg(mmc_dev(host->mmc), fmt, ##__VA_ARGS__); \
+} while (0)
 
 static u32 default_pad_driving[SDIO_MAX_MODE_DRIVING] =
 {PAD_DRIVING_20MA, PAD_DRIVING_15MA, PAD_DRIVING_15MA, \
@@ -305,8 +336,7 @@ static void nvt_mmc_start_command(struct mmc_nvt_host *host,
 		break;
 	};
 
-	if (debug_on)
-		SDIO_TR("SDIO%d CMD%d, arg 0x%08x %s\n", host->id, cmd->opcode, cmd->arg, s);
+	SDIO_TR("CMD%d, arg 0x%08x %s\n", cmd->opcode, cmd->arg, s);
 
 	host->cmd = cmd;
 
@@ -332,7 +362,7 @@ static void nvt_mmc_start_command(struct mmc_nvt_host *host,
 		break;
 	default:
 		cmd_reg |= 0;
-		dev_dbg(mmc_dev(host->mmc), "unknown resp_type %04x\n",
+		SDIO_TR("unknown resp_type %04x\n",
 			mmc_resp_type(cmd));
 		break;
 	}
@@ -360,11 +390,10 @@ nvt_mmc_prepare_data(struct mmc_nvt_host *host, struct mmc_request *req)
 		return;
 
 
-	dev_dbg(mmc_dev(host->mmc), "%s, %d blocks of %d bytes\n",
+	SDIO_FLOW("%s, %d blocks of %d bytes\n",
 		(data->flags & MMC_DATA_WRITE) ? "write" : "read",
 		data->blocks, data->blksz);
-	dev_dbg(mmc_dev(host->mmc),
-		"DTO %d cycles+ %d ns, %d ns_in_one_cycle\n",
+	SDIO_FLOW("DTO %d cycles+ %d ns, %d ns_in_one_cycle\n",
 		data->timeout_clks, data->timeout_ns, host->ns_in_one_cycle);
 
 	timeout = data->timeout_clks +
@@ -450,8 +479,7 @@ nvt_mmc_prepare_data(struct mmc_nvt_host *host, struct mmc_request *req)
 
 	} else {
 		host->do_dma = 0;
-		/*printk("pio addr 0x%x, size %d\r\n", host->buffer,
-			data->blocks * data->blksz);*/
+		/*printk("pio addr 0x%lx, size %d\r\n", (uintptr_t)host->buffer, data->blocks * data->blksz);*/
 		/*printk("dirty byte 0x%x\r\n", host->buffer[0x41]);*/
 
 		sdiohost_setupdatatransferpio(host, host->id,
@@ -505,10 +533,21 @@ static void nvt_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct mmc_nvt_host *host = mmc_priv(mmc);
 
-	dev_dbg(mmc_dev(host->mmc),
-		"set_ios clock %dHz busmode %d powermode %d Vdd %04x\n",
+	SDIO_FLOW(
+		"clock(%dHz) busmode(%d) powermode(%d) Vdd(%04x) width(%u) timing(%u)\n",
 		ios->clock, ios->bus_mode, ios->power_mode,
-		ios->vdd);
+		ios->vdd, 1 << ios->bus_width, ios->timing);
+
+	if (ios->clock > max(400000u, host->mmc->f_min)) {
+		host->need_power_cycle = true;
+	}
+
+	if (host->need_power_cycle && (ios->clock <= max(400000u, host->mmc->f_min))) {
+		/*A power cycle is needed to restart card identification*/
+		dev_dbg(mmc_dev(host->mmc), "power cycle to restart card identification, clock(%dHz) <= f_min(%dHz)\n", ios->clock, max(400000u, host->mmc->f_min));
+		sdiohost_power_cycle(host, 500);
+		host->need_power_cycle = false;
+	}
 
 	/*The power state should be controlled by NVT instead of MMC flows*/
 	if (ios->clock == 0)
@@ -520,34 +559,54 @@ static void nvt_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	switch (ios->bus_width) {
 	case MMC_BUS_WIDTH_8:
-		dev_dbg(mmc_dev(host->mmc), "Enabling 8 bit mode\n");
+		SDIO_FLOW("Enabling 8 bit mode\n");
 		sdiohost_setbuswidth(host, host->id, SDIO_BUS_WIDTH8);
 		break;
 	case MMC_BUS_WIDTH_4:
-		dev_dbg(mmc_dev(host->mmc), "Enabling 4 bit mode\n");
+		SDIO_FLOW("Enabling 4 bit mode\n");
 		sdiohost_setbuswidth(host, host->id, SDIO_BUS_WIDTH4);
 		break;
 	case MMC_BUS_WIDTH_1:
-		dev_dbg(mmc_dev(host->mmc), "Enabling 1 bit mode\n");
+		SDIO_FLOW("Enabling 1 bit mode\n");
 		sdiohost_setbuswidth(host, host->id, SDIO_BUS_WIDTH1);
 		break;
 	}
 
-	if (ios->clock > SDIO_MODE_SDR50) {
+	/*Set host sampling strategy according to different speeds and modes*/
+	if (ios->clock >= 192000000) {
+		sdiohost_setphyclkindly(host, 0x9);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR104);
-		sdiohost_delay_chain(host, 0x10, SDIO_DLY_SDR104_DEFAULT);
-	} else if (ios->clock > SDIO_MODE_HS) {
+	} else if (ios->clock >= 160000000) {
+		sdiohost_setphyclkindly(host, 0x3);
+		sdiohost_setpaddriving(host, SDIO_MODE_SDR104);
+	} else if (ios->clock >= 120000000) {
+		sdiohost_setphyclkindly(host, 0x1f);
+		sdiohost_setpaddriving(host, SDIO_MODE_SDR104);
+	} else if (ios->clock >= 96000000) {
+		sdiohost_setphyclkindly(host, 0x1b);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR50);
-		sdiohost_delay_chain(host, 0x200010, SDIO_DLY_SDR50_DEFAULT);
-	} else if (ios->clock > SDIO_MODE_DS) {
+	} else if (ios->clock >= 64000000) {
+		sdiohost_setphyclkindly(host, 0x0);
+		sdiohost_setpaddriving(host, SDIO_MODE_SDR50);
+	} else if (ios->clock >= 25000000) {
+		sdiohost_setphyclkindly(host, 0x0);
 		sdiohost_setpaddriving(host, SDIO_MODE_HS);
-		sdiohost_delay_chain(host, 0x200000, SDIO_DLY_HS_DEFAULT);
 	} else {
+		sdiohost_setphyclkindly(host, 0x0);
 		sdiohost_setpaddriving(host, SDIO_MODE_DS);
-		sdiohost_delay_chain(host, 0x200000, SDIO_DLY_DS_DEFAULT);
 	}
 
+	if (host->indly_sel >= 0) {
+		sdiohost_setphyclkindly(host, host->indly_sel);
+		SDIO_FLOW("use dts indly(0x%x)\n", host->indly_sel);
+	}
+
+	/*Reset phy to take effect*/
+	sdiohost_setphyrst(host);
+
+	host->timing = ios->timing;
 	host->bus_mode = ios->bus_mode;
+
 	sdiohost_setbusclk(host, host->id, ios->clock,
 	(uint32_t *)&host->ns_in_one_cycle);
 }
@@ -556,14 +615,6 @@ static void
 nvt_mmc_xfer_done(struct mmc_nvt_host *host, struct mmc_data *data)
 {
 	host->data = NULL;
-
-	if (!data->stop || (host->cmd && host->cmd->error)) {
-		/*SDIO_TR("nvt_mmc_xfer_done: mmc_request_done\r\n");*/
-		mmc_request_done(host->mmc, data->mrq);
-	} else {
-		/*SDIO_TR("nvt_mmc_xfer_done: start command\r\n");*/
-		nvt_mmc_start_command(host, data->stop);
-	}
 
 	if (host->do_dma) {
 		if (host->data_dir)
@@ -574,6 +625,18 @@ nvt_mmc_xfer_done(struct mmc_nvt_host *host, struct mmc_data *data)
 				DMA_TO_DEVICE);
 	}
 
+	if (!data->stop) {
+		//SDIO_TR("nvt_mmc_xfer_done: mmc_request_done\r\n");
+		mmc_request_done(host->mmc, data->mrq);
+	} else if (host->cmd) {
+		if (host->cmd->error) {
+			//SDIO_TR("nvt_mmc_xfer_done: mmc_request_done, cmd error\r\n");
+			mmc_request_done(host->mmc, data->mrq);
+		}
+	} else {
+		//SDIO_TR("nvt_mmc_xfer_done: start command\r\n");
+		nvt_mmc_start_command(host, data->stop);
+	}
 }
 
 static void nvt_mmc_cmd_done(struct mmc_nvt_host *host,
@@ -588,21 +651,18 @@ static void nvt_mmc_cmd_done(struct mmc_nvt_host *host,
 			sdiohost_getlongrsp(host, host->id,
 			(uint32_t *)&cmd->resp[0], (uint32_t *)&cmd->resp[1],
 			(uint32_t *)&cmd->resp[2], (uint32_t *)&cmd->resp[3]);
-			if (debug_on) {
-				SDIO_TR("SDIO%d LRsp %x %x %x %x\r\n", host->id,
-					cmd->resp[0], cmd->resp[1], cmd->resp[2], cmd->resp[3]);
-			}
+			SDIO_TR("LRsp %x %x %x %x\r\n", cmd->resp[0], cmd->resp[1], cmd->resp[2], cmd->resp[3]);
 		} else {
 			/* response types 1, 1b, 3, 4, 5, 6 */
 			sdiohost_getshortrsp(host, host->id,
 			(uint32_t *)&cmd->resp[0]);
-			if (debug_on)
-				SDIO_TR("SDIO%d SRsp %x \r\n", host->id, cmd->resp[0]);
+			SDIO_TR("SRsp %x \r\n", cmd->resp[0]);
 		}
 	}
 
 	if (host->data && host->data_early)
-		/*SDIO_TR("nvt_mmc_cmd_done: data early\r\n");*/
+		/* TODO: print the log here will cause kernel panic */
+		//SDIO_TR("nvt_mmc_cmd_done: data early\r\n");
 		nvt_mmc_xfer_done(host, data);
 	if (host->data == NULL)
 		mmc_request_done(host->mmc, cmd->mrq);
@@ -639,17 +699,24 @@ static irqreturn_t mmc_irq_cd(int irq, void *dev_id)
 static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 {
 	struct mmc_nvt_host *host = (struct mmc_nvt_host *)dev_id;
-	unsigned int status, qstatus;
+	unsigned int qstatus;
 	int end_command = 0;
 	int end_transfer = 0;
 	struct mmc_data *data = host->data;
 	u32 tuning_cmd = sdiohost_getcmd(host);
 
-	status = sdiohost_getstatus(host, host->id);
-	qstatus = status;
+	if (!host) {
+		SDIO_TR("mmc_nvt_host is null\n");
+		return IRQ_HANDLED;
+	} else if (!host->mmc) {
+		SDIO_TR("mmc_host is null\n");
+		return IRQ_HANDLED;
+	}
+
+	qstatus = sdiohost_getstatus(host, host->id);
 	host->status = qstatus;
-	if (debug_on)
-		SDIO_TR("SDIO%d <6>isr %x\r\n", host->id, qstatus);
+
+	SDIO_TR("<6>isr %x\r\n", qstatus);
 
 	if (sdiohost_getiointen(host, host->id) && (qstatus & MMCST_SDIO_INT)) {
 		sdiohost_setstatus(host, host->id, MMCST_SDIO_INT);
@@ -657,18 +724,34 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
-	/*pr_info("<6>isr %x\r\n",qstatus);*/
+	if (((qstatus & MMCST_RSP_CRC_OK) || (qstatus & MMCST_CMD_SENT)) && !(qstatus & MMCST_RSP_TIMEOUT)) {
+		/* End of command phase */
+		if (data == NULL) {
+			end_command = (int) host->cmd;
+		} else {
+			if ((host->do_dma == 0) && (host->bytes_left > 0)) {
+				/* if datasize < rw_threshold
+				 * no RX ints are generated
+				 */
+				nvt_mmc_fifo_data_trans(host, host->bytes_left);
 
-	/*writel(qstatus,host->base + NVT_MMCST0);*/
-	/*sdiohost_setstatus(host, host->id, qstatus);*/
+				/* The data status may change and needs to be updated here */
+				qstatus = sdiohost_getstatus(host, host->id);
+				host->status = qstatus;
+				SDIO_TR("flush data and update status(%x)\r\n", qstatus);
+			}
+		}
 
-
-
+		if (qstatus & MMCST_RSP_CRC_OK)
+			sdiohost_setstatus(host, host->id, MMCST_RSP_CRC_OK);
+		if (qstatus & MMCST_CMD_SENT)
+			sdiohost_setstatus(host, host->id, MMCST_CMD_SENT);
+	}
 
 	if (qstatus & MMCST_RSP_TIMEOUT) {
 		/* Command timeout */
 		if (host->cmd) {
-			dev_dbg(mmc_dev(host->mmc),
+			SDIO_TR(
 				"CMD%d timeout, status %x\n",
 				host->cmd->opcode, qstatus);
 			host->cmd->error = -ETIMEDOUT;
@@ -678,16 +761,27 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 				nvt_mmc_abort_data(host, data);
 				data->bytes_xfered = 0;
 				host->data->error = -ETIMEDOUT;
-				/*printk("SDIO%d DATA MMCST_RSP_TIMEOUT\r\n", host->id);*/
+				SDIO_TR("DATA MMCST_RSP_TIMEOUT\r\n");
 			} else
 				end_command = 1;
 		}
-		/*printk("SDIO%d MMCST_RSP_TIMEOUT\r\n", host->id);*/
+		SDIO_TR("MMCST_RSP_TIMEOUT\r\n");
 		sdiohost_setstatus(host, host->id, MMCST_RSP_TIMEOUT);
 	}
 
+	if (qstatus & MMCST_RSP_CRC_FAIL) {
+		/* Command CRC error */
+		SDIO_TR("Command CRC error\n");
+		if (host->cmd) {
+			host->cmd->error = -EILSEQ;
+			end_command = 1;
+		}
+		SDIO_TR("MMCST_RSP_CRC_FAIL\r\n");
+		sdiohost_setstatus(host, host->id, MMCST_RSP_CRC_FAIL);
+	}
+
 	if (qstatus & MMCST_DATA_TIMEOUT) {
-		dev_dbg(mmc_dev(host->mmc),
+		SDIO_TR(
 			"data timeout (CMD%d), status %x\n",
 			host->cmd->opcode, qstatus);
 		if (host->data) {
@@ -695,50 +789,20 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 			end_transfer = 1;
 			nvt_mmc_abort_data(host, data);
 		}
-		/*printk("SDIO%d MMCST_DATA_TIMEOUT\r\n", host->id);*/
+		SDIO_TR("MMCST_DATA_TIMEOUT\r\n");
 		sdiohost_setstatus(host, host->id, MMCST_DATA_TIMEOUT);
-	}
-
-	if (qstatus & MMCST_RSP_CRC_FAIL) {
-		/* Command CRC error */
-		dev_dbg(mmc_dev(host->mmc), "Command CRC error\n");
-		if (host->cmd) {
-			host->cmd->error = -EILSEQ;
-			end_command = 1;
-		}
-		/*printk("SDIO%d MMCST_RSP_CRC_FAIL\r\n", host->id);*/
-		sdiohost_setstatus(host, host->id, MMCST_RSP_CRC_FAIL);
 	}
 
 	if (qstatus & MMCST_DATA_CRC_FAIL) {
 		/* Data CRC error */
 		end_transfer = 1;
-		dev_dbg(mmc_dev(host->mmc), "data %s %s error\n",
+		SDIO_TR("data %s %s error\n",
 			(data->flags & MMC_DATA_WRITE) ? "write" : "read",
 			(data->error == -ETIMEDOUT) ? "timeout" : "CRC");
 
 		nvt_mmc_abort_data(host, data);
-		/*printk("SDIO%d MMCST_DATA_CRC_FAIL\r\n", host->id);*/
+		SDIO_TR("MMCST_DATA_CRC_FAIL\r\n");
 		sdiohost_setstatus(host, host->id, MMCST_DATA_CRC_FAIL);
-	}
-
-	if ((qstatus & MMCST_RSP_CRC_OK) || (qstatus & MMCST_CMD_SENT)) {
-		/* End of command phase */
-		if (data == NULL)
-			end_command = (int) host->cmd;
-		else {
-			if ((host->do_dma == 0) && (host->bytes_left > 0)) {
-				/* if datasize < rw_threshold
-				 * no RX ints are generated
-				 */
-				sdiohost_stroredatarerult(host->id, qstatus);
-				nvt_mmc_fifo_data_trans(host, host->bytes_left);
-			}
-		}
-		if (qstatus & MMCST_RSP_CRC_OK)
-			sdiohost_setstatus(host, host->id, MMCST_RSP_CRC_OK);
-		if (qstatus & MMCST_CMD_SENT)
-			sdiohost_setstatus(host, host->id, MMCST_CMD_SENT);
 	}
 
 	if ((qstatus & MMCST_RSP_CRC_OK))
@@ -802,7 +866,6 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 	}
 
 	return IRQ_HANDLED;
-
 }
 
 static int nvt_mmc_get_cd(struct mmc_host *mmc)
@@ -931,22 +994,97 @@ static void nvt_mmc_check_edge(u32 ch, u32 *zeropos, u32 *zerolength)
 	*zerolength = max_length;
 }
 
-
+#define INDLY_NUM             64
+#define INDLY_OFFSET          5
+#define TUNING_CYCLE_LIMIT    5
 static int nvt_mmc_tuning(struct mmc_host *mmc, u32 opcode)
 {
 	struct mmc_nvt_host *host = mmc_priv(mmc);
 	int result;
 	u32 detout, phase_sel, length, pos;
+	u32 indly_result[INDLY_NUM] = {0}, tuning_cycle = 0;
+	int indly_t = -1;
+	bool find_flag = false;
+	u32 max_len = 0, tmp_max_len = 0;
+	u32 start_idx = 0, tmp_start_idx = 0;
 
 	sdiohost_setphyclrdetval(host);
 
 	init_completion(&host->tuning_data_end);
 
-	result = sdiohost_tuning_cmd(host, opcode);
+	if (scan_indly_engineering_mode) {
+		for (indly_t = 0; indly_t < INDLY_NUM; indly_t++) {
+			sdiohost_setphyclkindly(host, indly_t);
 
-	if (result) {
-		pr_err("SDIO%d Tuning Cmd Fail\r\n", host->id);
-		return result;
+			result = sdiohost_tuning_cmd(host, opcode, false);
+			if (result) {
+				indly_result[indly_t] = 0;
+			} else {
+				indly_result[indly_t] = 1;
+			}
+		}
+
+		for (indly_t = 0; indly_t < INDLY_NUM; indly_t++) {
+			pr_err("indly = %3d, result = %d\n", indly_t, indly_result[indly_t]);
+			if (indly_result[indly_t] == 1) {
+				if (!find_flag) {
+					find_flag = true;
+					tmp_max_len = 0;
+					tmp_start_idx = indly_t;
+				}
+
+				tmp_max_len++;
+				if (tmp_max_len > max_len) {
+					max_len = tmp_max_len;
+					start_idx = tmp_start_idx;
+				}
+			} else {
+				find_flag = false;
+			}
+		}
+
+		pr_err("select indly = %3d  (start_idx = %d, max_len = %d)\n", start_idx + (max_len / 2), start_idx, max_len);
+		sdiohost_setphyclkindly(host, start_idx + (max_len / 2));
+
+		result = sdiohost_tuning_cmd(host, opcode, true);
+		if (result) {
+			pr_err("SDIO%d Auto Tuning Cmd Fail, indly = %3d\r\n", host->id, start_idx + (max_len / 2));
+		}
+
+		pr_err("SDIO%d Scan indly engineering mode\r\n", host->id);
+	} else {
+		if (indly_debug >= 0) {
+			sdiohost_setphyclkindly(host, indly_debug);
+			indly_t = indly_debug;
+		} else if (host->indly_sel >= 0) {
+			sdiohost_setphyclkindly(host, host->indly_sel);
+			indly_t = host->indly_sel;
+		}
+
+		result = sdiohost_tuning_cmd(host, opcode, false);
+		if (result) {
+			pr_err("SDIO%d Tuning Cmd Fail, indly = %3d\r\n", host->id, indly_t);
+
+			if (indly_t >= 0) {
+				/* The tuning process should not exceed 150 ms */
+				while (tuning_cycle < TUNING_CYCLE_LIMIT) {
+					/* Do not update host->indly_sel to match the abnormal card */
+					indly_t += INDLY_OFFSET;
+					sdiohost_setphyclkindly(host, indly_t);
+
+					if (!sdiohost_tuning_cmd(host, opcode, false)) {
+						pr_err("reselect indly = %3d\n", indly_t);
+						find_flag = true;
+						break;
+					}
+				}
+			}
+
+			if (!find_flag) {
+				pr_err("SDIO%d Re-Tuning Cmd Fail\r\n", host->id);
+				return result;
+			}
+		}
 	}
 
 	detout = sdiohost_getphydetout(host) & 0xFFFF;
@@ -958,7 +1096,7 @@ static int nvt_mmc_tuning(struct mmc_host *mmc, u32 opcode)
 
 		sdiohost_setphyclrdetval(host);
 
-		result = sdiohost_tuning_cmd(host, opcode);
+		result = sdiohost_tuning_cmd(host, opcode, false);
 
 		if (result) {
 			pr_err("SDIO%d Tuning Cmd Fail\r\n", host->id);
@@ -1013,7 +1151,7 @@ static int nvt_mmc_get_cd_polled(struct mmc_host *mmc)
 {
 	struct mmc_nvt_host *host = mmc_priv(mmc);
 
-	/*printk("<6>nvt_mmc_get_cd! 1\n");*/
+	SDIO_ROUTINE("<6>nvt_mmc_get_cd! 1, cd_gpio(0x%x) cd_val(%d)\n", host->cd_gpio, gpio_get_value(host->cd_gpio));
 	if (host->cd_gpio) {
 		if (host->power_en) {
 			if (gpio_get_value(host->power_en) != host->power_detect_edge) {
@@ -1044,7 +1182,7 @@ static int nvt_mmc_get_ro_polled(struct mmc_host *mmc)
 {
 	struct mmc_nvt_host *host = mmc_priv(mmc);
 
-	/* printk("<6>nvt_mmc_get_ro! 0\n"); */
+	SDIO_ROUTINE("<6>nvt_mmc_get_ro! 0\n");
 	if (host->ro_gpio)
 		return (gpio_get_value(host->ro_gpio) == host->ro_detect_edge ? 1 : 0);
 	else
@@ -1138,11 +1276,15 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	int ret = 0, irq = 0, i;
 	u32 cd_gpio[3] = {0}, ro_gpio[3] = {0}, power_en[2] = {0};
 	u32 card_power_gpio[2] = {0};
+	u32 force_power_cycle[2] = {0};
+	u32 power_down_delay_ms = 0;
 	u32 pad_driving[SDIO_MAX_MODE_DRIVING] = {0};
 	u32 ss_clk[2] = {0};
 	size_t mem_size;
 	u32 voltage_switch = 0, max_voltage = 0, sample_edge = 0;
+	int indly_sel = -1;
 	int idx = -1;
+	const char *clk_parent = NULL;
 
 #ifndef CONFIG_OF
 	struct nvt_mmc_config *pdata = pdev->dev.platform_data;
@@ -1168,6 +1310,12 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	of_property_read_u32(pdev->dev.of_node, "neg-sample-edge",
 				&sample_edge);
 
+	of_property_read_u32(pdev->dev.of_node, "indly_sel",
+				&indly_sel);
+
+	of_property_read_u32(pdev->dev.of_node, "power_down_delay_ms",
+				&power_down_delay_ms);
+
 	of_property_read_u32_array(pdev->dev.of_node, "cd_gpio", cd_gpio, 3);
 
 	of_property_read_u32_array(pdev->dev.of_node, "ro_gpio", ro_gpio, 3);
@@ -1177,9 +1325,13 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	of_property_read_u32_array(pdev->dev.of_node, \
 					"card_power_gpio", card_power_gpio, 2);
 
+	of_property_read_u32_array(pdev->dev.of_node, "force_power_cycle", force_power_cycle, 2);
+
 	of_property_read_u32_array(pdev->dev.of_node, "driving", pad_driving, 12);
 
 	of_property_read_u32_array(pdev->dev.of_node, "ss_clk", ss_clk, 2);
+
+	of_property_read_string(pdev->dev.of_node, "clk_parent", &clk_parent);
 
 	idx = of_alias_get_id(pdev->dev.of_node, "mmc");
 #endif
@@ -1221,17 +1373,93 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		nvt_disable_sram_shutdown(SDIO3_SD);
 	}
 
-	if (max_voltage < VOLTAGE_3300)
-		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_1P8);
-	else
-		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
+	spin_lock_init(&host->lock);
 
 	/*printk("host id = %d\r\n", host->id);*/
 
 	ret = -ENXIO;
 
+	for (i = 0; i < SDIO_MAX_MODE_DRIVING; i++) {
+		if (pad_driving[i])
+			host->pad_driving[i] = pad_driving[i];
+		else {
+			if (nvt_get_chip_id() == CHIP_NA51055) {
+				if (host->id == SDIO_HOST_ID_1)
+					host->pad_driving[i] = default_pad_driving[i];
+				else if (host->id == SDIO_HOST_ID_2)
+					host->pad_driving[i] = default_pad_io_driving[i];
+				else
+					host->pad_driving[i] = default_pad_emmc_driving[i];
+			} else {
+				if (host->id == SDIO_HOST_ID_1)
+					host->pad_driving[i] = default_pad_528_driving[i];
+				else if (host->id == SDIO_HOST_ID_2)
+					host->pad_driving[i] = default_pad_528_io_driving[i];
+				else
+					host->pad_driving[i] = default_pad_528_emmc_driving[i];
+			}
+		}
+	}
+
+	host->use_dma = use_dma;
+	host->mmc_irq = irq;
+	host->mmc_cd_irq = gpio_to_irq(cd_gpio[0]);
+	host->cd_gpio = cd_gpio[0];
+	host->cd_detect_edge = cd_gpio[1];
+	host->ro_gpio = ro_gpio[0];
+	host->ro_detect_edge = ro_gpio[1];
+	host->power_en = power_en[0];
+	host->power_detect_edge = power_en[1];
+	host->cp_gpio = card_power_gpio[0];
+	host->cp_gpio_value = card_power_gpio[1];
+	host->force_power_cycle = force_power_cycle[0];
+	host->force_power_cycle_period = force_power_cycle[1];
+	host->voltage_switch = voltage_switch;
+	host->neg_sample_edge = sample_edge;
+	host->indly_sel = indly_sel;
+	host->power_down_delay_ms = power_down_delay_ms;
+
+	if (host->force_power_cycle) {
+		/* In general, the power cycle takes 500ms to 1s */
+		dev_info(mmc_dev(host->mmc), "%s: force power cycle, delay %d ms\n", __func__, host->force_power_cycle_period);
+		sdiohost_power_cycle(host, host->force_power_cycle_period);
+	}
+
+	if (max_voltage < VOLTAGE_3300)
+		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_1P8);
+	else
+		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
+
+	if (host->cd_gpio) {
+		host->cd_state = gpio_get_value(host->cd_gpio) == host->cd_detect_edge ? 1 : 0;
+
+		if (!host->cd_state) {
+			sdiohost_power_down(host);
+			/*Disable card power if card power was defined*/
+			if (host->cp_gpio)
+				gpio_direction_output(host->cp_gpio, !host->cp_gpio_value);
+		} else {
+			/*Enable card power if card power was defined*/
+			if (host->cp_gpio)
+				gpio_direction_output(host->cp_gpio, host->cp_gpio_value);
+		}
+	} else {
+		host->cd_state = 1;
+		/*Enable card power if card power was defined*/
+		if (host->cp_gpio)
+			gpio_direction_output(host->cp_gpio, host->cp_gpio_value);
+	}
+
 	host->clk = clk_get(&pdev->dev, dev_name(&pdev->dev));
 	if (!IS_ERR(host->clk)) {
+		/* Set parent when running at fastboot mode */
+		if (fastboot_determination() && clk_parent) {
+			if (clk_set_parent(host->clk, clk_get(NULL, clk_parent))) {
+				dev_err(mmc_dev(host->mmc), "%s: fastboot mode, failed to set parent\n", __func__);
+			} else {
+				dev_info(mmc_dev(host->mmc), "%s: fastboot mode, set parent to %s\n", __func__, clk_parent);
+			}
+		}
 		/*sdio required asyn reset before operation.
 		In fastboot mode, the hardware sync mechanism did
 		prepare_enable first, and we need to eliminate it here*/
@@ -1271,63 +1499,9 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		goto out;
 	}
 
-	for (i = 0; i < SDIO_MAX_MODE_DRIVING; i++) {
-		if (pad_driving[i])
-			host->pad_driving[i] = pad_driving[i];
-		else {
-			if (nvt_get_chip_id() == CHIP_NA51055) {
-				if (host->id == SDIO_HOST_ID_1)
-					host->pad_driving[i] = default_pad_driving[i];
-				else if (host->id == SDIO_HOST_ID_2)
-					host->pad_driving[i] = default_pad_io_driving[i];
-				else
-					host->pad_driving[i] = default_pad_emmc_driving[i];
-			} else {
-				if (host->id == SDIO_HOST_ID_1)
-					host->pad_driving[i] = default_pad_528_driving[i];
-				else if (host->id == SDIO_HOST_ID_2)
-					host->pad_driving[i] = default_pad_528_io_driving[i];
-				else
-					host->pad_driving[i] = default_pad_528_emmc_driving[i];
-			}
-		}
-	}
-
-	host->use_dma = use_dma;
-	host->mmc_irq = irq;
-	host->mmc_cd_irq = gpio_to_irq(cd_gpio[0]);
-	host->cd_gpio = cd_gpio[0];
-	host->cd_detect_edge = cd_gpio[1];
-	host->ro_gpio = ro_gpio[0];
-	host->ro_detect_edge = ro_gpio[1];
-	host->power_en = power_en[0];
-	host->power_detect_edge = power_en[1];
-	host->cp_gpio = card_power_gpio[0];
-	host->cp_gpio_value = card_power_gpio[1];
-	host->voltage_switch = voltage_switch;
-	host->neg_sample_edge = sample_edge;
-
 	init_mmcsd_host(host , voltage_switch);
 
-	if (host->cd_gpio) {
-		host->cd_state = gpio_get_value(host->cd_gpio) == host->cd_detect_edge ? 1 : 0;
-
-		if (!host->cd_state) {
-			sdiohost_power_down(host);
-			/*Disable card power if card power was defined*/
-			if (host->cp_gpio)
-				gpio_direction_output(host->cp_gpio, !host->cp_gpio_value);
-		} else {
-			/*Enable card power if card power was defined*/
-			if (host->cp_gpio)
-				gpio_direction_output(host->cp_gpio, host->cp_gpio_value);
-		}
-	} else {
-		host->cd_state = 1;
-		/*Enable card power if card power was defined*/
-		if (host->cp_gpio)
-			gpio_direction_output(host->cp_gpio, host->cp_gpio_value);
-	}
+	sdiohost_set_paddirection(host);
 
 	mmc->f_min = 312500;
 	mmc->f_max = 24000000;
@@ -1394,10 +1568,10 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	mmc->max_blk_count	= (32*1024);
 	mmc->max_req_size	= mmc->max_blk_size * mmc->max_blk_count;
 	mmc->max_seg_size	= mmc->max_req_size;
-	dev_dbg(mmc_dev(host->mmc), "max_segs=%d\n", mmc->max_segs);
-	dev_dbg(mmc_dev(host->mmc), "max_blk_size=%d\n", mmc->max_blk_size);
-	dev_dbg(mmc_dev(host->mmc), "max_req_size=%d\n", mmc->max_req_size);
-	dev_dbg(mmc_dev(host->mmc), "max_seg_size=%d\n", mmc->max_seg_size);
+	SDIO_FLOW("max_segs=%d\n", mmc->max_segs);
+	SDIO_FLOW("max_blk_size=%d\n", mmc->max_blk_size);
+	SDIO_FLOW("max_req_size=%d\n", mmc->max_req_size);
+	SDIO_FLOW("max_seg_size=%d\n", mmc->max_seg_size);
 #ifdef CONFIG_NVT_WIFI_BRCM_PM
 	if (host->id == SDIO_HOST_ID_2) {
 		mmc->pm_caps |= MMC_PM_KEEP_POWER ;
@@ -1407,8 +1581,11 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	if (cd_gpio[2]) {
 		if (cd_gpio[0]) {
 			if(gpio_is_valid(host->mmc_cd_irq)) {
-				request_irq(host->mmc_cd_irq, mmc_irq_cd,
+				ret = request_irq(host->mmc_cd_irq, mmc_irq_cd,
 				IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "mmc_cd", host);
+				if (ret) {
+					dev_err(mmc_dev(host->mmc), "mmc_cd request_irq failed\n");
+				}
 			} else
 				mmc->caps |= MMC_CAP_NEEDS_POLL;
 		}
@@ -1419,9 +1596,6 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	#if 1  // for Brcm drv
 	nvt_host[host->id] = host;
 	#endif
-	ret = mmc_add_host(mmc);
-	if (ret < 0)
-		goto out;
 
 	ret = request_irq(irq, nvt_mmc_irq, 0, mmc_hostname(mmc), host);
 	if (ret)
@@ -1432,17 +1606,22 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 
 	rename_region(mem, mmc_hostname(mmc));
 
-	dev_info(mmc_dev(host->mmc), "Using %s, %d-bit mode sampling %s edge\n",
-		host->use_dma ? "DMA" : "PIO",
-		(mmc->caps & MMC_CAP_8_BIT_DATA) ? 8 :
-		(mmc->caps & MMC_CAP_4_BIT_DATA) ? 4 : 1,
-		host->neg_sample_edge ? "Negtive" : "Positive");
-
 	sdio_copy_info(host);
 
 	ret = nvt_mmc_proc_init();
 	if (ret)
 		goto out;
+
+	ret = mmc_add_host(mmc);
+	if (ret < 0)
+		goto out;
+
+	dev_info(mmc_dev(host->mmc), "Using %s, %d-bit mode sampling %s edge, mmc%d\n",
+		host->use_dma ? "DMA" : "PIO",
+		(mmc->caps & MMC_CAP_8_BIT_DATA) ? 8 :
+		(mmc->caps & MMC_CAP_4_BIT_DATA) ? 4 : 1,
+		host->neg_sample_edge ? "Negtive" : "Positive",
+		host->id);
 
 	return 0;
 
@@ -1467,7 +1646,7 @@ out:
 	if (mem)
 		release_mem_region(mem->start, mem_size);
 
-	dev_dbg(&pdev->dev, "probe err %d\n", ret);
+	dev_err(mmc_dev(host->mmc), "probe err %d\n", ret);
 
 	return ret;
 }
@@ -1573,5 +1752,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.070");
+MODULE_VERSION("1.07.102");
 

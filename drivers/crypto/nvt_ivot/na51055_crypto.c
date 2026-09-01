@@ -34,7 +34,7 @@
 #include <plat/efuse_protected.h>
 #include "na51055_crypto.h"
 
-#define DRV_VERSION                         "1.00.01"
+#define DRV_VERSION                         "1.01.00"
 
 //#define NA51055_CRYPTO_GCM_SOFTWARE_GHASH   1
 //#define NA51055_CRYPTO_PIO_SUPPORT          1
@@ -239,6 +239,7 @@ struct na51055_crypto_dev {
 	int                              irq;
 	spinlock_t                       lock;
 	spinlock_t                       pio_lock;
+	spinlock_t                       queue_lock;
 
 	struct na51055_crypto_dma_buf    dma_buf;
 	struct na51055_crypto_dma_ch     dma_ch[NA51055_CRYPTO_DMA_CH_MAX];
@@ -303,7 +304,7 @@ static int na51055_crypto_handle_req(struct na51055_crypto_dev *dev, struct cryp
 	unsigned long flags;
 	int err;
 
-	spin_lock_irqsave(&dev->lock, flags);
+	spin_lock_irqsave(&dev->queue_lock, flags);
 
 	switch (q_id) {
 #ifdef NA51055_CRYPTO_GCM_SOFTWARE_GHASH
@@ -322,7 +323,7 @@ static int na51055_crypto_handle_req(struct na51055_crypto_dev *dev, struct cryp
 		break;
 	}
 
-	spin_unlock_irqrestore(&dev->lock, flags);
+	spin_unlock_irqrestore(&dev->queue_lock, flags);
 
 	return err;
 }
@@ -2060,8 +2061,12 @@ static void na51055_crypto_aes_gcm_complete(struct na51055_crypto_dev *dev, NA51
 		memcpy(reqctx->auth_tag, (u8 *)(dev->dma_ch[ch].desc)->s0, AES_BLOCK_SIZE);
 
 		if (reqctx->type == NA51055_CRYPTO_TYPE_ENCRYPT) {
+			unsigned long flags;
+
 			/* gcm encryption, hardware do gcm encrypt first then issue software to do ghash request */
+			spin_lock_irqsave(&dev->queue_lock, flags);
 			crypto_enqueue_request(&dev->hash_queue, dev->dma_ch[ch].req);
+			spin_unlock_irqrestore(&dev->queue_lock, flags);
 			tasklet_schedule(&dev->hash_tasklet);
 		}
 		else {
@@ -2142,6 +2147,7 @@ static void na51055_crypto_aes_ccm_complete(struct na51055_crypto_dev *dev, NA51
 	struct crypto_aead               *tfm;
 	struct aead_request              *aead_req;
 	struct na51055_crypto_ccm_reqctx *reqctx;
+	unsigned long flags;
 
 	if (ch >= NA51055_CRYPTO_DMA_CH_MAX)
 		return;
@@ -2171,7 +2177,9 @@ static void na51055_crypto_aes_ccm_complete(struct na51055_crypto_dev *dev, NA51
 				reqctx->type   = NA51055_CRYPTO_TYPE_ENCRYPT;
 				reqctx->opmode = NA51055_CRYPTO_OPMODE_CTR;
 				reqctx->get_s0 = 1;
+				spin_lock_irqsave(&dev->queue_lock, flags);
 				crypto_enqueue_request(&dev->queue, dev->dma_ch[ch].req);
+				spin_unlock_irqrestore(&dev->queue_lock, flags);
 				tasklet_schedule(&dev->queue_tasklet);
 			}
 			else {
@@ -2196,7 +2204,9 @@ static void na51055_crypto_aes_ccm_complete(struct na51055_crypto_dev *dev, NA51
 				reqctx->type   = NA51055_CRYPTO_TYPE_ENCRYPT;
 				reqctx->opmode = NA51055_CRYPTO_OPMODE_CBC;
 				reqctx->get_s0 = 0;
+				spin_lock_irqsave(&dev->queue_lock, flags);
 				crypto_enqueue_request(&dev->payload_queue, dev->dma_ch[ch].req);
+				spin_unlock_irqrestore(&dev->queue_lock, flags);
 				tasklet_schedule(&dev->payload_tasklet);
 			}
 			else {
@@ -2286,7 +2296,10 @@ static void na51055_crypto_queue_tasklet(unsigned long data)
 		if (dev->dma_ch[i].state != NA51055_CRYPTO_STATE_IDLE)
 			continue;
 
+		spin_lock(&dev->queue_lock);
 		async_req = crypto_dequeue_request(&dev->queue);
+		spin_unlock(&dev->queue_lock);
+
 		if (!async_req)
 			goto exit;
 
@@ -2325,6 +2338,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 	int                              err, i, j;
 	int                              block_num;
 	int                              align_chk;
+	u8                               *iv;
+	u32                              ivsize;
 	u32                              reg_value;
 	u32                              dma_len;
 	u32                              dma_enb = 0;
@@ -2349,6 +2364,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 		if (crypto_tfm_alg_type(dma_ch->req->tfm) == CRYPTO_ALG_TYPE_AEAD) {
 			aead_req   = aead_request_cast(dma_ch->req);
 			reqctx     = aead_request_ctx(aead_req);
+			ivsize     = crypto_aead_ivsize(crypto_aead_reqtfm(aead_req));
+			iv         = aead_req->iv;
 			if (reqctx->ccm_type) {
 				ccm_reqctx = (struct na51055_crypto_ccm_reqctx *)reqctx;
 				req_src_sg = ccm_reqctx->sg_src;
@@ -2363,6 +2380,8 @@ static void na51055_crypto_done_tasklet(unsigned long data)
 		else {
 			ablk_req   = ablkcipher_request_cast(dma_ch->req);
 			reqctx     = ablkcipher_request_ctx(ablk_req);
+			ivsize     = crypto_ablkcipher_ivsize(crypto_ablkcipher_reqtfm(ablk_req));
+			iv         = ablk_req->info;
 			req_src_sg = ablk_req->src;
 			req_dst_sg = ablk_req->dst;
 		}
@@ -2633,8 +2652,13 @@ completed:
 				na51055_crypto_aes_ccm_complete(dev, i, err);
 			else if (reqctx->opmode == NA51055_CRYPTO_OPMODE_GCM)
 				na51055_crypto_aes_gcm_complete(dev, i, err);
-			else
+			else {
+				/* next IV copy back */
+				if (iv && ivsize) {
+					memcpy((void *)iv, (void *)desc->cv, ivsize);
+				}
 				na51055_crypto_complete(dev, i, err);
+			}
 		}
 	}
 
@@ -2677,11 +2701,11 @@ static void na51055_crypto_hash_tasklet(unsigned long data)
 	int                              err;
 	unsigned long                    flags;
 
-	spin_lock_irqsave(&dev->lock, flags);
+	spin_lock_irqsave(&dev->queue_lock, flags);
 
 	async_req = crypto_dequeue_request(&dev->hash_queue);
 
-	spin_unlock_irqrestore(&dev->lock, flags);
+	spin_unlock_irqrestore(&dev->queue_lock, flags);
 
 	if (!async_req)
 		return;
@@ -2730,11 +2754,11 @@ static void na51055_crypto_payload_tasklet(unsigned long data)
 	int                              err;
 	unsigned long                    flags;
 
-	spin_lock_irqsave(&dev->lock, flags);
+	spin_lock_irqsave(&dev->queue_lock, flags);
 
 	async_req = crypto_dequeue_request(&dev->payload_queue);
 
-	spin_unlock_irqrestore(&dev->lock, flags);
+	spin_unlock_irqrestore(&dev->queue_lock, flags);
 
 	if (!async_req)
 		return;
@@ -4042,6 +4066,7 @@ static int na51055_crypto_probe(struct platform_device *pdev)
 
 	spin_lock_init(&dd->lock);
 	spin_lock_init(&dd->pio_lock);
+	spin_lock_init(&dd->queue_lock);
 
 	crypto_init_queue(&dd->queue,         NA51055_CRYPTO_QUEUE_LENGTH);
 #ifdef NA51055_CRYPTO_GCM_SOFTWARE_GHASH

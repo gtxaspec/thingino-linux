@@ -70,7 +70,7 @@ void nvt_bootts_add_ts(char *name)
 {
 	unsigned char name_len = strlen(name);
 
-	if (name_len >= NVT_BOOTTS_NAME_MAX_LEN || g_index >= NVT_BOOTTS_MAX_LEN) {
+	if (name_len > (NVT_BOOTTS_NAME_MAX_LEN - 1) || g_index >= NVT_BOOTTS_MAX_LEN) {
 		pr_err("\n%s %s fail\n", __func__, name);
 		return;
 	}

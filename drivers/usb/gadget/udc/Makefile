@@ -34,6 +34,7 @@ obj-$(CONFIG_USB_EG20T)		+= pch_udc.o
 obj-$(CONFIG_USB_MV_UDC)	+= mv_udc.o
 mv_udc-y			:= mv_udc_core.o
 obj-$(CONFIG_USB_FUSB300)	+= fusb300_udc.o
+obj-$(CONFIG_USB_FOTG211_UDC)	+= fotg211-udc.o
 obj-$(CONFIG_USB_FOTG210_UDC)	+= fotg210-udc.o
 obj-$(CONFIG_USB_FOTG200_UDC)	+= fotg200-udc.o
 obj-$(CONFIG_USB_NVT_UDC520)	+= nvt-udc520.o

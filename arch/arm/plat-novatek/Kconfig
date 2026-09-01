@@ -8,6 +8,23 @@ choice
 	default NVT_IVOT_PLAT_NA51068
 
 # To define new SOC type here CA9
+config NVT_IVOT_PLAT_NA51089
+	bool "To support na51089 series"
+	select GENERIC_ALLOCATOR
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select GENERIC_IRQ_CHIP
+	select MULTI_IRQ_HANDLER
+	select PINCTRL
+	select ARM_GLOBAL_TIMER
+	select HAVE_ARM_SCU
+	select HAVE_ARM_TWD
+	select COMMON_CLK_NA51089
+	help
+	  Support for Novatek's video processing platform.
+
+# To define new SOC type here CA9
 config NVT_IVOT_PLAT_NA51068
 	bool "To support na51068 series"
 	select GENERIC_ALLOCATOR
@@ -59,6 +76,12 @@ config NVT_NT98520_EVB
 	help
 	  Enable this option to do NT98520 EVB.
 
+config NVT_NT98560_EVB
+	bool "NT98560 EVB board"
+	depends on NVT_IVOT_PLAT_NA51089
+	help
+	  Enable this option to do NT98560 EVB.
+
 config NVT_FPGA_EMULATION
 	bool "FPGA emulation"
 	help
@@ -78,7 +101,6 @@ config NVT_IM_LVD_RESET
 	default n
 	help
 	  This option will configure the reset method.
-
 
 endmenu
 

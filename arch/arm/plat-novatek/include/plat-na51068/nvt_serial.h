@@ -210,36 +210,4 @@ struct nvt_port {
 	struct work_struct  rx_dma_work;
 };
 
-static inline void nvt_write(struct uart_port *port, unsigned int off, unsigned int val)
-{
-	struct nvt_port *nvt_port = container_of(port, struct nvt_port, uart);
-	unsigned long flags = 0;
-
-	spin_lock_irqsave(&nvt_port->write_lock, flags);
-
-	writel_relaxed(val, port->membase + off);
-
-	spin_unlock_irqrestore(&nvt_port->write_lock, flags);
-}
-
-static inline unsigned int nvt_read(struct uart_port *port, unsigned int off)
-{
-	return readl_relaxed(port->membase + off);
-}
-
-static inline void nvt_masked_write(struct uart_port *port, unsigned int off, unsigned int mask, unsigned int val)
-{
-	struct nvt_port *nvt_port = container_of(port, struct nvt_port, uart);
-	unsigned long flags = 0;
-	unsigned int tmp = nvt_read(port, off);  /* be careful that some registers are cleared after reading, such as RBR */
-
-	spin_lock_irqsave(&nvt_port->write_lock, flags);
-
-	tmp &= ~mask;
-	tmp |= val & mask;
-	writel_relaxed(tmp, port->membase + off);
-
-	spin_unlock_irqrestore(&nvt_port->write_lock, flags);
-}
-
 #endif

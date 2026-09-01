@@ -10,6 +10,10 @@
 //#include <mach/hardware.h>
 #include <linux/of_address.h>
 #include <plat/efuse_protected.h>
+#include <scsi/scsi_host.h>
+#include <linux/proc_fs.h>
+
+extern int ehci_mask_connect;
 
 #define USB_SIMULATE_POWEROFF 0
 
@@ -64,7 +68,7 @@ static void nvtim_init_usbhc(struct platform_device *dev)
 
 	usbbase = (u32)ehci->caps;
 
-#if USB_SIMULATE_POWEROFF
+#if 1
 	printk("nvtim_init_usbhc\n");
 	{
 		struct clk *source_clk;
@@ -76,7 +80,6 @@ static void nvtim_init_usbhc(struct platform_device *dev)
 		} else {
 			/* toggle reset */
 			clk_prepare(source_clk);
-			clk_unprepare(source_clk);
 			clk_put(source_clk);
 		}
 		printk("R0x40=0x%08X\r\n",readl((volatile unsigned long *)(usbbase+0x40)));
@@ -274,8 +277,6 @@ static void nvtim_stop_usbhc(struct platform_device *dev)
 		if (IS_ERR(source_clk)) {
 			printk("faile to get clock f0600000.usb20\n");
 		} else {
-			/* toggle reset */
-			clk_prepare(source_clk);
 			clk_unprepare(source_clk);
 			clk_put(source_clk);
 		}
@@ -408,6 +409,85 @@ static void nvtim_usb_ehci_remove(struct usb_hcd *hcd,
 	nvtim_stop_usbhc(dev);
 }
 
+static struct proc_dir_entry *nvt_ehci_proc_root	= NULL;
+static struct proc_dir_entry *nvt_ehci_proc_mc   = NULL;
+
+static int nvt_ehci_mc_show(struct seq_file *sfile, void *v)
+{
+	seq_printf(sfile, "ehci_mask_connect %d\n", ehci_mask_connect);
+    return 0;
+}
+
+static int nvt_ehci_mc_open(struct inode *inode, struct file *file) {
+	return single_open(file, nvt_ehci_mc_show, PDE_DATA(inode));
+}
+
+
+
+static ssize_t nvt_ehci_mc_write(struct file *file, const char __user *buffer,
+                                                        size_t count, loff_t *ppos)
+{
+    unsigned int value_in;
+    char value_str[32] = {'\0'};
+
+    if(copy_from_user(value_str, buffer, count))
+        return -EFAULT;
+
+    value_str[count] = '\0';
+    sscanf(value_str, "%x\n", &value_in);
+	//printk("ehci_mask_connect %d\n", value_in);
+	ehci_mask_connect = value_in;
+
+    return count;
+}
+
+static struct file_operations nvt_ehci_mc_ops = {
+	.owner  = THIS_MODULE,
+	.open   = nvt_ehci_mc_open,
+	.write  = nvt_ehci_mc_write,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+	.release= single_release,
+};
+
+int nvt_ehci_proc_init(void) {
+	const char name[16] = "nvt_ehci";
+	struct proc_dir_entry *root;
+	int ret = 0;
+
+	root = proc_mkdir(name, NULL);
+	 if (!root) {
+	 	ret = -ENOMEM;
+		goto end;
+	}
+
+	nvt_ehci_proc_root = root;
+
+	nvt_ehci_proc_mc = proc_create("ehci_mask_connect", S_IRUGO|S_IXUGO, nvt_ehci_proc_root, &nvt_ehci_mc_ops);
+	if (!nvt_ehci_proc_mc) {
+		printk("create proc node 'nvt_sata_reset_trigger' failed!\n");
+		ret = -EINVAL;
+		goto err1;
+	}
+
+	return ret;
+
+err1:
+	proc_remove(nvt_ehci_proc_root);
+
+end:
+	return ret;
+
+}
+
+void nvt_ehci_proc_exit(void) {
+
+	if (nvt_ehci_proc_root) {
+		proc_remove(nvt_ehci_proc_root);
+		nvt_ehci_proc_root = NULL;
+	}
+}
+
 static int nvtim_ehci_init(struct usb_hcd *hcd)
 {
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
@@ -519,6 +599,12 @@ static void nvtim_patch_usbhc(struct usb_hcd *hcd)
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 	unsigned int	command = ehci_readl(ehci, &ehci->regs->command);
 	int retval, retry = 0;
+	u32 usbbase;
+	u32 tmpval = 0;
+
+	usbbase = (u32)ehci->caps;
+	pr_info("%s channel\n", __FUNCTION__);
+
 
 	command |= CMD_RESET;
 	ehci_writel(ehci, command, &ehci->regs->command);
@@ -552,6 +638,13 @@ static void nvtim_patch_usbhc(struct usb_hcd *hcd)
 		ehci_err(ehci, "write fail!\n");
 
 	ehci->command &= ~((unsigned int)(CMD_PSE|CMD_ASE));
+
+	/* Clear EOF1=3[3:2] EOF2[5:4]=0 */
+	tmpval = readl((volatile unsigned long *)(usbbase+0x40));
+	tmpval &= ~(0x3<<4);
+	tmpval |=  (0x3<<2);
+	writel(tmpval, (volatile unsigned long *)(usbbase+0x40));
+
 	set_bit(1, &hcd->porcd);
 }
 
@@ -611,6 +704,8 @@ static int nvtim_ehci_hcd_drv_probe(struct platform_device *pdev)
 	if (usb_disabled())
 		return -ENODEV;
 
+	nvt_ehci_proc_init();
+
 	ret = nvtim_usb_ehci_probe(&nvtivot_ehci_hc_driver, &hcd, pdev);
 	return ret;
 }
@@ -621,6 +716,8 @@ static int nvtim_ehci_hcd_drv_remove(struct platform_device *pdev)
 	pr_debug("In nvtim_ehci_hcd_drv_remove\n");
 	nvtim_usb_ehci_remove(hcd, pdev);
 	platform_set_drvdata(pdev, NULL);
+
+	nvt_ehci_proc_exit();
 
 	return 0;
 }
@@ -756,4 +853,4 @@ static struct platform_driver ehci_hcd_na51000_driver = {
 	}
 };
 
-MODULE_VERSION("1.00.000");
+MODULE_VERSION("1.00.004");

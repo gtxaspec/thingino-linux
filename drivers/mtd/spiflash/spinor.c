@@ -161,6 +161,29 @@ struct nvt_spinor_flash {
 	void __iomem *base_addr;
 };
 
+static void nvt_spinor_check_fastboot(void)
+{
+	u32 m_fastboot = 0x0, preload = 0x0;
+	struct device_node* of_node = of_find_node_by_path("/fastboot");
+	int ret = 0;
+
+	if (of_node) {
+		of_property_read_u32(of_node, "enable", &m_fastboot);
+	}
+
+	of_node = of_find_node_by_path("/fastboot/spi-nor");
+
+	if (of_node) {
+		of_property_read_u32(of_node, "preload", &preload);
+	}
+
+	if (m_fastboot && preload) {
+		ret = nvt_check_preload_finish();
+		if (ret != 1)
+			pr_err("error with waiting preload %d\n", ret);
+	}
+}
+
 static inline struct nvt_spinor_flash *get_flash_data(struct mtd_info *mtd)
 {
 	return container_of(mtd, struct nvt_spinor_flash, mtd);
@@ -300,7 +323,10 @@ static int nvt_flash_mtd_erase(struct mtd_info *mtd, struct erase_info *e_info)
 			ret = nvt_flash_erase_sector(dev, flash->erase_cmd, addr);
 		else {
 			if (flash->mtd.size > SPI_FLASH_16MB_BOUN)
-				ret = nvt_flash_erase_sector(dev, FLASH_CMD_SECTOR_ERASE_4BYTE, addr);
+                if (dev->info->enter_4byte_addr_mode == 1)
+				    ret = nvt_flash_erase_sector(dev, FLASH_CMD_SECTOR_ERASE, addr);
+                else
+                    ret = nvt_flash_erase_sector(dev, FLASH_CMD_SECTOR_ERASE_4BYTE, addr);
 			else
 				ret = nvt_flash_erase_sector(dev, FLASH_CMD_SECTOR_ERASE, addr);
 		}
@@ -474,6 +500,11 @@ static int nvt_spinor_read_id(struct drv_nand_dev_info *info, uint32_t *id)
 			card_id[0], card_id[1], card_id[2], card_id[3]);
 
 		*id = card_id[0] | (card_id[1] << 8) | (card_id[2] << 16);
+        if (*id == WINBOND_W25Q256FV) {
+            info->enter_4byte_addr_mode = 1;
+        } else {
+            info->enter_4byte_addr_mode = 0;
+        }
 		return 0;
 	}
 	return 0;
@@ -635,7 +666,8 @@ static int nvt_flash_setup(struct platform_device *pdev,
 	flash->mtd.writebufsize = flash->page_size;
 	if (flash->mtd.size > SPI_FLASH_16MB_BOUN) {
 		if(trace_flash_devices[flash_index].erase_cmd == FLASH_CMD_BLOCK_ERASE)
-			trace_flash_devices[flash_index].erase_cmd = FLASH_CMD_BLOCK_ERASE_4BYTE;
+            if (dev->info->enter_4byte_addr_mode != 1)
+			    trace_flash_devices[flash_index].erase_cmd = FLASH_CMD_BLOCK_ERASE_4BYTE;
 
 		if(trace_flash_devices[flash_index].erase_cmd == FLASH_CMD_SECTOR_ERASE)
 			trace_flash_devices[flash_index].erase_cmd = FLASH_CMD_SECTOR_ERASE_4BYTE;
@@ -716,6 +748,8 @@ static int nvt_flash_probe(struct platform_device *pdev)
 	struct nvt_flash *dev;
 	struct resource *nvt_flash_base;
 	int ret = 0;
+
+	nvt_spinor_check_fastboot();
 
 	if (np) {
 		pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
@@ -921,4 +955,4 @@ module_exit(spinor_exit);
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Howard Chang");
 MODULE_DESCRIPTION("MTD Flash driver for serial nor flash chips");
-MODULE_VERSION("1.07.090");
+MODULE_VERSION("1.07.120");

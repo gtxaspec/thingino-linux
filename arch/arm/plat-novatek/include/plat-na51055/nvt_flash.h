@@ -60,4 +60,5 @@ struct nvt_flash_plat_data {
 	struct device_node *np;
 };
 
+extern int nvt_check_preload_finish(void);
 #endif /* __ASM_ARCH_NA51000_NVT_FLASH_H */

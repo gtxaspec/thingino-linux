@@ -294,17 +294,33 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
 			if (col_addr != info->flash_info->page_size) {
 				status = (uint8_t)NAND_GETREG(info, NAND_CTRL_STS_REG_OFS);
 				if (info->use_ecc == NANDCTRL_SPIFLASH_USE_ONDIE_ECC) {
-					if(status & (SPINAND_FEATURE_STATUS_ECC_ERR | SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR)) {
-						// ECC uncorrectable
-						if((status & SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR) == SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR) {
-							ret = E_CTX;
-							pr_err("uncorrect ecc error sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", (uint32_t)SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR, (uint32_t)row_addr, (uint32_t)col_addr);
-							break;
-						} else {
-							ret = ECC_CORRECTED;
-							pr_debug("Bit errors were detected and corrected\n");
-							pr_debug("II sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", SPINAND_FEATURE_STATUS_ECC_ERR, (uint32_t)row_addr, (uint32_t)col_addr);
-							break;
+					if (info->ecc_status_type == 1) {	// ecc_sts b[7..4] for XT26G01C
+						if(status & SPINAND_ECC_STATUS_TYPE1_MASK) {
+							// ECC uncorrectable
+							if((status & SPINAND_ECC_STATUS_TYPE1_MASK) == SPINAND_ECC_STATUS_TYPE1_UNCORR_ERR) {
+								ret = E_CTX;
+								pr_err("uncorrect ecc error sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							} else {
+								ret = ECC_CORRECTED;
+								pr_debug("%d-Bit errors were detected and corrected\n", (int)(status&SPINAND_ECC_STATUS_TYPE1_MASK)>>4);
+								pr_debug("II sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							}
+						}
+					} else {	// normal ecc_sts type, b[5..4]
+						if(status & SPINAND_FEATURE_STATUS_ECC_MASK) {
+							// ECC uncorrectable
+							if((status & SPINAND_FEATURE_STATUS_ECC_MASK) == SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR) {
+								ret = E_CTX;
+								pr_err("uncorrect ecc error sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							} else {
+								ret = ECC_CORRECTED;
+								pr_debug("Bit errors were detected and corrected\n");
+								pr_debug("II sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							}
 						}
 					}
 				} else {
@@ -470,17 +486,33 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
 				status = (uint8_t)NAND_GETREG(info, NAND_CTRL_STS_REG_OFS);
 
 				if (info->use_ecc == NANDCTRL_SPIFLASH_USE_ONDIE_ECC) {
-					if(status & (SPINAND_FEATURE_STATUS_ECC_ERR | SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR)) {
-						// ECC uncorrectable
-						if((status & SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR) == SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR) {
-							ret = E_CTX;
-							pr_err("uncorrect ecc error sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", (uint32_t)SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR, (uint32_t)row_addr, (uint32_t)col_addr);
-							break;
-						} else {
-							ret = ECC_CORRECTED;
-							pr_debug("Bit errors were detected and corrected\n");
-							pr_debug("II sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", SPINAND_FEATURE_STATUS_ECC_ERR, (uint32_t)row_addr, (uint32_t)col_addr);
-							break;
+					if (info->ecc_status_type == 1) {	// ecc_sts b[7..4] for XT26G01C
+						if(status & SPINAND_ECC_STATUS_TYPE1_MASK) {
+							// ECC uncorrectable
+							if((status & SPINAND_ECC_STATUS_TYPE1_MASK) == SPINAND_ECC_STATUS_TYPE1_UNCORR_ERR) {
+								ret = E_CTX;
+								pr_err("uncorrect ecc error sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							} else {
+								ret = ECC_CORRECTED;
+								pr_debug("%d-Bit errors were detected and corrected\n", (int)(status&SPINAND_ECC_STATUS_TYPE1_MASK)>>4);
+								pr_debug("II sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							}
+						}
+					} else {	// normal ecc_sts type, b[5..4]
+						if(status & SPINAND_FEATURE_STATUS_ECC_MASK) {
+							// ECC uncorrectable
+							if((status & SPINAND_FEATURE_STATUS_ECC_MASK) == SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR) {
+								ret = E_CTX;
+								pr_err("uncorrect ecc error sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							} else {
+								ret = ECC_CORRECTED;
+								pr_debug("Bit errors were detected and corrected\n");
+								pr_debug("II sts 0x%08x, row Addr 0x%08x, col Addr 0x%08x\r\n", status, (uint32_t)row_addr, (uint32_t)col_addr);
+								break;
+							}
 						}
 					}
 				} else {
@@ -1059,10 +1091,19 @@ int nand_cmd_wait_complete(struct drv_nand_dev_info *info)
 		return -EINTR;
 	}
 
-	if ((info->nand_int_status & NAND_STS_FAIL_STS) && \
-		!(info->nand_int_status & SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR)) {
-		dev_err(&info->pdev->dev, "nand status error\r\n");
-		return -EINTR;
+	if (info->ecc_status_type == 1) {
+		// special ecc_sts type for XT26G01C
+		if ((info->nand_int_status & NAND_STS_FAIL_STS)) {
+			dev_err(&info->pdev->dev, "nand status error\r\n");
+			return -EINTR;
+		}
+	} else {
+		// normal ecc_sts type
+		if ((info->nand_int_status & NAND_STS_FAIL_STS) && \
+			!(info->nand_int_status & SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR)) {
+			dev_err(&info->pdev->dev, "nand status error\r\n");
+			return -EINTR;
+		}
 	}
 
 	if(info->nand_int_status & NAND_TOUT_STS) {
@@ -1384,6 +1425,10 @@ static int spiflash_page_program(struct drv_nand_dev_info *info, u32 addr, u32 b
 	int  ret;
 	u8   status;
 
+    if (info->enter_4byte_addr_mode == 1) {
+        enter_4byte_address(info);
+    }
+
 	spiflash_enable_write_latch(info);
 
 	if (clk_get_phase(info->clk))
@@ -1396,15 +1441,25 @@ static int spiflash_page_program(struct drv_nand_dev_info *info, u32 addr, u32 b
 	nand_host_set_cs_active(info, NAND_SPI_CS_LOW);
 
 	if (info->flash_info->nor_quad_support) {
-		if (info->flash_info->device_size > SPI_FLASH_16MB_BOUN)
-			cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG_4X_4BYTE;
-		else
+		if (info->flash_info->device_size > SPI_FLASH_16MB_BOUN) {
+            if (info->enter_4byte_addr_mode == 1) {
+                cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG_4X;
+            } else {
+			    cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG_4X_4BYTE;
+            }
+		} else {
 			cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG_4X;
+		}
 	} else {
-		if (info->flash_info->device_size > SPI_FLASH_16MB_BOUN)
-			cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG_4BYTE;
-		else
+		if (info->flash_info->device_size > SPI_FLASH_16MB_BOUN) {
+            if (info->enter_4byte_addr_mode == 1) {
+                cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG;
+            } else {
+			    cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG_4BYTE;
+            }
+		} else {
 			cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_PAGEPROG;
+		}
 	}
 
 	trans_param.col_addr = 0;
@@ -1428,6 +1483,9 @@ static int spiflash_page_program(struct drv_nand_dev_info *info, u32 addr, u32 b
 	if(ret != E_OK) {
 		nand_host_set_cs_active(info, NAND_SPI_CS_HIGH);
 		nand_host_config_cs_opmode(info, NAND_SPI_CS_AUTO_MODE);
+        if (info->enter_4byte_addr_mode == 1)
+            leave_4byte_address(info);
+
 		return ret;
 	}
 
@@ -1465,12 +1523,20 @@ static int spiflash_page_program(struct drv_nand_dev_info *info, u32 addr, u32 b
 
 	nand_host_set_spi_io(info, NAND_SPI_CS_ACTIVE_LOW, NAND_SPI_NORMAL_DUPLEX_MODE, NAND_SPI_ORDER_MODE_1);
 
-	if(ret != E_OK)
+	if(ret != E_OK) {
+        if (info->enter_4byte_addr_mode == 1) {
+            leave_4byte_address(info);
+        }
 		return ret;
+	}
 
 	ret = spiflash_wait_ready(info, &status);
 
 	spiflash_disable_write_latch(info);
+
+    if (info->enter_4byte_addr_mode == 1) {
+        leave_4byte_address(info);
+    }
 
 	return ret;
 }
@@ -1611,6 +1677,10 @@ int spinor_erase_sector(struct drv_nand_dev_info *info, u8 cmd, u32 addr)
 
 	spiflash_wait_ready(info, &status);
 
+    if (info->enter_4byte_addr_mode == 1) {
+        enter_4byte_address(info);
+    }
+
 	spiflash_enable_write_latch(info);
 
 	//row addr = 0x44332211 --> 0x44 --> 0x33 --> 0x22 --> 0x11
@@ -1646,6 +1716,10 @@ int spinor_erase_sector(struct drv_nand_dev_info *info, u8 cmd, u32 addr)
 	ret = nand_cmd_wait_complete(info);
 
 	spiflash_disable_write_latch(info);
+
+    if (info->enter_4byte_addr_mode == 1) {
+        leave_4byte_address(info);
+    }
 
 	return ret;
 }
@@ -1783,3 +1857,53 @@ void nand_drvdump(void)
 		pr_info("CLK driving 16 mA\n");
 }
 EXPORT_SYMBOL(nand_drvdump);
+
+/*
+    Enter 4BYTE Address mode
+
+*/
+int enter_4byte_address(struct drv_nand_dev_info *info)
+{
+	struct smc_setup_trans transParam;
+    int ret;
+
+    do {
+    	transParam.col_addr      = 0;
+    	transParam.row_addr      = 0;
+    	transParam.fifo_dir      = _FIFO_READ;
+    	transParam.trans_mode    = _PIO_MODE;
+    	transParam.type          = _CMD;
+    	transParam.cs            = 0;
+
+        nand_host_setup_transfer(info, &transParam, 0, 0, _SINGLE_PAGE);
+        nand_host_send_command(info, FLASH_CMD_ENTER_4BYTE_ADDR, FALSE);
+        ret = nand_cmd_wait_complete(info);
+    } while(0);
+
+	return ret;
+}
+
+/*
+    Leave 4BYTE Address mode
+
+*/
+int leave_4byte_address(struct drv_nand_dev_info *info)
+{
+	struct smc_setup_trans transParam;
+    int ret;
+
+    do {
+    	transParam.col_addr      = 0;
+    	transParam.row_addr      = 0;
+    	transParam.fifo_dir      = _FIFO_READ;
+    	transParam.trans_mode    = _PIO_MODE;
+    	transParam.type          = _CMD;
+    	transParam.cs            = 0;
+
+        nand_host_setup_transfer(info, &transParam, 0, 0, _SINGLE_PAGE);
+        nand_host_send_command(info, FLASH_CMD_LEAVE_4BYTE_ADDR, FALSE);
+        ret = nand_cmd_wait_complete(info);
+    } while(0);
+
+	return ret;
+}

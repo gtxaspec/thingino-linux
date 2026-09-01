@@ -743,7 +743,7 @@ config I2C_NOMADIK
 
 config I2C_NA51055
 	tristate "Novatek NA51055 I2C Driver"
-	depends on NVT_IVOT_PLAT_NA51055
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
 	help
 	  Say Y here to include support for I2C controller in the
 	  Novatek NA51055 based System-on-Chip devices.

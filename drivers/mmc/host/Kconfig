@@ -532,7 +532,7 @@ config MMC_DAVINCI
 
 config MMC_NA51055
 	tristate "Novatek NA51055 Multimedia Card Interface support"
-	depends on NVT_IVOT_PLAT_NA51055
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
 	help
 	  This selects the Novatek NA51055 Multimedia card Interface.
 	  If you have an NA51055 board with a Multimedia Card slot,

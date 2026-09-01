@@ -20,7 +20,6 @@
 #include <plat/hardware.h>
 #include <plat/rtc_int.h>
 
-#if !defined(CONFIG_RTC_DRV_NA51055) || defined(CONFIG_NVT_IM_LVD_RESET)
 #define WDT_CG_EN_OFS     0x74
 #define WDT_CG_RESET_OFS  0x84
 #define WDT_CG_BIT        17
@@ -51,7 +50,6 @@ static void nvt_trigger_wdt_external(void)
 
 	nvt_writel(0x1, NVT_WDT_BASE_VIRT + WDT_MAN_OFS);
 }
-#endif
 
 static int nvt_notify_reboot(struct notifier_block *nb, unsigned long action, void *data)
 {
@@ -102,6 +100,8 @@ void nvt_ivot_restart(enum reboot_mode mode, const char *cmd)
 	pr_info("done\n");
 	/* Waiting for core0 rtc flow ready */
 	mdelay(5000);
+
+	nvt_trigger_wdt_external();
 }
 
 arch_initcall(nvt_poweroff_setup);

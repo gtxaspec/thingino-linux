@@ -20,6 +20,7 @@
 #include <linux/spinlock.h>
 #include <linux/clk.h>
 #include <linux/bitrev.h>
+#include <linux/delay.h>
 #include <linux/clk-provider.h>
 
 #include <media/rc-core.h>
@@ -31,7 +32,7 @@
 
 static u64 ir_cycle_time;
 static bool ir_input_inverse = true;
-static IR_DATA_ORDER ir_data_order = IR_DATA_MSB;
+static bool ir_first = false;
 
 static struct clk *clk_sel0, *clk_sel1;
 
@@ -46,6 +47,21 @@ module_param_named(ir_debug, __ir_debug, int, 0600);
 
 static int __ir_flow_debug = 0;
 module_param_named(ir_flow_debug, __ir_flow_debug, int, 0600);
+
+static int __ir_repeat_is_data = 0;
+module_param_named(ir_repeat_is_data, __ir_repeat_is_data, int, 0600);
+
+static int __ir_data_order = IR_DATA_MSB;
+module_param_named(ir_data_order, __ir_data_order, int, 0600);
+
+static int __ir_use_raw = 0;
+module_param_named(ir_use_raw, __ir_use_raw, int, 0600);
+
+static int __ir_first_delay = 10;
+module_param_named(ir_first_delay, __ir_first_delay, int, 0600);
+
+static int __ir_repeat_delay = 10;
+module_param_named(ir_repeat_delay, __ir_repeat_delay, int, 0600);
 
 #define ir_isr_dbg(fmt, ...) do { \
 	if (__ir_isr_debug) { \
@@ -400,7 +416,7 @@ static void nvt_ir_config(struct nvt_ir *ir, IR_CONFIG_ID cfg_id, u32 cfg_value)
 
 static void nvt_ir_decoder(struct work_struct *work)
 {
-	struct nvt_ir *ir = container_of(work, struct nvt_ir, decoder_work);
+	struct nvt_ir *ir = container_of(work, struct nvt_ir, decoder_work.work);
 	u32 scancode;
 	enum rc_proto protocol;
 	u8 address, not_address, command, not_command;
@@ -416,9 +432,13 @@ static void nvt_ir_decoder(struct work_struct *work)
 
 			scancode = ir_nec_bytes_to_scancode(address, not_address, command, not_command, &protocol);
 
-			ir_dbg("decoding NEC protocol: protocol(%d) raw(0x%x) scancode(0x%x)\n", protocol, data, scancode);
+			ir_dbg("decoding NEC protocol: protocol(%d) raw(0x%x) scancode(0x%x), report %s\n", protocol, data, scancode, __ir_use_raw ? "raw" : "scancode");
 
-			rc_keydown(ir->rc, protocol, scancode, 0);
+			if (__ir_use_raw) {
+				rc_keydown(ir->rc, protocol, data, 0);
+			} else {
+				rc_keydown(ir->rc, protocol, scancode, 0);
+			}
 		}
 		break;
 
@@ -429,9 +449,13 @@ static void nvt_ir_decoder(struct work_struct *work)
 				   (bitrev8((data >> 0) & 0xff) << 0);
 			protocol = RC_PROTO_JVC;
 
-			ir_dbg("decoding JVC protocol: protocol(%d) raw(0x%x) scancode(0x%x)\n", protocol, data, scancode);
+			ir_dbg("decoding JVC protocol: protocol(%d) raw(0x%x) scancode(0x%x), report %s\n", protocol, data, scancode, __ir_use_raw ? "raw" : "scancode");
 
-			rc_keydown(ir->rc, protocol, scancode, 0);
+			if (__ir_use_raw) {
+				rc_keydown(ir->rc, protocol, data, 0);
+			} else {
+				rc_keydown(ir->rc, protocol, scancode, 0);
+			}
 		}
 		break;
 
@@ -452,9 +476,13 @@ static void nvt_ir_decoder(struct work_struct *work)
 			scancode = address << 8 | command;
 			protocol = RC_PROTO_SHARP;
 
-			ir_dbg("decoding Sharp protocol: protocol(%d) raw(0x%x) scancode(0x%x)\n", protocol, data, scancode);
+			ir_dbg("decoding Sharp protocol: protocol(%d) raw(0x%x) scancode(0x%x), report %s\n", protocol, data, scancode, __ir_use_raw ? "raw" : "scancode");
 
-			rc_keydown(ir->rc, protocol, scancode, 0);
+			if (__ir_use_raw) {
+				rc_keydown(ir->rc, protocol, data, 0);
+			} else {
+				rc_keydown(ir->rc, protocol, scancode, 0);
+			}
 		}
 		break;
 
@@ -469,9 +497,13 @@ static void nvt_ir_decoder(struct work_struct *work)
 			scancode = system << 8 | command;
 			protocol = RC_PROTO_RC5;
 
-			ir_dbg("decoding RC5 protocol: protocol(%d) raw(0x%x) scancode(0x%x)\n", protocol, data, scancode);
+			ir_dbg("decoding RC5 protocol: protocol(%d) raw(0x%x) scancode(0x%x), report %s\n", protocol, data, scancode, __ir_use_raw ? "raw" : "scancode");
 
-			rc_keydown(ir->rc, protocol, scancode, toggle);
+			if (__ir_use_raw) {
+				rc_keydown(ir->rc, protocol, data, 0);
+			} else {
+				rc_keydown(ir->rc, protocol, scancode, 0);
+			}
 		}
 		break;
 
@@ -501,9 +533,13 @@ static void nvt_ir_decoder(struct work_struct *work)
 
 			scancode = (u32)sn;
 
-			ir_dbg("decoding EM4095 protocol: protocol(%d) raw(0x%llx) sn(%010lld) scancode(0x%x)\n", protocol, data, sn, scancode);
+			ir_dbg("decoding EM4095 protocol: protocol(%d) raw(0x%llx) sn(%010lld) scancode(0x%x), report %s\n", protocol, data, sn, scancode, __ir_use_raw ? "raw" : "scancode");
 
-			rc_keydown(ir->rc, protocol, scancode, 0);
+			if (__ir_use_raw) {
+				rc_keydown(ir->rc, protocol, data, 0);
+			} else {
+				rc_keydown(ir->rc, protocol, scancode, 0);
+			}
 		}
 		break;
 
@@ -512,6 +548,14 @@ static void nvt_ir_decoder(struct work_struct *work)
 
 		break;
 	}
+
+	if (ir_first) {
+		ir_first = false;
+
+		mdelay(__ir_first_delay);
+	}
+
+	nvt_ir_enable(ir);
 }
 
 /***********************************
@@ -540,12 +584,27 @@ void nvt_ir_irq_cb(struct nvt_ir *ir)
 			ir_isr_dbg("RD interrupt, data_lo(0x%x) data_hi(0x%x)\n", ir->data_lo, ir->data_hi);
 		}
 
-		/* Decode raw data to scancode */
-		schedule_work(&ir->decoder_work);
-	}
+		ir_first = true;
 
-	if (sts_r & REP_STS_BIT) {
-		ir_isr_dbg("REP interrupt\n");
+		nvt_ir_disable(ir);
+
+		/* Decode raw data to scancode */
+		schedule_delayed_work(&ir->decoder_work, msecs_to_jiffies(0));
+	} else if (sts_r & REP_STS_BIT) {
+		if (!__ir_repeat_is_data) {
+			ir_isr_dbg("REP interrupt\n");
+		} else {
+			/* Get the raw data */
+			ir->data_lo = nvt_ir_read(ir, IR_DATA_LO_REG);
+			ir->data_hi = nvt_ir_read(ir, IR_DATA_HI_REG);
+
+			ir_isr_dbg("REP interrupt, data_lo(0x%x) data_hi(0x%x)\n", ir->data_lo, ir->data_hi);
+
+			nvt_ir_disable(ir);
+
+			/* Decode raw data to scancode */
+			schedule_delayed_work(&ir->decoder_work, msecs_to_jiffies(__ir_repeat_delay));
+		}
 	}
 
 	if (sts_r & ERR_STS_BIT) {
@@ -612,7 +671,7 @@ void nvt_ir_protocol_config(struct nvt_ir *ir)
 		nvt_ir_config(ir, IR_CONFIG_ID_GSR_TH, 62);
 		nvt_ir_config(ir, IR_CONFIG_ID_REPEAT_TH, 3000);
 		nvt_ir_config(ir, IR_CONFIG_ID_DATA_LENGTH, 32);
-		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, ir_data_order);
+		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, __ir_data_order);
 		nvt_ir_config(ir, IR_CONFIG_ID_INPUT_INVERSE, ir_input_inverse);
 		nvt_ir_config(ir, IR_CONFIG_ID_BI_PHASE_EN, false);
 
@@ -636,7 +695,7 @@ void nvt_ir_protocol_config(struct nvt_ir *ir)
 		nvt_ir_config(ir, IR_CONFIG_ID_HEADER_TH, 6000);
 		nvt_ir_config(ir, IR_CONFIG_ID_GSR_TH, 62);
 		nvt_ir_config(ir, IR_CONFIG_ID_DATA_LENGTH, 16);
-		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, ir_data_order);
+		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, __ir_data_order);
 		nvt_ir_config(ir, IR_CONFIG_ID_INPUT_INVERSE, ir_input_inverse);
 		nvt_ir_config(ir, IR_CONFIG_ID_BI_PHASE_EN, false);
 
@@ -659,7 +718,7 @@ void nvt_ir_protocol_config(struct nvt_ir *ir)
 		nvt_ir_config(ir, IR_CONFIG_ID_ERROR_TH, 10000);
 		nvt_ir_config(ir, IR_CONFIG_ID_GSR_TH, 62);
 		nvt_ir_config(ir, IR_CONFIG_ID_DATA_LENGTH, 13);
-		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, ir_data_order);
+		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, __ir_data_order);
 		nvt_ir_config(ir, IR_CONFIG_ID_INPUT_INVERSE, ir_input_inverse);
 		nvt_ir_config(ir, IR_CONFIG_ID_BI_PHASE_EN, false);
 
@@ -676,7 +735,7 @@ void nvt_ir_protocol_config(struct nvt_ir *ir)
 
 		nvt_ir_config(ir, IR_CONFIG_ID_CLK_SRC_SEL, IR_CLK_SRC_RTC);
 		nvt_ir_config(ir, IR_CONFIG_ID_DATA_LENGTH, 11);
-		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, ir_data_order);
+		nvt_ir_config(ir, IR_CONFIG_ID_DATA_ORDER, __ir_data_order);
 		nvt_ir_config(ir, IR_CONFIG_ID_BI_PHASE_EN, true);
 		nvt_ir_config(ir, IR_CONFIG_ID_INPUT_INVERSE, 0);
 		nvt_ir_config(ir, IR_CONFIG_ID_BI_PHASE_DETECT_HEADER_TH, false);
@@ -727,7 +786,7 @@ void nvt_ir_platform_init(struct nvt_ir *ir)
 {
 	ir_flow_dbg();
 
-	INIT_WORK(&ir->decoder_work, nvt_ir_decoder);
+	INIT_DELAYED_WORK(&ir->decoder_work, nvt_ir_decoder);
 
 	if (nvt_get_chip_id() == CHIP_NA51084) {
 		clk_sel0 = clk_get(NULL, "remote_clk_sel0");

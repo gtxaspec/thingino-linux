@@ -17,13 +17,19 @@
 #include <linux/usb/gadget.h>
 #include <linux/of.h>
 #include <linux/delay.h>
+#include <linux/clk.h>
 #include <plat/efuse_protected.h>
+#include <linux/gpio.h>
+#include <plat/nvt-gpio.h>
 
 #include "fotg210.h"
+#include <linux/usb/video.h>
+#include "fotg210-EP.h"
 
 #define	DRIVER_DESC	"FOTG210 USB Device Controller Driver"
-#define	DRIVER_VERSION	"30-April-2013"
+#define	DRIVER_VERSION	"1.00.035"
 
+u32 vbus_gpio_no = D_GPIO(7);
 static const char udc_name[] = "fotg210_udc";
 //static const char * const fotg210_ep_name[] = {
 //	"ep0", "ep1", "ep2", "ep3", "ep4"};
@@ -45,7 +51,7 @@ static const struct {
 	EP_INFO("ep2",
 		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
 	EP_INFO("ep3",
-		USB_EP_CAPS(USB_EP_CAPS_TYPE_INT, USB_EP_CAPS_DIR_ALL)),
+		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
 	EP_INFO("ep4",
 		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
 	EP_INFO("ep5",
@@ -58,31 +64,59 @@ unsigned int outslice = 0;
 module_param_named(outslice, outslice, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(outslice, "Fot class(CDC-NCM) out size is unknown, the use of short packet to terminate out");
 
+static unsigned debug_on = 0;
+module_param(debug_on, uint, S_IRUGO);
+MODULE_PARM_DESC(debug_on, "Whether to enable debug message. Default = 0");
 
+static int do_test_packet = 0;
 
-#define	NVTUSB_DEBUG	0
+#define numsg		pr_info
+#define itfnumsg	pr_info
+#define devnumsg	pr_info
+#define ep0numsg	pr_info
 
-#if NVTUSB_DEBUG
-#define numsg		printk
-#define itfnumsg	printk
-#define devnumsg	printk
-#define ep0numsg	printk
-#else
-#define numsg		pr_debug
-#define itfnumsg	pr_debug
-#define devnumsg	pr_debug
-#define ep0numsg	pr_debug
-#endif
+static int fotg210_cable_out_clear(struct fotg210_ep *ep)
+{
+	u32 value;
+	u32 dma_start;
 
+	if (debug_on) {
+		pr_info("cable out clear\n");
+	}
+
+	if (ep->dir_in) {
+		/* reset fifo */
+		do {
+			dma_start = ioread32(ep->fotg210->reg + FOTG210_DMACPSR1);
+
+			if (ep->epnum) {
+				value = ioread32(ep->fotg210->reg +
+						FOTG210_FIBCR(gEPMap[ep->epnum - 1]));
+
+				value |= FIBCR_FFRST;
+				iowrite32(value, ep->fotg210->reg +
+						FOTG210_FIBCR(gEPMap[ep->epnum - 1]));
+			} else {
+				value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
+				value |= DCFESR_CX_CLR;
+				iowrite32(value, ep->fotg210->reg + FOTG210_DCFESR);
+			}
+		} while (dma_start & 0x1);
+	}
+
+	return 1;
+}
 
 static void fotg210_disable_fifo_int(struct fotg210_ep *ep)
 {
-	u32 value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
+	u32 value;
 
+	value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
 	if (ep->dir_in)
-		value |= DMISGR1_MF_IN_INT(ep->epnum - 1);
+		value |= DMISGR1_MF_IN_INT(gEPMap[ep->epnum - 1]);
 	else
-		value |= DMISGR1_MF_OUTSPK_INT(ep->epnum - 1);
+		value |= DMISGR1_MF_OUTSPK_INT(gEPMap[ep->epnum - 1]);
+
 	iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
 }
 
@@ -91,9 +125,10 @@ static void fotg210_enable_fifo_int(struct fotg210_ep *ep)
 	u32 value = ioread32(ep->fotg210->reg + FOTG210_DMISGR1);
 
 	if (ep->dir_in)
-		value &= ~DMISGR1_MF_IN_INT(ep->epnum - 1);
+		value &= ~DMISGR1_MF_IN_INT(gEPMap[ep->epnum - 1]);
 	else
-		value &= ~DMISGR1_MF_OUTSPK_INT(ep->epnum - 1);
+		value &= ~DMISGR1_MF_OUTSPK_INT(gEPMap[ep->epnum - 1]);
+
 	iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR1);
 }
 
@@ -108,6 +143,9 @@ static void fotg210_set_cxdone(struct fotg210_udc *fotg210)
 static void fotg210_done(struct fotg210_ep *ep, struct fotg210_request *req,
 			int status)
 {
+	if (debug_on)
+		numsg("fotg210_done\n");
+
 	list_del_init(&req->queue);
 
 	/* don't modify queue heads during completion callback */
@@ -130,8 +168,317 @@ static void fotg210_done(struct fotg210_ep *ep, struct fotg210_request *req,
 	}
 }
 
+static void USB_setFIFOCfg(struct fotg210_ep *ep, USB_FIFO_NUM FIFOn, USB_EP_TYPE BLK_TYP, USB_EP_BLKNUM BLKNO, BOOL BLKSZ, USB_FIFO_DIR Dir)
+{
+	struct fotg210_udc *fotg210 = ep->fotg210;
+	u32 fifocfg = ioread32(fotg210->reg + FOTG210_FIFOCF_03);
+	u32 fifocfg_dir = ioread32(fotg210->reg + FOTG210_FIFOMAP_03);
+
+	u32 fifocfg2 = ioread32(fotg210->reg + FOTG210_FIFOCF_47);
+	u32 fifocfg2_dir = ioread32(fotg210->reg + FOTG210_FIFOMAP_47);
+
+	switch (FIFOn) {
+	case USB_FIFO0: {
+			fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+
+			if ((BLKNO == BLKNUM_SINGLE) && (BLKSZ == 1)) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+			} else if (BLKNO == BLKNUM_DOUBLE) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				if (BLKSZ == 1) {
+					// Block size : 512~1024 bytes
+					fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+2);
+					fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+2);
+					fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+2);
+					fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+2);
+
+					fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+3);
+					fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+3);
+					fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+3);
+					fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+3);
+				}
+
+			} else if (BLKNO == BLKNUM_TRIPLE) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+2);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+2);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+2);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+2);
+
+				// Block size : 512~1024 bytes. Exceed boundary.
+				if (BLKSZ == 1) {
+					pr_err("BLKNO %d, BLKSZ %d exceed resource\r\n", BLKNO, BLKSZ);
+				}
+			}
+		}
+		break;
+
+	case USB_FIFO1: {
+			fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO == BLKNUM_SINGLE) && (BLKSZ == 1)) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+			} else if (BLKNO == BLKNUM_DOUBLE) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				// Block size : 512~1024 bytes. Exceed boundary.
+				if (BLKSZ == 1) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+				}
+			} else if (BLKNO == BLKNUM_TRIPLE) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+2);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+2);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+2);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+2);
+
+				// Block size : 512~1024 bytes. Exceed boundary.
+				if (BLKSZ == 1) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+				}
+			}
+		}
+		break;
+
+	case USB_FIFO2: {
+			fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO == BLKNUM_SINGLE) && (BLKSZ == 1)) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+			} else if (BLKNO == BLKNUM_DOUBLE) {
+				fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				// Block size : 512~1024 bytes
+				if (BLKSZ == 1) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+				}
+			} else if (BLKNO == BLKNUM_TRIPLE) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+			}
+		}
+		break;
+
+	case USB_FIFO3: {
+			fifocfg |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO > BLKNUM_SINGLE) || (BLKSZ == 1)) {
+				pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+			}
+		}
+		break;
+
+	case USB_FIFO4: {
+			fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg2_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg2_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg2_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg2 |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO == BLKNUM_SINGLE) && (BLKSZ == 1)) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+			} else if (BLKNO == BLKNUM_DOUBLE) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				if (BLKSZ == 1) {
+					// Block size : 512~1024 bytes
+					fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+2);
+					fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+2);
+					fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+2);
+					fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+2);
+
+					fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+3);
+					fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+3);
+					fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+3);
+					fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+3);
+				}
+
+			} else if (BLKNO == BLKNUM_TRIPLE) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+2);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+2);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+2);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+2);
+
+				// Block size : 512~1024 bytes. Exceed boundary.
+				if (BLKSZ == 1) {
+					pr_err("BLKNO %d, BLKSZ %d exceed resource\r\n", BLKNO, BLKSZ);
+				}
+			}
+		}
+		break;
+
+	case USB_FIFO5: {
+			fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg2_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg2_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg2_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg2 |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO == BLKNUM_SINGLE) && (BLKSZ == 1)) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+			} else if (BLKNO == BLKNUM_DOUBLE) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				// Block size : 512~1024 bytes. Exceed boundary.
+				if (BLKSZ == 1) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+				}
+			} else if (BLKNO == BLKNUM_TRIPLE) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+2);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+2);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+2);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+2);
+
+				// Block size : 512~1024 bytes. Exceed boundary.
+				if (BLKSZ == 1) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+				}
+			}
+
+
+
+		}
+		break;
+
+	case USB_FIFO6: {
+			fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg2_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg2_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg2_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg2 |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO == BLKNUM_SINGLE) && (BLKSZ == 1)) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+			} else if (BLKNO == BLKNUM_DOUBLE) {
+				fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn+1);
+				fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn+1);
+				fifocfg2 |= FIFOCF_FIFO_EN_NVT(0, FIFOn+1);
+
+				// Block size : 512~1024 bytes
+				if (BLKSZ == 1) {
+					pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+				}
+			} else if (BLKNO == BLKNUM_TRIPLE) {
+				pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+			}
+		}
+		break;
+
+	case USB_FIFO7: {
+			fifocfg2 |= FIFOCF_TYPE_NVT(BLK_TYP, FIFOn);
+			fifocfg2 |= FIFOCF_BLK_NO(BLKNO-1, FIFOn);
+			fifocfg2 |= FIFOCF_BLKSZ_NVT(BLKSZ, FIFOn);
+			fifocfg2_dir |= FIFOMAP_DIR(Dir, FIFOn);
+			fifocfg2_dir &= ~FIFOMAP_EPNOMSK_NVT(FIFOn); // fifomap
+			fifocfg2_dir |= FIFOMAP_EPNO_NVT(ep->epnum, FIFOn);
+			fifocfg2 |= FIFOCF_FIFO_EN_NVT(1, FIFOn);
+
+			if ((BLKNO > BLKNUM_SINGLE) || (BLKSZ == 1)) {
+				pr_err("FIFOn %d, BLKNO %d, BLKSZ %d exceed resource\r\n", FIFOn, BLKNO, BLKSZ);
+			}
+		}
+		break;
+	default:
+		break;
+
+	}
+
+	iowrite32(fifocfg, fotg210->reg + FOTG210_FIFOCF_03);
+	iowrite32(fifocfg_dir, fotg210->reg + FOTG210_FIFOMAP_03);
+	iowrite32(fifocfg2, fotg210->reg + FOTG210_FIFOCF_47);
+	iowrite32(fifocfg2_dir, fotg210->reg + FOTG210_FIFOMAP_47);
+}
+
 static void fotg210_fifo_ep_mapping(struct fotg210_ep *ep, u32 epnum,
-				u32 dir_in)
+		u32 dir_in, USB_FIFO_NUM FIFOn)
 {
 	struct fotg210_udc *fotg210 = ep->fotg210;
 	u32 val;
@@ -141,41 +488,32 @@ static void fotg210_fifo_ep_mapping(struct fotg210_ep *ep, u32 epnum,
 	 */
 
 	/* map a fifo to an ep */
-	val = ioread32(fotg210->reg + FOTG210_EPMAP);
-	val &= ~EPMAP_FIFONOMSK(epnum, dir_in);
-	val |= EPMAP_FIFONO(epnum, dir_in);
-	iowrite32(val, fotg210->reg + FOTG210_EPMAP);
+	//1. Update registers
+	if (epnum <= 4) {
+		val = ioread32(fotg210->reg + FOTG210_EPMAP_14);
+		val &= ~ EPMAP_FIFONOMSK_NVT(epnum, dir_in);
+		val |= EPMAP_FIFONO_NVT(epnum, FIFOn, dir_in);
+		iowrite32(val, fotg210->reg + FOTG210_EPMAP_14);
+	} else {
+		val = ioread32(fotg210->reg + FOTG210_EPMAP_58);
+		val &= ~ EPMAP_FIFONOMSK_NVT(epnum, dir_in);
+		val |= EPMAP_FIFONO_NVT(epnum, FIFOn, dir_in);
+		iowrite32(val, fotg210->reg + FOTG210_EPMAP_58);
+	}
+	//2. update mapping table
+	gEPMap[epnum-1] = FIFOn;
+
 
 	/* map the ep to the fifo */
-	val = ioread32(fotg210->reg + FOTG210_FIFOMAP);
-	val &= ~FIFOMAP_EPNOMSK(epnum);
-	val |= FIFOMAP_EPNO(epnum);
-	iowrite32(val, fotg210->reg + FOTG210_FIFOMAP);
+	// 1. update mapping table
+	if (dir_in == USB_FIFO_IN) {
+		gFIFOInMap[FIFOn] = epnum;
+	} else {
+		gFIFOOutMap[FIFOn] = epnum;
+	}
 
-	/* enable fifo */
-	val = ioread32(fotg210->reg + FOTG210_FIFOCF);
-	val |= FIFOCF_FIFO_EN(epnum - 1);
-	iowrite32(val, fotg210->reg + FOTG210_FIFOCF);
-}
-
-static void fotg210_set_fifo_dir(struct fotg210_ep *ep, u32 epnum, u32 dir_in)
-{
-	struct fotg210_udc *fotg210 = ep->fotg210;
-	u32 val;
-
-	val = ioread32(fotg210->reg + FOTG210_FIFOMAP);
-	val |= (dir_in ? FIFOMAP_DIRIN(epnum - 1) : FIFOMAP_DIROUT(epnum - 1));
-	iowrite32(val, fotg210->reg + FOTG210_FIFOMAP);
-}
-
-static void fotg210_set_tfrtype(struct fotg210_ep *ep, u32 epnum, u32 type)
-{
-	struct fotg210_udc *fotg210 = ep->fotg210;
-	u32 val;
-
-	val = ioread32(fotg210->reg + FOTG210_FIFOCF);
-	val |= FIFOCF_TYPE(type, epnum - 1);
-	iowrite32(val, fotg210->reg + FOTG210_FIFOCF);
+	// 2. set fifo config, and caculate the fifo no for next EP.
+	USB_setFIFOCfg(ep, FIFOn, ep->type, gEPBlkNo[epnum-1], (gEPBlkSz[epnum-1] > 512), dir_in);
 }
 
 static void fotg210_set_mps(struct fotg210_ep *ep, u32 epnum, u32 mps,
@@ -191,17 +529,25 @@ static void fotg210_set_mps(struct fotg210_ep *ep, u32 epnum, u32 mps,
 	iowrite32(val, fotg210->reg + offset);
 }
 
+#define CLEARMASK 0xFFFFFFFF
 static int fotg210_config_ep(struct fotg210_ep *ep,
 		     const struct usb_endpoint_descriptor *desc)
 {
 	struct fotg210_udc *fotg210 = ep->fotg210;
+	int32_t FIFOn = 0;
+	int i = 0;
 
-	fotg210_set_fifo_dir(ep, ep->epnum, ep->dir_in);
-	fotg210_set_tfrtype(ep, ep->epnum, ep->type);
 	fotg210_set_mps(ep, ep->epnum, ep->ep.maxpacket, ep->dir_in);
-	fotg210_fifo_ep_mapping(ep, ep->epnum, ep->dir_in);
 
-	fotg210->ep[ep->epnum] = ep;
+	for (i = 0; i < ep->epnum-1; i++) {
+		FIFOn += gEPBlkNo[i];
+
+		if (gEPBlkSz[i] > 512)
+			FIFOn += gEPBlkNo[i];
+	}
+
+        fotg210_fifo_ep_mapping(ep, ep->epnum, ep->dir_in, FIFOn);
+        fotg210->ep[ep->epnum] = ep;
 
 	return 0;
 }
@@ -211,7 +557,8 @@ static int fotg210_ep_enable(struct usb_ep *_ep,
 {
 	struct fotg210_ep *ep;
 
-	numsg("fotg210_ep_enable\n");
+	if (debug_on)
+		numsg("fotg210_ep_enable\n");
 
 	ep = container_of(_ep, struct fotg210_ep, ep);
 
@@ -221,10 +568,11 @@ static int fotg210_ep_enable(struct usb_ep *_ep,
 	ep->dir_in = usb_endpoint_dir_in(desc);
 	ep->ep.maxpacket = usb_endpoint_maxp(desc);
 
-	itfnumsg("fotg210_ep_enable\n");
-	itfnumsg("ep-desc len=0x%X type=0x%X epaddr=0x%X attr=0x%X MaxPkt=0x%X intval=0x%X\n",desc->bLength,desc->bDescriptorType
-		,desc->bEndpointAddress,desc->bmAttributes,desc->wMaxPacketSize,desc->bInterval);
-
+	if (debug_on) {
+		itfnumsg("fotg210_ep_enable\n");
+		itfnumsg("ep-desc len=0x%X type=0x%X epaddr=0x%X attr=0x%X MaxPkt=0x%X intval=0x%X\n",desc->bLength,desc->bDescriptorType
+			,desc->bEndpointAddress,desc->bmAttributes,desc->wMaxPacketSize,desc->bInterval);
+	}
 
 	return fotg210_config_ep(ep, desc);
 }
@@ -315,7 +663,8 @@ static void fotg210_enable_dma(struct fotg210_ep *ep,
 	u32 value;
 	struct fotg210_udc *fotg210 = ep->fotg210;
 
-	numsg("fotg210_enable_dma ep%d len=%d\n", ep->epnum, len);
+	if (debug_on)
+		numsg("fotg210_enable_dma ep%d len=%d\n", ep->epnum, len);
 
 	do {
 		value = ioread32(fotg210->reg + FOTG210_DMACPSR1);
@@ -333,7 +682,8 @@ static void fotg210_enable_dma(struct fotg210_ep *ep,
 	//	value |= DMATFNR_ACC_FN(ep->epnum - 1);
 	//else
 	//	value |= DMATFNR_ACC_CXF;
-	value = DMATFNR_ACC_FN(ep->epnum - 1);
+	value = DMATFNR_ACC_FN(gEPMap[ep->epnum - 1]);
+
 	iowrite32(value, fotg210->reg + FOTG210_DMATFNR);
 
 	/* set DMA memory address */
@@ -357,24 +707,33 @@ static void fotg210_disable_dma(struct fotg210_ep *ep)
 
 static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 {
-	u32 value;
+	u32 value, dma_start, iep_length;
 	unsigned long timeout = 0;
+
+	bool cable_out_ret = 0;
+	u32 vbus_gpio = 0;
 
 	timeout = jiffies + msecs_to_jiffies(1000);
 
-	numsg("fotg210_wait_dma_done\n");
+	if (debug_on)
+		numsg("fotg210_wait_dma_done\n");
 
 	do {
+		vbus_gpio = gpio_get_value(vbus_gpio_no);
+		if (!vbus_gpio) {
+			cable_out_ret = fotg210_cable_out_clear(ep);
+			break;
+		}
 		value = ioread32(ep->fotg210->reg + FOTG210_DISGR2);
 		if ((value & DISGR2_USBRST_INT) ||
 		    (value & DISGR2_DMA_ERROR))
 			goto dma_reset;
 
-        if (time_after(jiffies, timeout)) {
-               pr_err("%s timeout\n", __func__);
-               goto dma_reset;
-        }
-        cpu_relax();
+		if (time_after(jiffies, timeout)) {
+			pr_err("%s timeout\n", __func__);
+			goto dma_reset;
+		}
+		cpu_relax();
 
 	} while (!(value & DISGR2_DMA_CMPLT));
 
@@ -383,32 +742,59 @@ static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 
 	if ((ep->epnum)&&(ep->dir_in)) {
 		do {
+			vbus_gpio = gpio_get_value(vbus_gpio_no);
+			if (!vbus_gpio) {
+				cable_out_ret = fotg210_cable_out_clear(ep);
+				break;
+			}
+
 			value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
-		} while (!(value & DCFESR_FIFO_EMPTY(ep->epnum - 1)));
+		} while (!(value & DCFESR_FIFO_EMPTY(gEPMap[ep->epnum-1])));
 	}
 
-	//printk("done\n");
 	return;
 
 dma_reset:
-	value = ioread32(ep->fotg210->reg + FOTG210_DMACPSR1);
-	value |= DMACPSR1_DMA_ABORT;
-	iowrite32(value, ep->fotg210->reg + FOTG210_DMACPSR1);
+	//value = ioread32(ep->fotg210->reg + FOTG210_DMACPSR1);
+	//value |= DMACPSR1_DMA_ABORT;
+	//iowrite32(value, ep->fotg210->reg + FOTG210_DMACPSR1);
 
-	/* reset fifo */
-	if (ep->epnum) {
-		value = ioread32(ep->fotg210->reg +
-				FOTG210_FIBCR(ep->epnum - 1));
-		value |= FIBCR_FFRST;
-		iowrite32(value, ep->fotg210->reg +
-				FOTG210_FIBCR(ep->epnum - 1));
-	} else {
-		value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
-		value |= DCFESR_CX_CLR;
-		iowrite32(value, ep->fotg210->reg + FOTG210_DCFESR);
+	if (ep->dir_in) {
+		iep_length = ioread32(ep->fotg210->reg + FOTG210_INEPMPSR(ep->epnum));
+
+		/* reset fifo */
+		do {
+			dma_start = ioread32(ep->fotg210->reg + FOTG210_DMACPSR1);
+			//dma_remlen = ioread32(ep->fotg210->reg + 0x1D4);
+
+			if (ep->epnum) {
+				value = ioread32(ep->fotg210->reg +
+					FOTG210_FIBCR(gEPMap[ep->epnum - 1]));
+
+				if ((value & 0x3FF) == INOUTEPMPSR_MPS(iep_length)) {
+					value |= FIBCR_FFRST;
+					iowrite32(value, ep->fotg210->reg +
+						FOTG210_FIBCR(gEPMap[ep->epnum - 1]));
+				}
+			} else {
+				value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
+				value |= DCFESR_CX_CLR;
+				iowrite32(value, ep->fotg210->reg + FOTG210_DCFESR);
+			}
+		} while (dma_start & 0x1);
+
+		//printk("remlen 0x%x\n", ioread32(ep->fotg210->reg + 0x1D4));
+
+		do {
+			value = ioread32(ep->fotg210->reg + FOTG210_DISGR2);
+		} while (!(value & DISGR2_DMA_CMPLT));
+
+		value |= DISGR2_DMA_CMPLT;
+		iowrite32(value, ep->fotg210->reg + FOTG210_DISGR2);
+
+		//printk("leave\n");
 	}
 }
-
 
 static void ivot_usbdev_start_ep0_data(struct fotg210_ep *ep,
 			struct fotg210_request *req)
@@ -445,7 +831,8 @@ static void ivot_usbdev_start_ep0_data(struct fotg210_ep *ep,
 		pr_err("DATAPORT EN ERROR!!!\n");
 
 	if (ep->dir_in) {
-		ep0numsg("ivot_usbdev_start_ep0_data IN 0x%X  act=0x%X\n",req->req.length,req->req.actual);
+		if (debug_on)
+			ep0numsg("ivot_usbdev_start_ep0_data IN 0x%X  act=0x%X\n",req->req.length,req->req.actual);
 
 		value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
 		value &= ~DCFESR_CX_FNT_IN;
@@ -461,7 +848,8 @@ static void ivot_usbdev_start_ep0_data(struct fotg210_ep *ep,
 			opsize-=4;
 		}
 	} else {
-		ep0numsg("ivot_usbdev_start_ep0_data OUT 0x%X  act=0x%X\n",req->req.length,req->req.actual);
+		if (debug_on)
+			ep0numsg("ivot_usbdev_start_ep0_data OUT 0x%X  act=0x%X\n",req->req.length,req->req.actual);
 
 		value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
 		value |= DCFESR_CX_DATAPORT_EN;
@@ -514,7 +902,8 @@ static void fotg210_start_dma(struct fotg210_ep *ep,
 	u8 *buffer;
 	u32 length,slice,szOp;
 
-	numsg("fotg210_start_dma\n");
+	if (debug_on)
+		numsg("fotg210_start_dma\n");
 
 	if (ep->epnum) {
 		if (ep->dir_in) {
@@ -523,7 +912,7 @@ static void fotg210_start_dma(struct fotg210_ep *ep,
 		} else {
 			buffer = req->req.buf + req->req.actual;
 			length = ioread32(ep->fotg210->reg +
-					FOTG210_FIBCR(ep->epnum - 1));
+					FOTG210_FIBCR(gEPMap[ep->epnum - 1]));
 			length &= FIBCR_BCFX;
 
 			if(length < 512)
@@ -535,7 +924,6 @@ static void fotg210_start_dma(struct fotg210_ep *ep,
 				if(length > ep->ep.maxpacket)
 					length = ep->ep.maxpacket;
 			}
-
 		}
 	} else {
 		pr_err("ep0 has no dma. shall not enter enable_dma!!\n");
@@ -597,10 +985,17 @@ static void fotg210_ep0_queue(struct fotg210_ep *ep,
 		    (req->req.actual < ep->ep.maxpacket))
 			fotg210_done(ep, req, 0);
 	} else { /* OUT */
-		u32 value = ioread32(ep->fotg210->reg + FOTG210_DMISGR0);
+		/* For set_feature(TEST_PACKET) */
+		if (do_test_packet && req->req.length == 53) {
+			ep->dir_in = 1;
+			fotg210_start_dma(ep, req);
+			do_test_packet = 0;
+		} else {
+			u32 value = ioread32(ep->fotg210->reg + FOTG210_DMISGR0);
 
-		value &= ~DMISGR0_MCX_OUT_INT;
-		iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR0);
+			value &= ~DMISGR0_MCX_OUT_INT;
+			iowrite32(value, ep->fotg210->reg + FOTG210_DMISGR0);
+		}
 	}
 }
 
@@ -632,6 +1027,7 @@ static int fotg210_ep_queue(struct usb_ep *_ep, struct usb_request *_req,
 		fotg210_ep0_queue(ep, req);
 	else if (request && !ep->stall)
 		fotg210_enable_fifo_int(ep);
+
 
 	spin_unlock_irqrestore(&ep->fotg210->lock, flags);
 
@@ -665,7 +1061,7 @@ static void fotg210_set_epnstall(struct fotg210_ep *ep)
 	if (ep->dir_in) {
 		do {
 			value = ioread32(fotg210->reg + FOTG210_DCFESR);
-		} while (!(value & DCFESR_FIFO_EMPTY(ep->epnum - 1)));
+		} while (!(value & DCFESR_FIFO_EMPTY(gEPMap[ep->epnum-1])));
 	}
 
 	reg = (ep->dir_in) ?
@@ -756,6 +1152,8 @@ static void fotg210_set_tx0byte(struct fotg210_ep *ep)
 	u32 val;
 	u32 offset = (ep->dir_in) ? FOTG210_INEPMPSR(ep->epnum) :
 				FOTG210_OUTEPMPSR(ep->epnum);
+	bool cable_out_ret = 0;
+	u32 vbus_gpio = 0;
 
 	val = ioread32(fotg210->reg + offset);
 	val |= INOUTEPMPSR_TX0BYTE_IEP;
@@ -763,8 +1161,16 @@ static void fotg210_set_tx0byte(struct fotg210_ep *ep)
 
 	do{
 		udelay(5);
+		vbus_gpio = gpio_get_value(vbus_gpio_no);
+		if (!vbus_gpio) {
+			cable_out_ret = fotg210_cable_out_clear(ep);
+			break;
+		}
+
 		val = ioread32(fotg210->reg + offset);
 	}while(val & INOUTEPMPSR_TX0BYTE_IEP);
+
+	return;
 }
 
 static void fotg210_clear_tx0byte(struct fotg210_udc *fotg210)
@@ -795,8 +1201,9 @@ static void fotg210_rdsetupp(struct fotg210_udc *fotg210,
 	*tmp32++ = ioread32(fotg210->reg + FOTG210_CXPORT);
 	*tmp32   = ioread32(fotg210->reg + FOTG210_CXPORT);
 
-	ep0numsg("SETUP 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n"
-		,buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7]);
+	if (debug_on)
+		ep0numsg("SETUP 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n"
+			,buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7]);
 #else
 	int i = 0;
 	u8 *tmp = buffer;
@@ -880,12 +1287,110 @@ static void fotg210_set_address(struct fotg210_udc *fotg210,
 	}
 }
 
+static void gen_test_packet(u8 *tst_packet)
+{
+	u8 *tp = tst_packet;
+
+	int i;
+	for (i = 0; i < 9; i++)/*JKJKJKJK x 9*/
+		*tp++ = 0x00;
+
+	for (i = 0; i < 8; i++) /* 8*AA */
+		*tp++ = 0xAA;
+
+	for (i = 0; i < 8; i++) /* 8*EE */
+		*tp++ = 0xEE;
+
+	*tp++ = 0xFE;
+
+	for (i = 0; i < 11; i++) /* 11*FF */
+		*tp++ = 0xFF;
+
+	*tp++ = 0x7F;
+	*tp++ = 0xBF;
+	*tp++ = 0xDF;
+	*tp++ = 0xEF;
+	*tp++ = 0xF7;
+	*tp++ = 0xFB;
+	*tp++ = 0xFD;
+	*tp++ = 0xFC;
+	*tp++ = 0x7E;
+	*tp++ = 0xBF;
+	*tp++ = 0xDF;
+	*tp++ = 0xEF;
+	*tp++ = 0xF7;
+	*tp++ = 0xFB;
+	*tp++ = 0xFD;
+	*tp++ = 0x7E;
+}
+
 static void fotg210_set_feature(struct fotg210_udc *fotg210,
 				struct usb_ctrlrequest *ctrl)
 {
+	u16 w_index = le16_to_cpu(ctrl->wIndex);
+	u16 w_value = le16_to_cpu(ctrl->wValue);
+	u32 val;
+	u8 tst_packet[53];
+
 	switch (ctrl->bRequestType & USB_RECIP_MASK) {
 	case USB_RECIP_DEVICE:
-		fotg210_set_cxdone(fotg210);
+		switch(w_value) {
+		case USB_DEVICE_TEST_MODE:
+			switch (w_index >> 8) {
+			case TEST_J:
+				pr_info("\n...TEST_J...\n");
+				iowrite32(PHYTMSR_TST_JSTA,
+					fotg210->reg + FOTG210_PHYTMSR);
+				fotg210_set_cxdone(fotg210);
+				break;
+			case TEST_K:
+				pr_info("\n...TEST_K...\n");
+				iowrite32(PHYTMSR_TST_KSTA,
+					fotg210->reg + FOTG210_PHYTMSR);
+				fotg210_set_cxdone(fotg210);
+				break;
+			case TEST_SE0_NAK:
+				pr_info("\n...TEST_SE0_NAK...\n");
+				iowrite32(PHYTMSR_TST_SE0NAK,
+					fotg210->reg + FOTG210_PHYTMSR);
+				fotg210_set_cxdone(fotg210);
+				break;
+			case TEST_PACKET:
+				pr_info("\n...TEST_PACKET1...\n");
+				iowrite32(PHYTMSR_TST_PKT,
+					fotg210->reg + FOTG210_PHYTMSR);
+				fotg210_set_cxdone(fotg210);
+
+				gen_test_packet(tst_packet);
+
+				fotg210->ep0_req->buf = tst_packet;
+				fotg210->ep0_req->length = 53;
+				do_test_packet = 1;
+				pr_info("\n...TEST_PACKET2...\n");
+				//spin_unlock(&fotg210->lock);
+				fotg210_ep_queue(fotg210->gadget.ep0,
+						fotg210->ep0_req, GFP_KERNEL);
+				//spin_lock(&fotg210->lock);
+
+				//Test Packet Done set
+				val = ioread32(fotg210->reg + FOTG210_DCFESR);
+				val |= DCFESR_TST_PKDONE;
+				iowrite32(val, fotg210->reg + FOTG210_DCFESR);
+				pr_info("\n...TEST_PACKET3...\n");
+				break;
+			case TEST_FORCE_EN:
+				fotg210_set_cxdone(fotg210);
+				break;
+			default:
+				fotg210_request_error(fotg210);
+				break;
+			}
+			break;
+
+		default:
+			fotg210_set_cxdone(fotg210);
+			break;
+		}
 		break;
 	case USB_RECIP_INTERFACE:
 		fotg210_set_cxdone(fotg210);
@@ -1024,6 +1529,15 @@ static int fotg210_setup_packet(struct fotg210_udc *fotg210,
 			break;
 		}
 	} else {
+		if (debug_on)
+			pr_info("none standard request, ctrl->bRequestType is 0x%x, ctrl->bRequest is 0x%x\n",  ctrl->bRequestType, ctrl->bRequest);
+
+		if ((ctrl->bRequest == UVC_GET_CUR) || (ctrl->bRequest == UVC_GET_MIN) || (ctrl->bRequest == UVC_GET_MAX) || (ctrl->bRequest == UVC_GET_RES)
+				|| (ctrl->bRequest ==  UVC_GET_LEN) || (ctrl->bRequest ==  UVC_GET_DEF) || (ctrl->bRequest == UVC_GET_INFO)) {
+
+			fotg210_set_cxdone(fotg210);
+		}
+
 		ret = 1;
 	}
 
@@ -1065,7 +1579,7 @@ static void fotg210_ep0in(struct fotg210_udc *fotg210)
 			ivot_usbdev_start_ep0_data(ep, req);
 			//fotg210_start_dma(ep, req);
 
-		if ((req->req.length - req->req.actual) < ep->ep.maxpacket)
+		if (req->req.length == req->req.actual)
 			fotg210_done(ep, req, 0);
 	} else {
 		fotg210_set_cxdone(fotg210);
@@ -1111,6 +1625,7 @@ static void fotg210_out_fifo_handler(struct fotg210_ep *ep)
 static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 {
 	struct fotg210_udc *fotg210 = _fotg210;
+	int EPn;
 	u32 int_grp = ioread32(fotg210->reg + FOTG210_DIGR);
 	u32 int_msk = ioread32(fotg210->reg + FOTG210_DMIGR);
 
@@ -1156,40 +1671,47 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 			iowrite32(0x0F0F0F0F, fotg210->reg + 0x1D8);
 			iowrite32(0x00000000, fotg210->reg + 0x1DC);
 
-
-			devnumsg("fotg210 udc reset\n");
+			if (debug_on)
+				devnumsg("fotg210 udc reset\n");
 		}
 		if (int_grp2 & DISGR2_SUSP_INT) {
 			iowrite32(DISGR2_SUSP_INT, reg);
-			devnumsg("fotg210 udc suspend\n");
+			if (debug_on)
+				devnumsg("fotg210 udc suspend\n");
 		}
 		if (int_grp2 & DISGR2_RESM_INT) {
 			iowrite32(DISGR2_RESM_INT, reg);
-			devnumsg("fotg210 udc resume\n");
+			if (debug_on)
+				devnumsg("fotg210 udc resume\n");
 		}
 		if (int_grp2 & DISGR2_ISO_SEQ_ERR_INT) {
 			iowrite32(DISGR2_ISO_SEQ_ERR_INT, reg);
-			devnumsg("fotg210 iso sequence error\n");
+			if (debug_on)
+				devnumsg("fotg210 iso sequence error\n");
 		}
 		if (int_grp2 & DISGR2_ISO_SEQ_ABORT_INT) {
 			iowrite32(DISGR2_ISO_SEQ_ABORT_INT, reg);
-			devnumsg("fotg210 iso sequence abort\n");
+			if (debug_on)
+				devnumsg("fotg210 iso sequence abort\n");
 		}
 		if (int_grp2 & DISGR2_TX0BYTE_INT) {
 			iowrite32(DISGR2_TX0BYTE_INT, reg);
 			fotg210_clear_tx0byte(fotg210);
-			numsg("fotg210 transferred 0 byte\n");
+			if (debug_on)
+				numsg("fotg210 transferred 0 byte\n");
 		}
 		if (int_grp2 & DISGR2_RX0BYTE_INT) {
 			iowrite32(DISGR2_RX0BYTE_INT, reg);
 			fotg210_clear_rx0byte(fotg210);
-			numsg("fotg210 received 0 byte\n");
+			if (debug_on)
+				numsg("fotg210 received 0 byte\n");
 		}
 		if (int_grp2 & DISGR2_DMA_ERROR) {
 			value = ioread32(reg);
 			value &= ~DISGR2_DMA_ERROR;
 			iowrite32(value, reg);
-			numsg("fotg210 DISGR2_DMA_ERROR\n");
+			if (debug_on)
+				numsg("fotg210 DISGR2_DMA_ERROR\n");
 		}
 	}
 
@@ -1200,7 +1722,8 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 		struct usb_ctrlrequest ctrl;
 
 		int_grp0 &= ~int_msk0;
-		numsg("G0 0x%08X\n",int_grp0);
+		if (debug_on)
+			numsg("G0 0x%08X\n",int_grp0);
 
 		/* the highest priority in this source register */
 		if (int_grp0 & DISGR0_CX_COMABT_INT) {
@@ -1236,20 +1759,26 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 		void __iomem *reg = fotg210->reg + FOTG210_DISGR1;
 		u32 int_grp1 = ioread32(reg);
 		u32 int_msk1 = ioread32(fotg210->reg + FOTG210_DMISGR1);
-		int fifo;
 
-		numsg("G1 0x%08X\n",int_grp1);
+		if (debug_on)
+			numsg("G1 0x%08X\n",int_grp1);
 
 		int_grp1 &= ~int_msk1;
 
-		for (fifo = 0; fifo < FOTG210_MAX_FIFO_NUM; fifo++) {
-			if (int_grp1 & DISGR1_IN_INT(fifo))
-				fotg210_in_fifo_handler(fotg210->ep[fifo + 1]);
+		for (EPn = 0; EPn < (FOTG210_MAX_NUM_EP -1); EPn++) {
+			if (gEPMap[EPn] == USB_FIFO_NOT_USE )
+				continue;
 
-			if ((int_grp1 & DISGR1_OUT_INT(fifo)) ||
-			    (int_grp1 & DISGR1_SPK_INT(fifo)))
-				fotg210_out_fifo_handler(fotg210->ep[fifo + 1]);
+			if (int_grp1 & DISGR1_IN_INT(gEPMap[EPn]))
+				fotg210_in_fifo_handler(fotg210->ep[EPn+1]);
+
+
+			if ((int_grp1 & DISGR1_OUT_INT(gEPMap[EPn])) ||
+					(int_grp1 & DISGR1_SPK_INT(gEPMap[EPn])))
+				fotg210_out_fifo_handler(fotg210->ep[EPn+1]);
+
 		}
+
 	}
 
 	spin_unlock(&fotg210->lock);
@@ -1257,6 +1786,7 @@ static irqreturn_t fotg210_irq(int irq, void *_fotg210)
 	return IRQ_HANDLED;
 }
 
+#if 0
 static irqreturn_t fotg210_isr(int irq, void *_fotg210)
 {
 	u32 value;
@@ -1268,14 +1798,12 @@ static irqreturn_t fotg210_isr(int irq, void *_fotg210)
 	value &= ~DMCR_GLINT_EN;
 	iowrite32(value, fotg210->reg + FOTG210_DMCR);
 
-	tasklet_schedule(fotg210->t1);
-
 	spin_unlock(&fotg210->lock);
 
-	return IRQ_HANDLED;
+	return IRQ_WAKE_THREAD;
 }
 
-static void fotg210_ist(unsigned long _fotg210)
+static irqreturn_t fotg210_ist(int irq, void *_fotg210)
 {
 	u32 value;
 	struct fotg210_udc *fotg210 = (struct fotg210_udc *)_fotg210;
@@ -1285,7 +1813,10 @@ static void fotg210_ist(unsigned long _fotg210)
 	value = ioread32(fotg210->reg + FOTG210_DMCR);
 	value |= DMCR_GLINT_EN;
 	iowrite32(value, fotg210->reg + FOTG210_DMCR);
+
+	return IRQ_HANDLED;
 }
+#endif
 
 static void fotg210_disable_unplug(struct fotg210_udc *fotg210)
 {
@@ -1304,8 +1835,6 @@ static int fotg210_udc_start(struct usb_gadget *g,
 	/* hook up the driver */
 	driver->driver.bus = NULL;
 	fotg210->driver = driver;
-
-    tasklet_init(fotg210->t1, fotg210_ist, (unsigned long)fotg210);
 
 	fotg210_disable_unplug(fotg210);
 
@@ -1400,8 +1929,6 @@ static int fotg210_udc_stop(struct usb_gadget *g)
 	fotg210_init(fotg210);
 	fotg210->driver = NULL;
 
-	tasklet_kill(fotg210->t1);
-
 	spin_unlock_irqrestore(&fotg210->lock, flags);
 
 	return 0;
@@ -1424,8 +1951,20 @@ static int fotg210_udc_remove(struct platform_device *pdev)
 	fotg210_ep_free_request(&fotg210->ep[0]->ep, fotg210->ep0_req);
 	for (i = 0; i < FOTG210_MAX_NUM_EP; i++)
 		kfree(fotg210->ep[i]);
-	kfree(fotg210->t1);
+
 	kfree(fotg210);
+
+	{
+		struct clk *source_clk;
+
+		source_clk = clk_get(NULL, "f0600000.usb20");
+		if (IS_ERR(source_clk)) {
+			printk("faile to get clock f0600000.usb20\n");
+		} else {
+			clk_unprepare(source_clk);
+			clk_put(source_clk);
+		}
+	}
 
 	return 0;
 }
@@ -1437,8 +1976,11 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 	struct fotg210_ep *_ep[FOTG210_MAX_NUM_EP];
 	int ret = 0;
 	int i;
+	int val, val2, val3, val4;
+	UINT32 EPi, FIFOi;
 
-	numsg("fotg210_udc_probe\r\n");
+	if (debug_on)
+		numsg("fotg210_udc_probe\r\n");
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
@@ -1466,16 +2008,22 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 		fotg210->ep[i] = _ep[i];
 	}
 
-	fotg210->t1 = kzalloc(sizeof(struct tasklet_struct), GFP_KERNEL);
-	if(fotg210->t1 == NULL) {
-		pr_err("tasklet alloc error.\n");
-		goto err_alloc;
-	}
-
-	fotg210->reg = ioremap(res->start+0x0F000000, resource_size(res));
+	fotg210->reg = ioremap(res->start|0x0F000000, resource_size(res));
 	if (fotg210->reg == NULL) {
 		pr_err("ioremap error.\n");
 		goto err_alloc;
+	}
+
+	{
+		struct clk *source_clk;
+
+		source_clk = clk_get(NULL, "f0600000.usb20");
+		if (IS_ERR(source_clk)) {
+			printk("faile to get clock f0600000.usb20\n");
+		} else {
+			clk_prepare(source_clk);
+			clk_put(source_clk);
+		}
 	}
 
 	spin_lock_init(&fotg210->lock);
@@ -1507,6 +2055,7 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 		ep->ep.ops = &fotg210_ep_ops;
 		usb_ep_set_maxpacket_limit(&ep->ep, (unsigned short) ~0);
 
+		/*
 		if (i == 0) {
 			ep->ep.caps.type_control = true;
 		} else {
@@ -1517,6 +2066,7 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 
 		ep->ep.caps.dir_in = true;
 		ep->ep.caps.dir_out = true;
+		*/
 	}
 	usb_ep_set_maxpacket_limit(&fotg210->ep[0]->ep, 0x40);
 	fotg210->gadget.ep0 = &fotg210->ep[0]->ep;
@@ -1532,10 +2082,10 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 	//fotg210_disable_unplug(fotg210);
 
 
-#if 1
+#if 0
 	/* Using tasklet for command processing */
-	ret = request_irq(ires->start, fotg210_isr, IRQF_SHARED,
-			  udc_name, fotg210);
+	ret =  request_threaded_irq(ires->start, fotg210_isr, fotg210_ist, 
+			IRQF_SHARED, udc_name, fotg210);
 #else
 	ret = request_irq(ires->start, fotg210_irq, IRQF_SHARED,
 			  udc_name, fotg210);
@@ -1550,7 +2100,33 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 		goto err_add_udc;
 
 	dev_info(&pdev->dev, "version %s\n", DRIVER_VERSION);
+#if 1
+	//clear 0x1A8, 0x1AC, 0x1D8, 0x1DC
+	val |= ioread32(fotg210->reg + FOTG210_FIFOMAP_03);
+	val2 |= ioread32(fotg210->reg + FOTG210_FIFOCF_03);
+	val3 |= ioread32(fotg210->reg + FOTG210_FIFOMAP_47);
+        val4 |= ioread32(fotg210->reg + FOTG210_FIFOCF_47);
 
+	val &= ~CLEARMASK;
+	val2 &= ~CLEARMASK;
+	val3 &= ~CLEARMASK;
+	val4 &= ~CLEARMASK;
+
+	iowrite32(val, (fotg210->reg+FOTG210_FIFOMAP_03));
+	iowrite32(val2, (fotg210->reg+FOTG210_FIFOCF_03));
+        iowrite32(val3, (fotg210->reg+FOTG210_FIFOMAP_47));
+        iowrite32(val4, (fotg210->reg+FOTG210_FIFOCF_47));
+
+	// clear all EP & FIFO setting of EP-FIFO mapping table. -1 because excluding the EP0.
+	for (EPi = 0 ; EPi < (FOTG210_MAX_NUM_EP - 1) ; EPi++) {
+		gEPMap[EPi] = USB_FIFO_NOT_USE;
+	}
+
+	for (FIFOi = 0 ; FIFOi < FOTG210_MAX_FIFO_NUM ; FIFOi++) {
+		gFIFOInMap[FIFOi]  = USB_EP_NOT_USE;
+		gFIFOOutMap[FIFOi] = USB_EP_NOT_USE;
+	}
+#endif
 	return 0;
 
 err_add_udc:
@@ -1598,3 +2174,4 @@ module_platform_driver(fotg210_driver);
 MODULE_AUTHOR("Yuan-Hsin Chen, Feng-Hsin Chiang <john453@faraday-tech.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION(DRIVER_DESC);
+MODULE_VERSION(DRIVER_VERSION);

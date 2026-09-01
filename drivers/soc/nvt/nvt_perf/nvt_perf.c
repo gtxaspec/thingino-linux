@@ -8,7 +8,7 @@
 #include "nvt_perf_dbg.h"
 
 #define PERF_DEV_NAME      "nvt_perf"
-#define PERF_DRV_VERSION   "00.00.01"
+#define PERF_DRV_VERSION   "00.00.04"
 
 unsigned int nvt_perf_debug_level = NVT_PERF_DBG_WRN | NVT_PERF_DBG_ERR;
 extern int do_cache_perf(void);

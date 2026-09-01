@@ -13,7 +13,7 @@
 #include <linux/kernel.h>
 
 #define FOTG210_MAX_NUM_EP		5 /* ep0...ep4 */
-#define FOTG210_MAX_FIFO_NUM	4 /* fifo0...fifo4 */
+#define FOTG210_MAX_FIFO_NUM	8 /* fifo0...fifo4 */
 
 
 #define FOTG210_OTGCTRLSTS	0x80
@@ -58,7 +58,7 @@
 #define DCFESR_CX_DATAPORT_EN	(1 << 31)
 #define DCFESR_CX_FNT_OUT	(0x7F << 24)
 #define DCFESR_CX_FNT_IN	(0x7F << 16)
-#define DCFESR_FIFO_EMPTY(fifo)	(1 << 8 << ((fifo)<<1))
+#define DCFESR_FIFO_EMPTY(fifo)	(1 << 8 << (fifo))
 #define DCFESR_CX_EMP		(1 << 5)
 #define DCFESR_CX_CLR		(1 << 3)
 #define DCFESR_CX_STL		(1 << 2)
@@ -88,7 +88,7 @@
 #define DMISGR1_MF2_IN_INT	(1 << 18)
 #define DMISGR1_MF1_IN_INT	(1 << 17)
 #define DMISGR1_MF0_IN_INT	(1 << 16)
-#define DMISGR1_MF_IN_INT(fifo)	(1 << (16 + ((fifo)<<1)))
+#define DMISGR1_MF_IN_INT(fifo)	(1 << (16 + (fifo)))
 #define DMISGR1_MF3_SPK_INT	(1 << 7)
 #define DMISGR1_MF3_OUT_INT	(1 << 6)
 #define DMISGR1_MF2_SPK_INT	(1 << 5)
@@ -97,7 +97,7 @@
 #define DMISGR1_MF1_OUT_INT	(1 << 2)
 #define DMISGR1_MF0_SPK_INT	(1 << 1)
 #define DMISGR1_MF0_OUT_INT	(1 << 0)
-#define DMISGR1_MF_OUTSPK_INT(fifo)	(0x3 << (fifo) * 4)
+#define DMISGR1_MF_OUTSPK_INT(fifo)	(0x3 << (fifo) * 2)
 
 /* Device Mask of Interrupt Source Group 2 Register (0x13C) */
 #define FOTG210_DMISGR2		0x13C
@@ -166,7 +166,7 @@
 #define TX0BYTE_EP1		(1 << 0)
 
 /* Device IN Endpoint x MaxPacketSize Register(0x160+4*(x-1)) */
-#define FOTG210_INEPMPSR(ep)	(0x160 + 4 * ((ep) - 1))
+#define FOTG210_INEPMPSR(ep)	(0x160 + 4 * ((ep)-1))
 #define INOUTEPMPSR_MPS(mps)	((mps) & 0x7FF)
 #define INOUTEPMPSR_STL_EP	(1 << 11)
 #define INOUTEPMPSR_RESET_TSEQ	(1 << 12)
@@ -177,13 +177,21 @@
 
 /* Device Endpoint 1~4 Map Register (0x1A0) */
 #define FOTG210_EPMAP(ep)		(0x160 + 4 * (ep))
-#define EPMAP_FIFONO(ep, dir)		\
-	((((ep) - 1)<<1) << ((dir) ? 24 : 28))
-#define EPMAP_FIFONOMSK(ep, dir)	\
+#define EPMAP_FIFONO(val, dir)		\
+	((val) << ((dir) ? 24 : 28))
+#define EPMAP_FIFONOMSK(dir)	\
 	((0xF) << ((dir) ? 24 : 28))
 #define EPMAP_DIROUT	(0x1 << 16)
 
 /* Device FIFO Map Register (0x1A8) */
+#define EPBUF_CFGREG		0x1A8
+#define EPBUF_CFGREG_47		0x1AC
+#define FIFOMAP_DIR(dir, fifo)      ((dir) << 5 << ((fifo)%(4)) * 8)
+#define FIFOCF_TYPE_NVT(type, fifo) ((type) << ((fifo)%(4)) * 8)
+#define FIFOCF_BLKSZ_NVT(bsz, fifo) ((bsz) << ((fifo)%(4)) * 8 << 4)
+#define FIFOCF_BLK_NO(bno, fifo)    ((bno) << ((fifo)%(4)) * 8 << 2)
+#define FIFOCF_FIFO_EN_NVT(en, fifo)    ((en) << ((fifo)%(4)) * 8 << 7)
+
 #define FOTG210_FIFOMAP(ep)		(0x1A8 + (((ep)>>1)<<2))
 #define FIFOMAP_DIROUT(fifo)	(0x0 << 5 << (fifo) * 8)
 #define FIFOMAP_DIRIN(fifo)	(0x101 << 5 << ((fifo)&0x1) * 16)
@@ -205,7 +213,7 @@
 #define FIFOCF_FIFO_EN(fifo)	(0x1 << ((fifo)&0x1) * 16 << 7)
 
 /* Device FIFO n Instruction and Byte Count Register (0x1B0+4*n) */
-#define FOTG210_FIBCR(fifo)	(0x1B0 + ((fifo)) * 4)
+#define FOTG210_FIBCR(fifo)	(0x1B0 + ((fifo) >> 1) * 4)
 #define FIBCR_BCFX		0x7FF
 #define FIBCR_FFRST		(1 << 12)
 
@@ -223,8 +231,11 @@
 #define DMACPSR1_DMA_ABORT	(1 << 0)
 
 
+#define FOTG210_DMACPSR1_CH2 0x200
+#define FOTG210_DMACPSR2_CH2 0x204
 /* Device DMA Controller Parameter setting 1 Register (0x1C8) */
 #define FOTG210_DMACPSR1	0x1C8
+#define FOTG210_DMACPSR1_EP3 0x200
 #define DMACPSR1_DMA_LEN(len)	(((len) & 0x7FFFFF) << 8)
 #define DMACPSR1_DEVSUSPEND	(1 << 5)
 #define DMACPSR1_DMA_TYPE(dir_in)	(((dir_in) ? 1 : 0) << 1)
@@ -232,6 +243,7 @@
 
 /* Device DMA Controller Parameter setting 2 Register (0x1CC) */
 #define FOTG210_DMACPSR2	0x1CC
+#define FOTG210_DMACPSR2_EP3 0x204
 
 /* Device DMA Controller Parameter setting 3 Register (0x1CC) */
 #define FOTG210_CXPORT		0x1D0

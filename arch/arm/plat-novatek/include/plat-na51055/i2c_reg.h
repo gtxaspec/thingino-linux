@@ -17,11 +17,37 @@
 
 #include <linux/bitops.h>
 
-#define NVT_I2C_VD_SEND       0x1000    /* trigger vd send */
-#define NVT_I2C_VD_SRC        0x2000    /* set vd source */
-#define NVT_I2C_BUSFREE_VAL   0x4000    /* set bus free interval */
+#define NVT_I2C_VD_SEND       	0x1000    	/* trigger vd send */
+#define NVT_I2C_VD_SRC        	0x2000    	/* set vd source */
+#define NVT_I2C_BUSFREE_VAL   	0x4000    	/* set bus free interval */
+#define NVT_I2C_USER_RST		0x8000		/* i2c module reset */
 
 #define NVT_I2C_CONFIG_MASK   (NVT_I2C_VD_SRC|NVT_I2C_BUSFREE_VAL)
+
+
+/*
+	set group, sample code:
+
+	struct i2c_msg msgs;
+	unsigned char buf[2];
+
+	msgs.addr  = slv_addr;
+	msgs.flags = NVT_I2C_SET_CFG_FLG;
+	msgs.len = 2;
+	buf[0] = NVT_I2C_XX; // valid value : NVT_I2C_AUTO_RSTMDL, NVT_I2C_AUTO_BUCLEAR
+	buf[1] = cfg value;
+	msgs.buf = buf;
+
+	int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, 1)
+
+*/
+// i2c_msg.flags
+#define NVT_I2C_SET_CFG_FLG			0x100		/* set config flag */
+// i2c_msg.buf[0]
+#define NVT_I2C_AUTO_RSTMDL		1    	/* auto "reset I2C module (unprepare+prepare clk)", for i2c bus hangs error handle
+										   buf[1] : valid: 0~1 (0: do nothing, 1: reset i2c module when bus hangs), default 0 */
+#define NVT_I2C_AUTO_BUCLEAR	4    	/* auto "send 9 clk on SCL to release device", for i2c bus hangs error handle
+										   buf[1] : valid: 0~1 (0: do nothing, 1: send 9 clk on SCL when bus hangs), default 0*/
 
 struct nvtim_i2c_platform_data {
 	unsigned int    bus_freq;       /* standard bus frequency (Hz) */
@@ -33,6 +59,14 @@ struct nvtim_i2c_platform_data {
 	unsigned int    clkl;       /* clk_low  [10bits] */
 	unsigned int    clkh;       /* clk_high [10bits] */
 	unsigned int    rtytimes;   /* if transfer fail, retry times, default value(0) */
+
+#define NVT_I2C_AUTO_RSTMDL_BIT 	(1 << 0) 	// NVT_I2C_AUTO_RSTMDL
+#define NVT_I2C_AUTO_BUCLEAR_BIT 	(1 << 1) 	// NVT_I2C_AUTO_BUCLEAR
+	unsigned int    err_hdl;   /* 	i2c error handle.
+									default 0.
+									if include NVT_I2C_AUTO_RSTMDL : seset the i2c module when the bus hangs.
+									if include NVT_I2C_AUTO_BUCLEAR : send 9 clk release device when the bus hangs.
+								*/
 
 	/*
 	    user set data by device slave address
@@ -178,6 +212,7 @@ struct nvtim_i2c_platform_data {
 #define I2C_CTRL_AL_INT_EN          10
 #define I2C_CTRL_DMAED_INT_EN       11
 #define I2C_CTRL_SCLTIMEOUT_INT_EN  12
+#define I2C_CTRL_BUS_CLR_EN			16
 #define I2C_CTRL_DMA_VD_SRC         24
 #define I2C_CTRL_DMA_VD_SYNC        28
 #define I2C_CTRL_DMA_RCWRITE        29

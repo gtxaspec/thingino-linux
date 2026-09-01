@@ -73,24 +73,8 @@ void dma_flushbidircache(struct device *dev, void *pbuf, u32 len)
 
 
 
-/*
-	Internal reference structure
-*/
-
-/*	SDIO host driver structure
-*/
-struct SDHOSTDRIVER {
-	const uint32_t        uihostid;
-	/*const FLGPTN        flgCommand;*/
-	/*const FLGPTN        flgData;*/
-	/*const FLGPTN        flgBoot;*/
-	/*const uint32_t        uiIntID;*/
-	union SDIO_STATUS_REG   cmdintsts;
-	union SDIO_STATUS_REG   dataintsts;
-};
-
 /*-------------------------------------------------------*/
-/* Internal function prototypes                          */
+/*  Internal function prototypes                         */
 /*-------------------------------------------------------*/
 static REGVALUE sdiohost_getreg(struct mmc_nvt_host *host, uint32_t id,
 	uint32_t offset);
@@ -100,40 +84,6 @@ static void sdiohost_setreg(struct mmc_nvt_host *host, uint32_t id,
 /*-------------------------------------------------------*/
 /*  Private driver specific variables                    */
 /*-------------------------------------------------------*/
-static  struct SDHOSTDRIVER vsdiohosts[SDIO_HOST_ID_COUNT] = {
-	{
-		SDIO_HOST_ID_1,
-		/*FLGPTN_SDIO,*/
-		/*FLGPTN_SDIO_DATA,*/
-		/*FLGPTN_SDIO_BOOT,*/
-		/*DRV_INT_SDIO,*/
-		{0},
-		{0}
-	},
-#if (SDIO_HOST_ID_COUNT > 1)
-	{
-		SDIO_HOST_ID_2,
-		/*FLGPTN_SDIO2,*/
-		/*FLGPTN_SDIO2_DATA,*/
-		/*FLGPTN_SDIO2_BOOT,*/
-		/*DRV_INT_SDIO2,*/
-		{0},
-		{0}
-	},
-#endif
-#if (SDIO_HOST_ID_COUNT > 2)
-	{
-		SDIO_HOST_ID_3,
-		/*FLGPTN_SDIO3,*/
-		/*FLGPTN_SDIO3_DATA,*/
-		/*FLGPTN_SDIO3_BOOT,*/
-		/*DRV_INT_SDIO3,*/
-		{0},
-		{0}
-	}
-#endif
-};
-
 static uint32_t vsdio_seg_en[SDIO_HOST_ID_COUNT] = {
 	FALSE,
 #if (SDIO_HOST_ID_COUNT > 1)
@@ -159,17 +109,6 @@ static uint32_t vsdio_seg_num[SDIO_HOST_ID_COUNT] = {
 
 /*static uint32_t
 vuisdio_destab[SDIO_HOST_ID_COUNT][SDIO_DES_TABLE_NUM*SDIO_DES_WORD_SIZE];*/
-#endif
-
-
-
-#if 0
-static bool vuisdio_autopinmux[SDIO_HOST_ID_COUNT] = {
-	TRUE,
-#if (SDIO_HOST_ID_COUNT > 1)
-	TRUE
-#endif
-};
 #endif
 
 /*********************************************************************/
@@ -325,28 +264,17 @@ void sdiohost_disclockout(struct mmc_nvt_host *host, uint32_t id)
 	sdiohost_setreg(host, id, SDIO_CLOCK_CTRL_REG_OFS, clk_ctrl.reg);
 }
 
-void sdiohost_delay_chain(struct mmc_nvt_host *host, uint32_t clock_delay,
-			uint32_t delay_chain_setting)
+void sdiohost_setphyrst(struct mmc_nvt_host *host)
 {
-#if 0
-	union SDIO_DLY0_REG delay_chain;
-	union SDIO_CLOCK_CTRL2_REG clock_ctrl;
 	union SDIO_PHY_REG phyreg, phyreg_read;
 	u8 i;
 
-	clock_ctrl.reg = clock_delay;
-	sdiohost_setreg(host, host->id, SDIO_CLOCK_CTRL2_REG_OFS, \
-			clock_ctrl.reg);
-
-	delay_chain.reg = delay_chain_setting;
-	sdiohost_setreg(host, host->id, SDIO_DLY0_REG_OFS, delay_chain.reg);
 	phyreg.reg = sdiohost_getreg(host, host->id, SDIO_PHY_REG_OFS);
 	phyreg.bit.PHY_SW_RST = 1;
 	sdiohost_setreg(host, host->id, SDIO_PHY_REG_OFS, phyreg.reg);
 	while (1)
 	{
-		phyreg_read.reg = sdiohost_getreg(host, host->id, \
-						SDIO_PHY_REG_OFS);
+		phyreg_read.reg = sdiohost_getreg(host, host->id, SDIO_PHY_REG_OFS);
 		if ((phyreg_read.bit.PHY_SW_RST == 0) || (i == RESET_TIMEOUT))
 			break;
 
@@ -354,14 +282,36 @@ void sdiohost_delay_chain(struct mmc_nvt_host *host, uint32_t clock_delay,
 	}
 
 	if (i == RESET_TIMEOUT)
-		pr_err("reset timeout\n");
-#else
-	union SDIO_DLY0_REG delay_chain;
+		pr_err("phy reset timeout\n");
+}
 
-	delay_chain.reg = sdiohost_getreg(host, host->id, SDIO_DLY0_REG_OFS);
-	delay_chain.bit.SAMPLE_CLK_EDGE = host->neg_sample_edge;
-	sdiohost_setreg(host, host->id, SDIO_DLY0_REG_OFS, delay_chain.reg);
-#endif
+void sdiohost_setphysample(struct mmc_nvt_host *host, bool internal, bool before)
+{
+	union SDIO_DLY0_REG dly0_reg;
+
+	dly0_reg.reg = sdiohost_getreg(host, host->id, SDIO_DLY0_REG_OFS);
+	dly0_reg.bit.SAMPLE_CLK_EDGE = host->neg_sample_edge;
+	dly0_reg.bit.SRC_CLK_SEL = internal;
+	dly0_reg.bit.PAD_CLK_SEL = before;
+	sdiohost_setreg(host, host->id, SDIO_DLY0_REG_OFS, dly0_reg.reg);
+}
+
+void sdiohost_setphyclkoutdly(struct mmc_nvt_host *host, uint32_t outdly_sel)
+{
+	union SDIO_CLOCK_CTRL2_REG clock_ctrl;
+
+	clock_ctrl.reg = sdiohost_getreg(host, host->id, SDIO_CLOCK_CTRL2_REG_OFS);
+	clock_ctrl.bit.OUTDLY_SEL = outdly_sel;
+	sdiohost_setreg(host, host->id, SDIO_CLOCK_CTRL2_REG_OFS, clock_ctrl.reg);
+}
+
+void sdiohost_setphyclkindly(struct mmc_nvt_host *host, uint32_t indly_sel)
+{
+	union SDIO_CLOCK_CTRL2_REG clock_ctrl;
+
+	clock_ctrl.reg = sdiohost_getreg(host, host->id, SDIO_CLOCK_CTRL2_REG_OFS);
+	clock_ctrl.bit.INDLY_SEL = indly_sel;
+	sdiohost_setreg(host, host->id, SDIO_CLOCK_CTRL2_REG_OFS, clock_ctrl.reg);
 }
 
 static u32 driving_xfer(u32 driving)
@@ -438,7 +388,6 @@ int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mode)
 		clk_uidriving = driving_xfer(host->pad_driving[SDIO_SDR104_MODE_CLK]);
 	}
 
-
 	if (host->id == SDIO_HOST_ID_1) {
 		pad_set_drivingsink(PAD_DS_CGPIO12, cmd_uidriving);
 		pad_set_drivingsink(PAD_DS_CGPIO13, data_uidriving);
@@ -454,20 +403,41 @@ int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mode)
 		pad_set_drivingsink(PAD_DS_CGPIO22, data_uidriving);
 		return pad_set_drivingsink(PAD_DS_CGPIO17, clk_uidriving);
 	} else {
-		pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO4, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO5, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO6, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO7, data_uidriving);
-		pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
-		return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
+		if (host->mmc) {
+			if (host->mmc->caps & MMC_CAP_8_BIT_DATA) {
+				pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO4, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO5, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO6, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO7, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
+				return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
+			} else {
+				pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
+				return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
+			}
+		} else {
+			pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO4, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO5, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO6, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO7, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
+			return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
+		}
 	}
 
 	return E_OK;
-
 }
 
 /*
@@ -538,7 +508,6 @@ void sdiohost_resetasync(struct mmc_nvt_host *host, uint32_t id)
 		}
 	}
 
-
 	dlyreg1.reg = sdiohost_getreg(host, id, SDIO_DLY1_REG_OFS);
 	dlyreg1.bit.DATA_READ_DLY = 2;
 	sdiohost_setreg(host, id, SDIO_DLY1_REG_OFS, dlyreg1.reg);
@@ -548,7 +517,6 @@ void sdiohost_resetasync(struct mmc_nvt_host *host, uint32_t id)
 	phyreg.bit.BLK_FIFO_EN = 1;
 	sdiohost_setreg(host, id, SDIO_PHY_REG_OFS, phyreg.reg);
 }
-
 
 /*
 	Send SD command to SD bus.
@@ -618,48 +586,12 @@ SDIO_HOST_RESPONSE rsptype, bool beniointdetect)
 
 	/* clear software status */
 	/*clr_flg(FLG_ID_SDIO, vsdiohosts[id].flgCommand);*/
-	vsdiohosts[id].cmdintsts.reg = 0;
 
 	/* Start command/data transmits */
 	cmdreg.bit.CMD_EN = 1;
 	sdiohost_setreg(host, id, SDIO_CMD_REG_OFS, cmdreg.reg);
 
 	return SDIO_HOST_CMD_OK;
-
-}
-
-
-/*
-	Get SDIO command result status.
-
-	@param[in] id   SDIO channel ID
-			- @b SDIO_HOST_ID_1: SDIO1
-			- @b SDIO_HOST_ID_2: SDIO2
-
-	@return Return interrupt status bits for command phase
-*/
-REGVALUE sdiohost_getcmdresult(uint32_t id)
-{
-	return vsdiohosts[id].cmdintsts.reg;
-}
-
-/*
-	Get SDIO data result status.
-
-	@param[in] id   SDIO channel ID
-			- @b SDIO_HOST_ID_1: SDIO1
-			- @b SDIO_HOST_ID_2: SDIO2
-
-	@return Return interrupt status bits for data phase
-*/
-REGVALUE sdiohost_getdataresult(uint32_t id)
-{
-	return vsdiohosts[id].dataintsts.reg;
-}
-
-void sdiohost_stroredatarerult(uint32_t id, uint32_t dataintsts)
-{
-	vsdiohosts[id].dataintsts.reg = dataintsts;
 }
 
 /*
@@ -727,24 +659,6 @@ uint32_t *prsp3, uint32_t *prsp2, uint32_t *prsp1, uint32_t *prsp0)
 	rsp3reg.reg = sdiohost_getreg(host, id, SDIO_RSP3_REG_OFS);
 	*prsp3 = (uint32_t) rsp3reg.reg;
 }
-
-/*
-	Check SDIO voltage switch result.
-
-	@param[in] id SDIO channel ID
-
-	@return
-		- @b TRUE: voltage switch success
-		- @b FALSE: voltage switch fail
-*/
-bool sdiohost_chkvoltswitch(uint32_t id)
-{
-	if (vsdiohosts[id].cmdintsts.bit.RSP_VOL_SWITCH_FAIL)
-		return FALSE;
-	else
-		return TRUE;
-}
-
 
 /*
 	Enable SDIO interrupt.
@@ -1274,7 +1188,7 @@ uint32_t uilength)
 	bool    bwordalignment;
 	union SDIO_DATA_PORT_REG    datareg;
 	union SDIO_FIFO_STATUS_REG  fifostsreg;
-	union SDIO_STATUS_REG       stsreg;
+	uint32_t dstatus;
 
 	uiwordcount     = (uilength + sizeof(uint32_t) - 1) / sizeof(uint32_t);
 	uifullcount     = uiwordcount / SDIO_HOST_DATA_FIFO_DEPTH;
@@ -1313,27 +1227,22 @@ uint32_t uilength)
 			uifullcount--;
 		}
 
-		stsreg = vsdiohosts[id].dataintsts;
-
-		if (stsreg.bit.DATA_CRC_FAIL || stsreg.bit.DATA_TIMEOUT) {
-			vsdiohosts[id].dataintsts.reg = 0x0;
+		dstatus = sdiohost_getstatus(host, id);
+		if ((dstatus & SDIO_STATUS_REG_DATA_CRC_FAIL) || (dstatus & SDIO_STATUS_REG_DATA_TIMEOUT)) {
 			return E_SYS;
 		}
 	}
 
 	if (uiremaincount) {
 		while (1) {
-
 			fifostsreg.reg = sdiohost_getreg(host, id,
 			SDIO_FIFO_STATUS_REG_OFS);
 
 			if (fifostsreg.bit.FIFO_EMPTY)
 				break;
 
-			stsreg = vsdiohosts[id].dataintsts;
-
-			if (stsreg.bit.DATA_CRC_FAIL || stsreg.bit.DATA_TIMEOUT) {
-				vsdiohosts[id].dataintsts.reg = 0x0;
+			dstatus = sdiohost_getstatus(host, id);
+			if ((dstatus & SDIO_STATUS_REG_DATA_CRC_FAIL) || (dstatus & SDIO_STATUS_REG_DATA_TIMEOUT)) {
 				return E_SYS;
 			}
 		}
@@ -1357,8 +1266,6 @@ uint32_t uilength)
 			}
 		}
 	}
-
-	vsdiohosts[id].dataintsts.reg = 0x0;
 
 	return E_OK;
 }
@@ -1386,7 +1293,7 @@ uint32_t uilength)
 	bool    bwordalignment;
 	union SDIO_DATA_PORT_REG    datareg;
 	union SDIO_FIFO_STATUS_REG  fifostsreg;
-	union SDIO_STATUS_REG       stsreg;
+	uint32_t dstatus;
 
 	uiwordcount     = (uilength + sizeof(uint32_t) - 1) / sizeof(uint32_t);
 	uifullcount     = uiwordcount / SDIO_HOST_DATA_FIFO_DEPTH;
@@ -1425,10 +1332,8 @@ uint32_t uilength)
 			uifullcount--;
 		}
 
-		stsreg = vsdiohosts[id].dataintsts;
-
-		if (stsreg.bit.DATA_CRC_FAIL || stsreg.bit.DATA_TIMEOUT) {
-			vsdiohosts[id].dataintsts.reg = 0x0;
+		dstatus = sdiohost_getstatus(host, id);
+		if ((dstatus & SDIO_STATUS_REG_DATA_CRC_FAIL) || (dstatus & SDIO_STATUS_REG_DATA_TIMEOUT)) {
 			return E_SYS;
 		}
 	}
@@ -1441,9 +1346,8 @@ uint32_t uilength)
 			if (fifostsreg.bit.FIFO_CNT == uiremaincount)
 				break;
 
-			stsreg = vsdiohosts[id].dataintsts;
-			if (stsreg.bit.DATA_CRC_FAIL || stsreg.bit.DATA_TIMEOUT) {
-				vsdiohosts[id].dataintsts.reg = 0x0;
+			dstatus = sdiohost_getstatus(host, id);
+			if ((dstatus & SDIO_STATUS_REG_DATA_CRC_FAIL) || (dstatus & SDIO_STATUS_REG_DATA_TIMEOUT)) {
 				return E_SYS;
 			}
 		}
@@ -1468,11 +1372,8 @@ uint32_t uilength)
 		}
 	}
 
-	vsdiohosts[id].dataintsts.reg = 0x0;
-
 	return E_OK;
 }
-
 
 uint32_t sdiohost_setiointen(struct mmc_nvt_host *host, uint32_t id, bool ben)
 {
@@ -1516,12 +1417,16 @@ bool sdiohost_getiointen(struct mmc_nvt_host *host, uint32_t id)
 static REGVALUE sdiohost_getreg(struct mmc_nvt_host *host, uint32_t id,
 uint32_t offset)
 {
-	if (id == SDIO_HOST_ID_1)
-		return nvt_readl(host->base + offset);
-	else if (id == SDIO_HOST_ID_2)
-		return nvt_readl(host->base + offset);
-	else
-		return nvt_readl(host->base + offset);
+	REGVALUE value;
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	value = nvt_readl(host->base + offset);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+
+	return value;
 }
 #endif
 
@@ -1540,12 +1445,13 @@ uint32_t offset)
 static void sdiohost_setreg(struct mmc_nvt_host *host, uint32_t id,
 uint32_t offset, REGVALUE value)
 {
-	if (id == SDIO_HOST_ID_1)
-		nvt_writel(value, host->base + offset);
-	else if (id == SDIO_HOST_ID_2)
-		nvt_writel(value, host->base + offset);
-	else
-		nvt_writel(value, host->base + offset);
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	nvt_writel(value, host->base + offset);
+
+	spin_unlock_irqrestore(&host->lock, flags);
 }
 #endif
 
@@ -1601,7 +1507,11 @@ int sdiohost_open(struct mmc_nvt_host *host, uint32_t id, int voltage_switch)
 {
 	sdiohost_setpaddriving(host, SDIO_MODE_DS);
 
-	sdiohost_delay_chain(host, 0x200000, SDIO_DLY_DS_DEFAULT);
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		sdiohost_setphysample(host, true, false);
+	} else {
+		sdiohost_setphysample(host, false, true);
+	}
 
 	sdiohost_resetdata(host, id);
 
@@ -1746,7 +1656,7 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 		pad_set_pull_updown(PAD_PIN_CGPIO14, PAD_PULLDOWN);
 		pad_set_pull_updown(PAD_PIN_CGPIO15, PAD_PULLDOWN);
 		pad_set_pull_updown(PAD_PIN_CGPIO16, PAD_PULLDOWN);
-	
+
 		gpio_direction_output(C_GPIO(11), 0);
 		gpio_direction_output(C_GPIO(12), 0);
 		gpio_direction_output(C_GPIO(13), 0);
@@ -1767,7 +1677,7 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 		pad_set_pull_updown(PAD_PIN_CGPIO19, PAD_PULLDOWN);
 		pad_set_pull_updown(PAD_PIN_CGPIO20, PAD_PULLDOWN);
 		pad_set_pull_updown(PAD_PIN_CGPIO21, PAD_PULLDOWN);
-	
+
 		gpio_direction_output(C_GPIO(17), 0);
 		gpio_direction_output(C_GPIO(18), 0);
 		gpio_direction_output(C_GPIO(19), 0);
@@ -1780,6 +1690,10 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 
 	if (host->cp_gpio)
 		gpio_set_value(host->cp_gpio, !host->cp_gpio_value);
+
+	if (host->power_down_delay_ms > 0) {
+		msleep(host->power_down_delay_ms);
+	}
 }
 
 void sdiohost_power_up(struct mmc_nvt_host *host)
@@ -1798,7 +1712,7 @@ void sdiohost_power_up(struct mmc_nvt_host *host)
 		gpio_direction_input(C_GPIO(14));
 		gpio_direction_input(C_GPIO(15));
 		gpio_direction_input(C_GPIO(16));
-	
+
 		pinmux_config->pin_function = PIN_FUNC_SDIO;
 		pinmux_config->config = 0x1;
 		ret = nvt_pinmux_update(pinmux_config, 1);
@@ -1819,7 +1733,7 @@ void sdiohost_power_up(struct mmc_nvt_host *host)
 		gpio_direction_input(C_GPIO(20));
 		gpio_direction_input(C_GPIO(21));
 		gpio_direction_input(C_GPIO(22));
-	
+
 		pinmux_config->pin_function = PIN_FUNC_SDIO2;
 		pinmux_config->config = 0x1;
 		ret = nvt_pinmux_update(pinmux_config, 1);
@@ -1835,12 +1749,12 @@ void sdiohost_power_up(struct mmc_nvt_host *host)
 }
 
 
-void sdiohost_power_cycle(struct mmc_nvt_host *host)
+void sdiohost_power_cycle(struct mmc_nvt_host *host, uint32_t delay_ms)
 {
 	gpio_set_value(host->cp_gpio, !host->cp_gpio_value);
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_0);
 	sdiohost_power_down(host);
-	mdelay(1000);
+	msleep(delay_ms);
 	sdiohost_power_up(host);
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
 	gpio_set_value(host->cp_gpio, host->cp_gpio_value);
@@ -1895,7 +1809,7 @@ u32 sdiohost_set_voltage_switch(struct mmc_nvt_host *host)
 	if (host->voltage_switch_timeout) {
 		pr_err("voltage switch timeout\n");
 		if ((host->cp_gpio) && (host->id == SDIO_HOST_ID_1))
-			sdiohost_power_cycle(host);
+			sdiohost_power_cycle(host, 500);
 
 		return -EIO;
 	} else
@@ -1912,7 +1826,7 @@ u32 sdiohost_getphydetout(struct mmc_nvt_host *host)
 	return 0;
 }
 
-int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode)
+int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode, bool print_pattern_err)
 {
 	struct STRG_SEG_DES tuning_destable[1];
 	struct mmc_data *dummy_data;
@@ -1977,7 +1891,7 @@ int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode)
 		}
 	}
 
-	status = sdiohost_getdataresult(host->id);
+	status = host->status;
 	if ((status & SDIO_STATUS_REG_DATA_END) &&
 		(status & SDIO_STATUS_REG_DATA_CRC_OK))
 		pr_debug("Tuning pattern Data end or CRC ok\r\n");
@@ -1991,21 +1905,23 @@ int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode)
 	return E_OK;
 
 pattern_error:
-	pr_err("Tuning pattern shoule be:\r\n");
-	for (i = 0; i < 64; i++) {
-		if (i != 0 && (i % 16 == 0)) {
-			pr_err("\n");
+	if (print_pattern_err) {
+		pr_err("Tuning pattern shoule be:\r\n");
+		for (i = 0; i < 64; i++) {
+			if (i != 0 && (i % 16 == 0)) {
+				pr_err("\n");
+			}
+			pr_err("%02x ", golden_buf[i]);
 		}
-		pr_err("%02x ", golden_buf[i]);
-	}
-	pr_err("nBut, pattern from card is:\n");
-	for (i = 0; i < 64; i++) {
-		if (i != 0 && (i % 16 == 0)) {
-			pr_err("\n");
+		pr_err("nBut, pattern from card is:\n");
+		for (i = 0; i < 64; i++) {
+			if (i != 0 && (i % 16 == 0)) {
+				pr_err("\n");
+			}
+			pr_err("%02x ", tuningbuf[i]);
 		}
-		pr_err("%02x ", tuningbuf[i]);
+		pr_err("\r\n");
 	}
-	pr_err("\r\n");
 
 read_error:
 	pr_err("SDIO%d Tuning error\r\n", host->id);
@@ -2025,12 +1941,10 @@ void sdiohost_setphyclrdetval(struct mmc_nvt_host *host)
 
 void sdiohost_setphydetch(struct mmc_nvt_host *host, u32 ch)
 {
-
 }
 
 void sdiohost_setdlyphase_sel(struct mmc_nvt_host *host, u32 sel)
 {
-
 }
 
 int sdiohost_getcmd(struct mmc_nvt_host *host)
@@ -2049,6 +1963,22 @@ void sdio_copy_info(struct mmc_nvt_host *info)
 		drvdump_info[2] = *info;
 }
 
+void sdiohost_set_paddirection(struct mmc_nvt_host *host)
+{
+	if (host->id == SDIO_HOST_ID_1) {
+		pad_set_pull_updown(PAD_PIN_CGPIO12, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO13, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO14, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO15, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO16, PAD_PULLUP);
+	} else if (host->id == SDIO_HOST_ID_2) {
+		pad_set_pull_updown(PAD_PIN_CGPIO18, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO19, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO20, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO21, PAD_PULLUP);
+		pad_set_pull_updown(PAD_PIN_CGPIO22, PAD_PULLUP);
+	}
+}
 
 void sdio_drvdump(void)
 {
@@ -2337,4 +2267,3 @@ void sdio_drvdump(void)
 		pr_info("SDIO3 cp_gpio %d cp_gpio_value %d\n", drvdump_info[2].cp_gpio, drvdump_info[2].cp_gpio_value);
 }
 EXPORT_SYMBOL(sdio_drvdump);
-

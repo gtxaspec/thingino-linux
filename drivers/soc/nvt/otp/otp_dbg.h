@@ -28,7 +28,6 @@
 #define NVT_DBG_USER      8
 
 #ifdef DEBUG
-
 extern unsigned int otp_debug_level;
 #define nvt_dbg(level, fmt, args...)                \
 	do {                                               \

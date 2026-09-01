@@ -2914,8 +2914,105 @@ static inline void clk_debug_unregister(struct clk_core *core)
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 #include <plat/pll.h>
+#include "novatek/nvt-im-clk.h"
 #define MAX_CMD_LENGTH 30
 #define MAX_ARG_NUM     6
+
+static int nvt_inited = 0;
+static struct clk_core *local_core;
+static int nvt_clk_debug_register(struct clk_core *core)
+{
+	if (!nvt_inited) {
+		local_core = core;
+		nvt_inited = 1;
+	}
+
+	return 0;
+}
+static void nvt_clk_summary_show_one(struct seq_file *s, struct clk_core *c,
+				 int level)
+{
+	if (!c)
+		return;
+
+	seq_printf(s, "%*s%-*s %11d %12d %11lu %10lu %-3d\n",
+		   level * 3 + 1, "",
+		   30 - level * 3, c->name,
+		   c->enable_count, c->prepare_count, clk_core_get_rate(c),
+		   clk_core_get_accuracy(c), clk_core_get_phase(c));
+}
+
+static void nvt_clk_summary_show_subtree(struct seq_file *s, struct clk_core *c,
+				     int level)
+{
+	struct clk_core *child;
+
+	if (!c)
+		return;
+
+	nvt_clk_summary_show_one(s, c, level);
+
+	hlist_for_each_entry(child, &c->children, child_node)
+		nvt_clk_summary_show_subtree(s, child, level + 1);
+}
+
+static int nvt_clk_summary_show(struct seq_file *s, void *data)
+{
+	seq_puts(s, "   clock                         enable_cnt  prepare_cnt        rate   accuracy   phase\n");
+	seq_puts(s, "----------------------------------------------------------------------------------------\n");
+
+	clk_prepare_lock();
+
+	hlist_for_each_entry(local_core,  &clk_root_list, child_node)
+		nvt_clk_summary_show_subtree(s, local_core, 0);
+
+	clk_prepare_unlock();
+
+	return 0;
+}
+
+
+static int nvt_clk_summary_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, nvt_clk_summary_show, inode->i_private);
+}
+
+static const struct file_operations nvt_clk_summary_fops = {
+	.open		= nvt_clk_summary_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int clk_max_freq_show(struct seq_file *s, void *data)
+{
+	char name[CLK_NAME_STR_SIZE];
+	int freq = 0, i = 0;
+	int max_freq_cnt = nvt_get_max_freq_node();
+
+	seq_puts(s, "             clock             max_rate\n");
+	seq_puts(s, "---------------------------------------\n");
+	if (max_freq_cnt) {
+		for (i = 0; i < max_freq_cnt; i++) {
+			nvt_get_max_freq_info(i, name, &freq);
+			seq_printf(s, "  %16s %20d\n", name, freq);
+		}
+	}
+
+	return 0;
+}
+
+static int clk_maxfreq_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, clk_max_freq_show, inode->i_private);
+}
+
+static const struct file_operations clk_maxfreq_fops = {
+	.open		= clk_maxfreq_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
 
 void nvt_clk_disable_childless(void)
 {
@@ -3041,6 +3138,8 @@ static const struct file_operations clk_childless_fops = {
 typedef struct proc_pinmux {
 	struct proc_dir_entry *pproc_module_root;
 	struct proc_dir_entry *pproc_childless_entry;
+	struct proc_dir_entry *pproc_summary_entry;
+	struct proc_dir_entry *pproc_maxfreq_entry;
 } proc_clk_t;
 proc_clk_t proc_clk;
 
@@ -3065,6 +3164,22 @@ static int __init nvt_clk_proc_init(void)
 		goto remove_proc;
 	}
 	proc_clk.pproc_childless_entry = pentry;
+
+	pentry = proc_create("clk_summary", S_IRUGO | S_IXUGO, pmodule_root, &nvt_clk_summary_fops);
+	if (pentry == NULL) {
+		pr_err("failed to create proc clk summary!\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_clk.pproc_summary_entry = pentry;
+
+	pentry = proc_create("max_frequency", S_IRUGO | S_IXUGO, pmodule_root, &clk_maxfreq_fops);
+	if (pentry == NULL) {
+		pr_err("failed to create proc max frequency!\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_clk.pproc_maxfreq_entry = pentry;
 remove_proc:
 	return ret;
 }
@@ -3266,6 +3381,10 @@ unlock:
 
 	if (!ret)
 		clk_debug_register(core);
+
+#ifdef CONFIG_PLAT_NOVATEK
+	nvt_clk_debug_register(core);
+#endif
 
 	return ret;
 }

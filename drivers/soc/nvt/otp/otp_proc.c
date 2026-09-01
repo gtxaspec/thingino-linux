@@ -107,6 +107,7 @@ static ssize_t nvt_otp_proc_cmd_read(struct file *fp, char __user *ubuf, size_t 
 	return ret;
 }
 
+#if 0
 //Crypto framework encrypt sample code start
 struct tcrypt_result {
     struct completion completion;
@@ -163,7 +164,7 @@ static unsigned int test_skcipher_encdec(struct skcipher_def *sk, int enc)
 
     return rc;
 }
-
+#endif
 
 /******************************************************************
  NA51068 efuse key section 640bit => 20 word
@@ -180,7 +181,7 @@ static unsigned int test_skcipher_encdec(struct skcipher_def *sk, int enc)
 static UINT8 key_sample1[16] = {0x24, 0xaa, 0x0d, 0x9b, 0xf1, 0xae, 0x31, 0xb4, 0x28, 0x51, 0xe4, 0xc4, 0xd1, 0x71, 0x1d, 0x1e};
 static UINT8 key_sample2[16] = {0x95, 0x4d, 0x81, 0xc5, 0x5a, 0xcc, 0x2b, 0xe5, 0xdd, 0xc8, 0x74, 0xc3, 0x9f, 0xaf, 0xcf, 0x5c};
 static UINT8 key_sample3[16] = {0x04, 0x03, 0x02, 0x01, 0x08, 0x07, 0x06, 0x05, 0x12, 0x11, 0x10, 0x09, 0x16, 0x15, 0x14, 0x13};
-static UINT8 key_sample_crypto[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x9, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+//static UINT8 key_sample_crypto[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x9, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
 
 //Here is specific key magic number to let linux crypto framework encrypt / decrypt via key manager
 #define OTP_KEY_MANAGER_IDENTIFY_OFS			4
@@ -197,13 +198,13 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 	char *argv[MAX_ARG_NUM] = {0};
 	unsigned char ucargc = 0;
 
-	struct skcipher_def sk;
-    struct crypto_skcipher *skcipher = NULL;
-    struct skcipher_request *req = NULL;
-    char *scratchpad = NULL;
-    char *ivdata = NULL;
-    unsigned char key[16];
-    int ret = -EFAULT;
+//	struct skcipher_def sk;
+//    struct crypto_skcipher *skcipher = NULL;
+//    struct skcipher_request *req = NULL;
+//    char *scratchpad = NULL;
+//    char *ivdata = NULL;
+//  unsigned char key[16];
+//  int ret = -EFAULT;
 
 
 
@@ -237,8 +238,8 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 	}
 
 	if (!strcmp(argv[0], "trim")) {
+//#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
 		UINT16  data;
-#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
 		if (efuse_readParamOps(EFUSE_ETHERNET_TRIM_DATA, &data) != E_OK) {
 			pr_err("[0] data = NULL\n");
 		} else {
@@ -253,6 +254,12 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 			pr_err("[2] data = NULL\n");
 		} else {
 			pr_info("[2] data = 0x%08x\r\n", data);
+		}
+
+		if (efuse_readParamOps(EFUSE_VER_PKG_UID, &data) != E_OK) {
+			pr_err("[4] data = NULL\n");
+		} else {
+			pr_info("[4] data = 0x%08x\r\n", data);
 		}
 
 		if (efuse_readParamOps(EFUSE_DDRP_V_TRIM_DATA, &data) != E_OK) {
@@ -278,7 +285,7 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 		} else {
 			pr_info("[7] data = 0x%08x\r\n", data);
 		}
-#endif
+//#endif
 		return size;
 	} else if(!strcmp(argv[0], "uniqueid")) {
 		UINT32 h, l;
@@ -369,93 +376,12 @@ static ssize_t nvt_otp_proc_cmd_write(struct file *file, const char __user *buf,
 			} else {
 				pr_info(" => success\r\n");
 			}
-
-	} else if (!strcmp(argv[0], "encrypt_key_set")) {
-		UINT32	key_set = EFUSE_OTP_1ST_KEY_SET_FIELD;
-		if(!strcmp(argv[1], "0")) {
-			key_set = EFUSE_OTP_1ST_KEY_SET_FIELD;
-		} else if(!strcmp(argv[1], "1")) {
-			key_set = EFUSE_OTP_2ND_KEY_SET_FIELD;
-		} else if(!strcmp(argv[1], "2")) {
-			key_set = EFUSE_OTP_3RD_KEY_SET_FIELD;
-		} else if(!strcmp(argv[1], "3")) {
-			key_set = EFUSE_OTP_4TH_KEY_SET_FIELD;
-		} else if(!strcmp(argv[1], "4")) {
-			key_set = EFUSE_OTP_5TH_KEY_SET_FIELD;
-		}
-		pr_info("encrypt_key_set => @key [%s]", argv[1]);
-
-		skcipher = crypto_alloc_skcipher("ecb(aes)", 0, 0);
-	    if (IS_ERR(skcipher)) {
-	        pr_info("could not allocate skcipher handle\n");
-	        return PTR_ERR(skcipher);
-	    }
-
-	    req = skcipher_request_alloc(skcipher, GFP_KERNEL);
-
-	    if (!req) {
-	        pr_info("could not allocate skcipher request\n");
-	        ret = -ENOMEM;
-	        goto out;
-	    }
-
-		skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
-                      test_skcipher_cb,
-                      &sk.result);
-
-		memcpy(key, OTP_KEY_MANAGER_HDR, OTP_KEY_MANAGER_HDR_SIZE);
-		key[OTP_KEY_MANAGER_IDENTIFY_OFS] = key_set;  ///< key_set = EFUSE_OTP_1ST_KEY_SET_FIELD ~ EFUSE_OTP_5TH_KEY_SET_FIELD
-
-	    if (crypto_skcipher_setkey(skcipher, key, AES_ECB_KEY_SIZE)) {
-	        pr_info("key could not be set\n");
-	        ret = -EAGAIN;
-	        goto out;
-	    }
-
-	    /* Input data will be random */
-	    scratchpad = kmalloc(16, GFP_KERNEL);
-	    if (!scratchpad) {
-	        pr_info("could not allocate scratchpad\n");
-	        goto out;
-	    }
-
-		//Use key_sample3 as input data -> prepare to encrypt
-		memcpy((void *)scratchpad, (void *)key_sample_crypto, (UINT32)16);
-
-		printk("scratchpad 0x%08x 0x%08x 0x%08x 0x%08x\n", *(UINT32 *)(scratchpad), *(UINT32 *)(scratchpad + 4), *(UINT32 *)(scratchpad + 8), *(UINT32 *)(scratchpad + 12));
-		printk("scratchpad 0x%08x \n", (UINT32)scratchpad);
-
-		sk.tfm = skcipher;
-    	sk.req = req;
-
-    	 sg_init_one(&sk.sg, scratchpad, 16);
-	    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, ivdata);
-    	init_completion(&sk.result.completion);
-
-		/* encrypt data */
-	    ret = test_skcipher_encdec(&sk, 1);
-	    if (ret) {
-	        goto out;
-		} else {
-			pr_info("Encryption triggered successfully\n");
-			pr_info("Encrypt => 0x%08x 0x%08x 0x%08x 0x%08x\n", *(UINT32 *)(sg_virt(&sk.sg)), *(UINT32 *)(sg_virt(&sk.sg) + 4), *(UINT32 *)(sg_virt(&sk.sg) + 8), *(UINT32 *)(sg_virt(&sk.sg) + 12));
-		    pr_info("Encryption triggered successfully\n");
-	    }
-
-out:
-		if (skcipher) {
-    	    crypto_free_skcipher(skcipher);
-		}
-		if (req) {
-			skcipher_request_free(req);
-		}
-		if (scratchpad) {
-	        kfree(scratchpad);
-	    }
-		pr_err("crypto_alloc_cipher set key proc done\r\n");
-		return size;
 	} else if(!strcmp(argv[0], "version")) {
-		pr_info("knlpkg.a 1.00.010\r\n");
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+		otp_version();
+#else
+		pr_info("knlpkg.a 1.00.004\r\n");
+#endif
 	} else if(!strcmp(argv[0], "jtag_disable")) {
 		if(is_JTAG_DISABLE_en() == TRUE)
 			pr_info("Disable JTAG success\r\n");
@@ -481,6 +407,29 @@ out:
 			pr_info("RSA signature checksum enable success\r\n");
 		else
 			pr_info("RSA signature checksum enable fail\r\n");
+	} else if(!strcmp(argv[0], "trigger_key_set")) {
+		UINT32	key_set = EFUSE_OTP_1ST_KEY_SET_FIELD;
+		void __iomem *IOADDR_CRYPTO_REG_BASE;
+		if(!strcmp(argv[1], "0")) {
+			key_set = EFUSE_OTP_1ST_KEY_SET_FIELD;
+		} else if(!strcmp(argv[1], "1")) {
+			key_set = EFUSE_OTP_2ND_KEY_SET_FIELD;
+		} else if(!strcmp(argv[1], "2")) {
+			key_set = EFUSE_OTP_3RD_KEY_SET_FIELD;
+		} else if(!strcmp(argv[1], "3")) {
+			key_set = EFUSE_OTP_4TH_KEY_SET_FIELD;
+		} else if(!strcmp(argv[1], "4")) {
+			key_set = EFUSE_OTP_5TH_KEY_SET_FIELD;
+		}
+		pr_info("encrypt_key_set => @key [%s]", argv[1]);
+
+		trigger_efuse_key(EFUSE_KEY_MANAGER_CRYPTO, key_set * 4, 4);
+		if(!IOADDR_CRYPTO_REG_BASE) {
+			IOADDR_CRYPTO_REG_BASE = ioremap_nocache(0xF0620000, 0x100);
+		}
+
+		pr_info("0x10 0x%08x 0x%08x 0x%08x 0x%08x\r\n", nvt_readl(IOADDR_CRYPTO_REG_BASE+0x10), nvt_readl(IOADDR_CRYPTO_REG_BASE+0x14), nvt_readl(IOADDR_CRYPTO_REG_BASE+0x18), nvt_readl(IOADDR_CRYPTO_REG_BASE+0x1C));
+		pr_info("0x20 0x%08x 0x%08x 0x%08x 0x%08x\r\n", nvt_readl(IOADDR_CRYPTO_REG_BASE+0x20), nvt_readl(IOADDR_CRYPTO_REG_BASE+0x24), nvt_readl(IOADDR_CRYPTO_REG_BASE+0x28), nvt_readl(IOADDR_CRYPTO_REG_BASE+0x2C));
 	} else if(!strcmp(argv[0], "quary")) {
 		pr_info("=>[quary]\r\n");
 		pr_info("             is_secure_enable()=%d\r\n", is_secure_enable());
@@ -498,6 +447,9 @@ out:
 		pr_info("         is_3rd_key_read_lock()=%d\r\n", is_3rd_key_read_lock());
 		pr_info("         is_4th_key_read_lock()=%d\r\n", is_4th_key_read_lock());
 		pr_info("         is_5th_key_read_lock()=%d\r\n", is_5th_key_read_lock());
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+		pr_info("              is_new_key_rule()=%d\r\n", is_new_key_rule());
+#endif
 	}else {
 		pr_info("\nUsage\n");
 		pr_info("\necho [command] > otp_trim\n\n");
@@ -506,7 +458,7 @@ out:
 		pr_info("             => uniqueid (chip's unique ID)\n");
 		pr_info("             =>     nvt_write_key No (write specific key into specific key set field)\n");
 		pr_info("             =>      nvt_read_key No ( read specific key from specific key set field)\n");
-		pr_info("             =>   encrypt_key_set No (  Encrypt & decrypt via specific key set field)\n");
+		pr_info("             =>   trigger_key_set No (                         trigger key set field)\n");
 		pr_info("             => nvt_read_key_lock No (Read lock specific key set field => can not readable)\n");
 		pr_info("             =>               jtag_disable (Disable JTAG interface persistent)\n");
 		pr_info("             =>              secure_enable (ROM treat loader as secure enable)\n");
@@ -588,7 +540,7 @@ static ssize_t nvt_avl_proc_cmd_write(struct file *file, const char __user *buf,
 		cmd_efuse_show_avl();
 		return size;
 	} else if(!strcmp(argv[0], "version")) {
-		pr_info("knlpkg.a 1.00.013\r\n");
+		pr_info("knlpkg.a 1.00.004\r\n");
 	}
 ERR_OUT:
 

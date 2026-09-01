@@ -164,6 +164,8 @@ typedef struct {
 typedef enum {
 	EFUSE_ABILITY_CDC_RESOLUTION    =0x1001,        //< Check package resoltion of codec
 	EFUSE_ABILITY_CDC_PLL_FREQ		=0x1002,		//< Check package PLL freq of codec
+	EFUSE_ABILITY_CLK_FREQ			=0x1003, 		//< Max freq
+	EFUSE_ABILITY_CPU_PLL_FREQ		=0x1004,		//< Check package PLL freq of CPU
 	///< Context are :
 	///< - @b UINT32 * : starting address of CDC_ABILITY
 
@@ -447,5 +449,9 @@ extern INT32 trigger_efuse_key(EFUSE_KEY_MANAGER_DST key_dst, UINT32 key_word_of
 #define is_3rd_key_read_lock()			quary_secure_boot(SECUREBOOT_3RD_KEY_SET_READ_LOCK)
 #define is_4th_key_read_lock()			quary_secure_boot(SECUREBOOT_4TH_KEY_SET_READ_LOCK)
 #define is_5th_key_read_lock()			quary_secure_boot(SECUREBOOT_5TH_KEY_SET_READ_LOCK)
+
+extern void otp_platform_earily_create_resource(void);
+extern void otp_platform_earily_release_resource(void);
+extern void trim_drvdump(void);
 #endif
 

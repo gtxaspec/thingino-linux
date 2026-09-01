@@ -21,7 +21,7 @@ struct nvt_ir {
 	u64			rc_type;
 	u32			data_lo;
 	u32			data_hi;
-	struct work_struct	decoder_work;
+	struct delayed_work	decoder_work;
 };
 
 void nvt_ir_irq_cb(struct nvt_ir *ir);

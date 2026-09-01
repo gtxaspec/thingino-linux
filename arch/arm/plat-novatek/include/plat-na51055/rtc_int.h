@@ -36,7 +36,7 @@
 #define RTC_INT_OSD_ANALOG_INCREASE 0x1	/*Increase driving switch*/
 #define RTC_INT_OSD_ANALOG_SWING5   0x2	/*Regular out swing 0.5*AVDD_RTC*/
 #define RTC_INT_OSD_ANALOG_SWING66  0x6	/*Regular out swing 0.66*AVDD_RTC*/
-#define RTC_INT_OSD_ANALOG_ENHANCE  0xF	/*Enhance comparator driving*/
+#define RTC_INT_OSD_ANALOG_ENHANCE  0x9	/*Enhance comparator driving*/
 #define RTC_INT_OSC_ANALOG_CFG      RTC_INT_OSD_ANALOG_ENHANCE
 
 void nvt_rtc_power_control(int reboot_sec);

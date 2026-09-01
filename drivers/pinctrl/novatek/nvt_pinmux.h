@@ -14,4 +14,8 @@
 #include "na51068/na51068_pinmux.h"
 #endif
 
+#ifdef CONFIG_PINCTRL_NA51089
+#include "na51089/na51089_pinmux.h"
+#endif
+
 #endif

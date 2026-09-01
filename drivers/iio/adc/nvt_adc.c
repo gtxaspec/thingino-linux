@@ -25,7 +25,7 @@
 #include <plat/efuse_protected.h>
 #include <plat/top.h>
 
-#define DRV_VERSION "1.02.060"
+#define DRV_VERSION "1.02.070"
 
 #ifdef CONFIG_NVT_FPGA_EMULATION
 #define CALI_VDDADC 3300
@@ -327,7 +327,7 @@ static int thermal_get_temp(struct thermal_zone_device *thermal, int *temp)
 	struct nvt_adc_state *adc = thermal->devdata;
 	union THERMAL_SENSOR_CONFIGURE_REG thermal_reg;
 	union ADC_CTRL_REG ctrl_reg;
-	u16 temp_value;
+	signed long temp_value;
 
 	ctrl_reg.reg = adc_getreg(adc, ADC_CTRL_REG_OFS);
 	if (!ctrl_reg.bit.adc_en) {
@@ -337,10 +337,15 @@ static int thermal_get_temp(struct thermal_zone_device *thermal, int *temp)
 
 	thermal_reg.reg = adc_getreg(adc, THERMAL_SENSOR_CONFIGURE_REG_OFS);
 	temp_value = thermal_reg.bit.ain_avg_out;
-	if (nvt_get_chip_id() == CHIP_NA51055)
-		*temp = (temp_value - adc->trim_value)*13/10 + 30;
-	else
-		*temp = (temp_value - adc->trim_value)*1319/1000 + 30;
+
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		*temp = (temp_value - adc->trim_value)*13;
+		*temp = *temp/10 + 30;
+	} else {
+		*temp = (temp_value - adc->trim_value)*1319;
+		*temp = *temp/1000 + 30;
+	}
+
 	return 0;
 }
 

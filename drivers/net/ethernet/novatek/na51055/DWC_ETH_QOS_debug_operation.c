@@ -33,6 +33,8 @@
 #include <linux/debugfs.h>
 #include "DWC_ETH_QOS_yheader.h"
 
+#ifdef CONFIG_DEBUGFS_OBJ
+
 extern ULONG dwc_eth_qos_pci_base_addr;
 
 #include "DWC_ETH_QOS_yregacc.h"
@@ -20542,6 +20544,7 @@ static ssize_t TX_NORMAL_DESC_STATUS_read(struct file *file,
 	unsigned int dirty_tx = desc_data->dirty_tx;
 	unsigned int free_desc_cnt = desc_data->free_desc_cnt;
 	unsigned int tx_pkt_queued = desc_data->tx_pkt_queued;
+	unsigned int tx_queue_stopped = desc_data->queue_stopped;
 
 	unsigned int tmp_cur_tx = 0;
 	unsigned int tmp_dirty_tx = 0;
@@ -20568,8 +20571,9 @@ static ssize_t TX_NORMAL_DESC_STATUS_read(struct file *file,
 		"TOTAL FREE DESCRIPTOR COUNT              : %d\n\n"
 		"TOTAL DESCRIPTOR QUEUED FOR TRANSMISSION : %d\n\n"
 		"NEXT DESCRIPTOR TO BE USED BY DRIVER     : %d\n\n"
-		"NEXT DESCRIPTOR TO BE USED BY DEVICE     : %d\n\n",
-		TX_DESC_CNT, free_desc_cnt, tx_pkt_queued, cur_tx, dirty_tx);
+		"NEXT DESCRIPTOR TO BE USED BY DEVICE     : %d\n\n"
+		"TX QUEUE STOPPED                         : %d\n\n",
+		TX_DESC_CNT, free_desc_cnt, tx_pkt_queued, cur_tx, dirty_tx, tx_queue_stopped);
 	strcat(debug_buf, tmpBuf);
 
 	/* Free tx descriptor index */
@@ -28898,3 +28902,5 @@ void remove_debug_files()
 	DBGPR("<-- remove_debug_files\n");
 	return;
 }
+
+#endif

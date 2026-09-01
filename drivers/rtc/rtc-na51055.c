@@ -26,7 +26,13 @@
 #include <linux/proc_fs.h>
 #include <linux/of.h>
 
-#define DRV_VERSION		"1.07.000"
+#define DRV_VERSION		"1.11.000"
+
+#ifdef CONFIG_RTC_NVT_PWBC_SDT_USER
+#define RTC_PWBC_SDT_ISR_DISABLE	1
+#else
+#define RTC_PWBC_SDT_ISR_DISABLE	0
+#endif
 
 static struct completion cset_completion;
 static struct semaphore rtc_sem;
@@ -50,6 +56,7 @@ static const unsigned short rtc_ydays[2][13] = {
 struct nvt_rtc_priv {
 	struct rtc_device *rtc;
 	struct proc_dir_entry *pproc_pwbc;
+	struct proc_dir_entry *pproc_data;
 	struct delayed_work cset_work;
 };
 
@@ -134,6 +141,10 @@ void nvt_rtc_power_control(int reboot_sec)
 
 		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
 		pwbc_reg.bit.pwralarm_en = 1;
+		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+	} else {
+		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+		pwbc_reg.bit.pwralarm_dis = 1;
 		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
 	}
 
@@ -382,7 +393,14 @@ static int nvt_rtc_chk_power(struct device *dev)
 		ret = nvt_rtc_reset(dev);
 		if (ret) return ret;
 	} else {
-		return 0;
+		oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
+		if (oscan_reg.bit.osc_analogcfg == RTC_INT_OSC_ANALOG_CFG) {
+			return 0;
+		}
+		is_power_lost = 1;
+		printk("%s: RTC ANA not expected 0x%x\r\n", __func__, oscan_reg.bit.osc_analogcfg);
+		ret = nvt_rtc_reset(dev);
+		if (ret) return ret;
 	}
 
 	loc_cpu();
@@ -656,12 +674,13 @@ static int nvt_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 static int pwbc_init(void)
 {
+#if (RTC_PWBC_SDT_ISR_DISABLE == 0)
 	union RTC_PWBC_REG pwbc_ctrl_reg;
 
 	pwbc_ctrl_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
 	pwbc_ctrl_reg.bit.pwr_sw1_inten = 1;
 	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_ctrl_reg.reg);
-
+#endif
 	return 0;
 }
 
@@ -698,12 +717,59 @@ static int pwbc_proc_open(struct inode *inode, struct file *file)
         return single_open(file, pwbc_proc_show, NULL);
 }
 
+#define PWBC_MAX_CMD_LENGTH 30
+static ssize_t pwbc_proc_cmd_write(struct file *file, const char __user *buf,
+		size_t size, loff_t *off)
+{
+	int val;
+	int len = size;
+	char cmd_line[PWBC_MAX_CMD_LENGTH];
+	char *cmdstr = cmd_line;
+	const char delimiters[] = {' ', 0x0A, 0x0D, '\0'};
+	char *p_arg;
+	union RTC_PWBC_REG pwbc_reg;
+
+	// check command length
+	if (len > (PWBC_MAX_CMD_LENGTH - 1)) {
+		printk("%s: Command length %d is too long\n", __func__, len);
+		return -EINVAL;
+	}
+
+	// copy command string from user space
+	if (copy_from_user(cmd_line, buf, len)) {
+		return -EINVAL;
+	}
+
+	if (len == 0)
+		cmd_line[0] = '\0';
+	else
+		cmd_line[len - 1] = '\0';
+
+	
+	p_arg = strsep(&cmdstr, delimiters);
+	sscanf(p_arg, "%x", &val);
+
+	loc_cpu();
+
+	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	// reset shutdown timer to prevent SW1 shutdown system
+	if (pwbc_reg.bit.reset_sdt_timer == 0) {
+		pwbc_reg.bit.reset_sdt_timer = 1;
+		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+	}
+
+        unl_cpu();
+
+	return size;
+}
+
 static struct file_operations proc_pwbc_fops = {
         .owner   = THIS_MODULE,
         .open    = pwbc_proc_open,
         .read    = seq_read,
         .llseek  = seq_lseek,
         .release = single_release,
+	.write	 = pwbc_proc_cmd_write,
 };
 
 static const struct rtc_class_ops nvt_rtc_ops = {
@@ -713,6 +779,92 @@ static const struct rtc_class_ops nvt_rtc_ops = {
 	.set_time	= nvt_rtc_set_time,
 	.read_alarm	= nvt_rtc_read_alarm,
 	.set_alarm	= nvt_rtc_set_alarm,
+};
+
+/*
+	User data related
+*/
+static int data_proc_show(struct seq_file *seq, void *v)
+{
+	union RTC_DATA_REG data_reg;
+
+	loc_cpu();
+	/*wait for cset done*/
+	wait_for_completion(&cset_completion);
+	complete(&cset_completion);
+	unl_cpu();
+
+	data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+	seq_printf(seq, "0x%x\n", data_reg.bit.data0);
+	return 0;
+}
+
+static int data_proc_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, data_proc_show, NULL);
+}
+
+#define MAX_CMD_LENGTH 30
+static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
+		size_t size, loff_t *off)
+{
+	int val;
+	int len = size;
+	char cmd_line[MAX_CMD_LENGTH];
+	char *cmdstr = cmd_line;
+	const char delimiters[] = {' ', 0x0A, 0x0D, '\0'};
+	char *p_arg;
+	union RTC_CTRL_REG ctrl_reg;
+	union RTC_DATA_REG data_reg;
+
+	// check command length
+	if (len > (MAX_CMD_LENGTH - 1)) {
+		printk("%s: Command length %d is too long\n", __func__, len);
+		return -EINVAL;
+	}
+
+	// copy command string from user space
+	if (copy_from_user(cmd_line, buf, len)) {
+		return -EINVAL;
+	}
+
+	if (len == 0)
+		cmd_line[0] = '\0';
+	else
+		cmd_line[len - 1] = '\0';
+
+	
+	p_arg = strsep(&cmdstr, delimiters);
+	sscanf(p_arg, "%x", &val);
+
+	loc_cpu();
+
+        /*wait for cset done*/
+        wait_for_completion(&cset_completion);
+
+        ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+        ctrl_reg.bit.cset = 0;
+        ctrl_reg.bit.data0_sel = 1;
+        rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+	data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+	data_reg.bit.data0 = val;
+        rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
+
+        rtc_trigger_cset();
+
+        unl_cpu();
+
+	return size;
+}
+
+static struct file_operations proc_data_fops = {
+        .owner   = THIS_MODULE,
+        .open    = data_proc_open,
+        .read    = seq_read,
+        .llseek  = seq_lseek,
+        .release = single_release,
+	.write	 = data_proc_cmd_write,
 };
 
 static int nvt_rtc_probe(struct platform_device *pdev)
@@ -780,17 +932,33 @@ static int nvt_rtc_probe(struct platform_device *pdev)
         }
 	priv->pproc_pwbc = pentry;
 
+	pentry = proc_create("rtc_data", S_IRUGO | S_IXUGO, NULL, &proc_data_fops);
+        if (pentry == NULL) {
+                dev_err(&pdev->dev, "failed to create data proc!\n");
+                ret = -EINVAL;
+                goto out_proc_pwbc;
+        }
+	priv->pproc_data = pentry;
+
 	rtc = rtc_device_register("nvt_rtc", &pdev->dev,
 				  &nvt_rtc_ops, THIS_MODULE);
 
 	if (IS_ERR(rtc)) {
 		ret = PTR_ERR(rtc);
-		goto out;
+		goto out_proc_data;
 	}
 	priv->rtc = rtc;
 
 	return 0;
 
+out_proc_data:
+	if (priv->pproc_data) {
+		proc_remove(priv->pproc_data);
+	}
+out_proc_pwbc:
+	if (priv->pproc_pwbc) {
+		proc_remove(priv->pproc_pwbc);
+	}
 out:
 	if (priv->rtc)
 		rtc_device_unregister(priv->rtc);
@@ -803,6 +971,9 @@ static int nvt_rtc_remove(struct platform_device *pdev)
 {
 	struct nvt_rtc_priv *priv = platform_get_drvdata(pdev);
 
+	if (priv->pproc_data) {
+		proc_remove(priv->pproc_data);
+	}
 	if (priv->pproc_pwbc) {
 		proc_remove(priv->pproc_pwbc);
 	}

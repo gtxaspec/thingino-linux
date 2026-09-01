@@ -53,8 +53,12 @@
 struct nvt_spi {
 	struct workqueue_struct	*workqueue;
 	struct work_struct work;
+#ifdef CONFIG_NVT_SPI_DMA_BUSY_WAIT
 	spinlock_t lock;	/* protect 'queue' */
+#else
 	struct mutex m_lock;
+#endif
+
 	struct list_head queue;
 	void __iomem *base;
 	int baseclk;
@@ -66,6 +70,9 @@ struct nvt_spi {
 	atomic_t event;
 	struct completion done;
 	int dma_support;
+	int latch_clk_delay;
+	int word_size;
+	u32 record_frequency;
 };
 
 static u32 spi_getreg(struct nvt_spi* spi_bus, u32 offset)
@@ -133,8 +140,10 @@ static int nvt_spi_setup(struct spi_device *spi)
 		spi->max_speed_hz = 48000000;
 	}
 
-	if (!IS_ERR(c->clk))
+	if ((!IS_ERR(c->clk)) && (c->record_frequency != spi->max_speed_hz)) {
 		clk_set_rate(c->clk, spi->max_speed_hz);
+		c->record_frequency = spi->max_speed_hz;
+	}
 
 	switch (spi->mode & (SPI_CPOL | SPI_CPHA)) {
 	case SPI_MODE_0:
@@ -155,6 +164,27 @@ static int nvt_spi_setup(struct spi_device *spi)
 		break;
 	}
 
+    /* latch clk delay */
+    if (c->latch_clk_delay == 1) {
+        if (dly_reg.bit.latch_clk_edge == 0) {
+            dly_reg.bit.latch_clk_edge = 1;
+        } else {
+            dly_reg.bit.latch_clk_edge = 0;
+            dly_reg.bit.latch_clk_shift += 1;
+        }
+    } else if (c->latch_clk_delay == 3) {
+        if (dly_reg.bit.latch_clk_edge == 0) {
+            dly_reg.bit.latch_clk_edge = 1;
+            dly_reg.bit.latch_clk_shift += 1;
+        } else {
+            dly_reg.bit.latch_clk_edge = 0;
+            dly_reg.bit.latch_clk_shift += 2;
+        }
+    } else if (c->latch_clk_delay == 2) {
+        dly_reg.bit.latch_clk_shift += 1;
+    }
+
+
 	io_reg.bit.spi_io_out_en = 1;
 	io_reg.bit.spi_auto_io_out_en = 1;
 	io_reg.bit.spi_io_order = 1;
@@ -169,11 +199,14 @@ static int nvt_spi_setup(struct spi_device *spi)
 	else
 		config_reg.bit.spi_pkt_lsb_mode = 0x0;
 
-	if (bits_per_word == 16)
+    //pr_err("bits_per_word: 0x%d\n", (uint32_t)bits_per_word);
+	if (bits_per_word == 16) {
 		config_reg.bit.spi_pktlen = SPI_PKT_LEN_ENUM_2BYTES;
-	else
+        c->word_size = 16;
+	} else {
 		config_reg.bit.spi_pktlen = SPI_PKT_LEN_ENUM_1BYTE;
-
+        c->word_size = 8;
+	}
 	spi_setreg(c, SPI_CONFIG_REG_OFS, config_reg.reg);
 
 	do {
@@ -403,19 +436,31 @@ static void spi_set_dma_read(struct nvt_spi *dev, u32 *buffer, u32 word_cnt)
 static void nvt_spi_transfer_polled(struct nvt_spi *dev,u32 count,
 					const u8* tx_data, u8* rx_data)
 {
-	u32 val;
+	u32 val, packet_cnt;
 
-	spi_set_packet_count(dev, 4);
+    if (dev->word_size == 16) {
+        packet_cnt = 2;
+    } else {
+        packet_cnt = 4;
+    }
 
-	for (; count >= 4; count-=4) {
+	spi_set_packet_count(dev, packet_cnt);
+
+	for (; count >= packet_cnt; count-=packet_cnt) {
 		// Wait for transmit data register empty
 		spi_wait_tdre(dev);
 
 		// Send next word over the wire
 		if (NULL != tx_data) {
-			val = (tx_data[3]<<24) | (tx_data[2]<<16) \
-				| (tx_data[1]<<8) | (tx_data[0]<<0);
-			tx_data += 4;
+            if (dev->word_size == 16) {
+                val = (tx_data[3]<<24) | (tx_data[2]<<16) \
+    				| (tx_data[1]<<8)  | (tx_data[0]<<0);
+    			tx_data += 4;
+            } else {
+    			val = (tx_data[3]<<24) | (tx_data[2]<<16) \
+    				| (tx_data[1]<<8) | (tx_data[0]<<0);
+    			tx_data += 4;
+            }
 		} else
 			val = 0;
 
@@ -428,11 +473,19 @@ static void nvt_spi_transfer_polled(struct nvt_spi *dev,u32 count,
 		val = spi_get_buffer(dev);
 
 		if (NULL != rx_data) {
-			rx_data[0] = (val>>0) & 0xFF;
-			rx_data[1] = (val>>8) & 0xFF;
-			rx_data[2] = (val>>16) & 0xFF;
-			rx_data[3] = (val>>24) & 0xFF;
-			rx_data += 4;
+            if (dev->word_size == 16) {
+    			rx_data[0] = (val>>0) & 0xFF;
+    			rx_data[1] = (val>>8) & 0xFF;
+    			rx_data[2] = (val>>16) & 0xFF;
+    			rx_data[3] = (val>>24) & 0xFF;
+                rx_data += 4;
+            } else {
+    			rx_data[0] = (val>>0) & 0xFF;
+    			rx_data[1] = (val>>8) & 0xFF;
+    			rx_data[2] = (val>>16) & 0xFF;
+    			rx_data[3] = (val>>24) & 0xFF;
+    			rx_data += 4;
+            }
 		}
 	}
 
@@ -444,7 +497,10 @@ static void nvt_spi_transfer_polled(struct nvt_spi *dev,u32 count,
 
 		// Send next word over the wire
 		if (NULL != tx_data)
-			val = *tx_data++;
+            if (dev->word_size == 16)
+                val = (tx_data[1]<<8) | (tx_data[0]<<0);
+            else
+			    val = *tx_data++;
 		else
 			val = 0;
 		spi_set_buffer(dev, val);
@@ -455,8 +511,15 @@ static void nvt_spi_transfer_polled(struct nvt_spi *dev,u32 count,
 		// Store received byte
 		val = spi_get_buffer(dev);
 
-		if (NULL != rx_data)
-			*rx_data++ = val;
+		if (NULL != rx_data) {
+            if (dev->word_size == 16) {
+                rx_data[0] = (val>>0) & 0xFF;
+			    rx_data[1] = (val>>8) & 0xFF;
+                rx_data += 2;
+            } else {
+			    *rx_data++ = val;
+            }
+		}
 	}
 }
 
@@ -486,6 +549,7 @@ static void nvt_spi_transfer_dma(struct nvt_spi *dev, u32 count,
 				const u8 *tx_data, u8 *rx_data)
 {
 	size_t dma_align = L1_CACHE_BYTES;
+    u32 packet_cnt;
 
 	if (((NULL != rx_data) && !IS_ALIGNED((size_t)rx_data, dma_align)) || \
 		((NULL != tx_data) && !IS_ALIGNED((size_t)tx_data, dma_align)) || \
@@ -520,10 +584,19 @@ static void nvt_spi_transfer_dma(struct nvt_spi *dev, u32 count,
 	}
 
 	/* 2. Transfer (Address) Word align parts */
-
+#ifndef CONFIG_NVT_SPI_DMA_BUSY_WAIT
 	spi_setreg(dev, SPI_INTEN_REG_OFS, SPI_INT_MSK_DMAED);
-	spi_set_packet_count(dev, 4);
-	while (count >= 16) {
+#endif
+
+    if (dev->word_size == 16) {
+        packet_cnt = 2;
+    } else {
+        packet_cnt = 4;
+    }
+
+	spi_set_packet_count(dev, packet_cnt);
+
+	while (count >= 4*packet_cnt) {
 		u32 tr_count = count > (SPI_DMA_MAX_LENGTH&(~0x03)) ?
 				(SPI_DMA_MAX_LENGTH&(~0x03)) : (count&(~0x03));
 
@@ -534,10 +607,20 @@ static void nvt_spi_transfer_dma(struct nvt_spi *dev, u32 count,
 		else //if (NULL != tx_data)
 			spi_set_dma_write(dev, (u32*)tx_data, tr_count/4);
 
-
-		/* Enable the SPI int events we are interested in*/		
+        /* Enable the SPI int events we are interested in*/
+#ifdef CONFIG_NVT_SPI_DMA_BUSY_WAIT
+        while (1) {
+            u32 sts;
+            HAL_READ_UINT32(dev->base + SPI_STATUS_REG_OFS, sts);
+            if (sts & SPI_INT_MSK_DMAED) {
+                HAL_WRITE_UINT32(dev->base + SPI_STATUS_REG_OFS,
+                SPI_INT_MSK_DMAED);
+                break;
+            }
+        }
+#else
 		wait_for_completion(&dev->done);
-
+#endif
 
 		/* Adjust running variables */
 
@@ -575,23 +658,46 @@ static int nvt_spi_work_one(struct spi_master *master, struct spi_device *spi, s
 	const u8 *tx_data = (const u8*)t->tx_buf;
 	u8 *rx_data = t->rx_buf;
 	unsigned int count = t->len;
-	//unsigned long flags;
-	u8 bits_per_word = t->bits_per_word ? : spi->bits_per_word;
+	u8 bits_per_word = t->bits_per_word;
+    u8 w_size;
+    union SPI_CONFIG_REG config_reg = {0};
+#ifdef CONFIG_NVT_SPI_DMA_BUSY_WAIT
+	unsigned long flags;
+#endif
 
-	bits_per_word = bits_per_word ? : 8;
 	if (!t->tx_buf && !t->rx_buf && t->len)
 		return -EINVAL;
 
-	if (bits_per_word != 8 && bits_per_word != 16)
+    config_reg.reg = spi_getreg(dev, SPI_CONFIG_REG_OFS);
+    if (bits_per_word != 8 && bits_per_word != 16) {
 		return -EINVAL;
+    }else if (bits_per_word == 16) {
+		config_reg.bit.spi_pktlen = SPI_PKT_LEN_ENUM_2BYTES;
+        dev->word_size = 16;
+        w_size = 2;
+	} else if (bits_per_word == 8) {
+		config_reg.bit.spi_pktlen = SPI_PKT_LEN_ENUM_1BYTE;
+        dev->word_size = 8;
+        w_size= 1;
+	}
+    spi_setreg(dev, SPI_CONFIG_REG_OFS, config_reg.reg);
+
+    count = count / w_size;
+    //printk("count: 0x%d \r\n", (uint32_t)count);
 
 	if (t->len & ((bits_per_word >> 3) - 1))
 		return -EINVAL;
 
+#ifdef CONFIG_NVT_SPI_DMA_BUSY_WAIT
+	spin_lock_irqsave(&dev->lock, flags);
+	nvt_spi_transfer_dma(dev, count, tx_data, rx_data);
+	spin_unlock_irqrestore(&dev->lock, flags);
+#else
 	mutex_lock(&dev->m_lock);
 	nvt_spi_transfer_dma(dev, count, tx_data, rx_data);
 	mutex_unlock(&dev->m_lock);
-	
+#endif
+
 	spi_finalize_current_transfer(master);
 
 	return 0;
@@ -625,6 +731,7 @@ static int nvt_spi_probe(struct platform_device *dev)
 	struct resource *res;
     u32 dma = 0;
 #ifdef CONFIG_OF
+    u32 latch_delay = 0;
 	u32 dev_id = 0;
 	int cs_gpio;
 	int num_cs, i;
@@ -638,7 +745,14 @@ static int nvt_spi_probe(struct platform_device *dev)
 	c = spi_master_get_devdata(master);
 	platform_set_drvdata(dev, master);
 
+#ifdef CONFIG_NVT_SPI_DMA_BUSY_WAIT
+    //pr_err("spin_lock init\n");
+    spin_lock_init(&c->lock);
+#else
+    //pr_err("mutex_lock init\n");
 	mutex_init(&c->m_lock);
+#endif
+
 	init_completion(&c->done);
 
 #ifdef CONFIG_OF
@@ -673,6 +787,8 @@ static int nvt_spi_probe(struct platform_device *dev)
 	} else
 		dev_err(&dev->dev, "%s: spi%d clk not found\n", __func__, dev->id);
 
+	c->record_frequency = 0;
+
 	c->irq = platform_get_irq(dev, 0);
 	if (c->irq < 0)
 		goto exit_busy;
@@ -687,7 +803,17 @@ static int nvt_spi_probe(struct platform_device *dev)
 #ifdef CONFIG_OF
 	of_property_read_u32(dev->dev.of_node, "nvt-devname", &dev_id);
 	of_property_read_u32(dev->dev.of_node, "dma-support", &dma);
+    of_property_read_u32(dev->dev.of_node, "latch-delay", &latch_delay);
 	master->bus_num = dev_id;
+
+    if (latch_delay == 1) {
+        printk("spi%d latch delay 0.5T\r\n", master->bus_num);
+    } else if (latch_delay == 2) {
+        printk("spi%d latch delay 1T\r\n", master->bus_num);
+    } else if (latch_delay ==3) {
+        printk("spi%d latch delay 1.5T\r\n", master->bus_num);
+    }
+    c->latch_clk_delay = latch_delay;
 
 	num_cs = of_gpio_named_count(dev->dev.of_node, "cs-gpios");
 
@@ -733,10 +859,12 @@ exit:
 static int __exit nvt_spi_remove(struct platform_device *dev)
 {
 	struct spi_master *master = spi_master_get(platform_get_drvdata(dev));
-	struct nvt_spi *c = spi_master_get_devdata(master);
 
+#ifndef CONFIG_NVT_SPI_DMA_BUSY_WAIT
+	struct nvt_spi *c = spi_master_get_devdata(master);
 	mutex_destroy(&c->m_lock);
-	
+#endif
+
 	spi_unregister_master(master);
 	platform_set_drvdata(dev, NULL);
 
@@ -781,4 +909,4 @@ module_exit(nvt_spi_exit);
 
 MODULE_DESCRIPTION("NVT SPI Driver");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("1.10.000");
+MODULE_VERSION("1.13.004");

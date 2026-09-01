@@ -51,7 +51,7 @@
 #define DCFESR_CX_DATAPORT_EN	(1 << 31)
 #define DCFESR_CX_FNT_OUT	(0x7F << 24)
 #define DCFESR_CX_FNT_IN	(0x7F << 16)
-#define DCFESR_FIFO_EMPTY(fifo)	(1 << 8 << ((fifo)<<1))
+#define DCFESR_FIFO_EMPTY(fifo)	(1 << 8 << (fifo))
 #define DCFESR_CX_EMP		(1 << 5)
 #define DCFESR_CX_CLR		(1 << 3)
 #define DCFESR_CX_STL		(1 << 2)
@@ -169,6 +169,16 @@
 #define EPMAP_FIFONOMSK(ep, dir)	\
 	((0xF << ((ep) - 1) * 8) << ((dir) ? 0 : 4))
 
+#if 1
+#define FOTG210_EPMAP_14        0x1A0
+#define FOTG210_EPMAP_58        0x1A4
+#define EPMAP_FIFONOMSK_NVT(ep, dir)   \
+       ((0xF << ((ep-1)%(4)) * 8) << ((dir) ? 0 : 4))
+#define EPMAP_FIFONO_NVT(ep, val, dir)     \
+       (((val) << ((ep-1)%(4)) * 8) << ((dir)? 0 : 4))
+
+#endif
+
 /* Device FIFO Map Register (0x1A8) */
 #define FOTG210_FIFOMAP		0x1A8
 #define FIFOMAP_DIROUT(fifo)	(0x0 << 4 << (fifo) * 8)
@@ -187,6 +197,26 @@
 #define FIFOCF_BLKSZ_512(fifo)	(0x0 << (fifo) * 8 << 4)
 #define FIFOCF_BLKSZ_1024(fifo)	(0x1 << (fifo) * 8 << 4)
 #define FIFOCF_FIFO_EN(fifo)	(0x1 << (fifo) * 8 << 5)
+#define FIFOMAP_DOUBLEBLK(fifo) (0x101 << 2 << ((fifo)&0x1) * 16)
+#define FIFOMAP_SINGLEBLK(fifo) (0x000 << 2 << ((fifo)&0x1) * 16)
+
+#if 1
+#define FOTG210_FIFOMAP_03      0x1A8
+#define FOTG210_FIFOCF_03       0x1AC
+#define FOTG210_FIFOMAP_47      0x1D8
+#define FOTG210_FIFOCF_47       0x1DC
+#define FOTG210_FIFOMAP_811     0x1E0
+#define FOTG210_FIFOCF_811      0x1E4
+#define FOTG210_FIFOMAP_1215    0x1E8
+#define FOTG210_FIFOCF_1215     0x1EC
+#define FIFOMAP_DIR(dir, fifo)          ((dir) << ((fifo)%(4)) * 8 << 4)
+#define FIFOCF_TYPE_NVT(type, fifo)     ((type) << ((fifo)%(4)) * 8)
+#define FIFOCF_BLKSZ_NVT(bsz, fifo)     ((bsz) << ((fifo) %(4)) * 8 << 4)
+#define FIFOCF_BLK_NO(bno, fifo)        ((bno) << ((fifo)%(4)) * 8 << 2)
+#define FIFOCF_FIFO_EN_NVT(en, fifo)    ((en) << ((fifo)%(4) ) * 8 << 5)
+#define FIFOMAP_EPNO_NVT(val, fifo)     ((val) << (((fifo)%(4) ) * 8))
+#define FIFOMAP_EPNOMSK_NVT(fifo)       (0xF << (((fifo)%(4)) * 8))
+#endif
 
 /* Device FIFO n Instruction and Byte Count Register (0x1B0+4*n) */
 #define FOTG210_FIBCR(fifo)	(0x1B0 + (fifo) * 4)

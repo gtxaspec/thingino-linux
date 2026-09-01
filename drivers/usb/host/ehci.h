@@ -202,7 +202,7 @@ struct ehci_hcd {			/* one per controller */
 	ktime_t			last_periodic_enable;
 	u32			command;
 
-#if defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51068)
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51068) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 	u32         fuseData;
 #endif
 

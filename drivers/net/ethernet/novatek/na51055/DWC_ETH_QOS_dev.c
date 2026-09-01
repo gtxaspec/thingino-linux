@@ -2060,6 +2060,48 @@ static INT enable_rx_interrupt(UINT qInx)
   return Y_SUCCESS;
 }
 
+/*!
+* \brief This sequence is used to disable given DMA channel tx/rx interrupts
+* \param[in] qInx
+* \return Success or Failure
+* \retval  0 Success
+* \retval -1 Failure
+*/
+
+static INT disable_dma_interrupt(UINT qInx)
+{
+
+  DMA_IER_RBUE_UdfWr(qInx, 0);
+  DMA_IER_RIE_UdfWr(qInx, 0);
+  DMA_IER_TXSE_UdfWr(qInx, 0);
+  DMA_IER_TIE_UdfWr(qInx, 0);
+
+  return Y_SUCCESS;
+}
+
+
+
+
+/*!
+* \brief This sequence is used to enable given DMA channel tx/rx interrupts
+* \param[in] qInx
+* \return Success or Failure
+* \retval  0 Success
+* \retval -1 Failure
+*/
+
+static INT enable_dma_interrupt(UINT qInx)
+{
+
+  DMA_IER_RBUE_UdfWr(qInx, 0x1);
+  DMA_IER_RIE_UdfWr(qInx, 0x1);
+  DMA_IER_TXSE_UdfWr(qInx, 0x1);
+  DMA_IER_TIE_UdfWr(qInx, 0x1);
+
+  return Y_SUCCESS;
+}
+
+
 
 static VOID configure_sa_via_reg(u32 cmd)
 {
@@ -3602,7 +3644,10 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 #endif
 	INT i;
 	INT start_index = tx_desc_data->cur_tx;
-	INT last_index, original_start_index = tx_desc_data->cur_tx;
+	INT last_index;
+#ifdef DWC_ETH_QOS_ENABLE_TX_DESC_DUMP
+	INT original_start_index = tx_desc_data->cur_tx;
+#endif
 	struct s_tx_pkt_features *tx_pkt_features = GET_TX_PKT_FEATURES_PTR;
 #ifdef DWC_ETH_QOS_CERTIFICATION_PKTBURSTCNT
 	INT update_tail = 0;
@@ -3644,10 +3689,11 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 		TX_CONTEXT_DESC_TDES3_CTXT_Mlf_Wr(TX_CONTEXT_DESC->TDES3, 0x1);
 		TX_CONTEXT_DESC_TDES3_OWN_Mlf_Wr(TX_CONTEXT_DESC->TDES3, 0x1);
 
-		original_start_index = tx_desc_data->cur_tx;
 		INCR_TX_DESC_INDEX(tx_desc_data->cur_tx, 1);
 		start_index = tx_desc_data->cur_tx;
 		TX_NORMAL_DESC =
+			GET_TX_DESC_PTR(qInx, tx_desc_data->cur_tx);
+		TX_CONTEXT_DESC =
 			GET_TX_DESC_PTR(qInx, tx_desc_data->cur_tx);
 		buffer = GET_TX_BUF_PTR(qInx, tx_desc_data->cur_tx);
 	}
@@ -3675,10 +3721,10 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 		TX_CONTEXT_DESC_TDES3_CTXT_Mlf_Wr(TX_CONTEXT_DESC->TDES3, 0x1);
 		TX_CONTEXT_DESC_TDES3_OWN_Mlf_Wr(TX_CONTEXT_DESC->TDES3, 0x1);
 
-		original_start_index = tx_desc_data->cur_tx;
 		INCR_TX_DESC_INDEX(tx_desc_data->cur_tx, 1);
 		start_index = tx_desc_data->cur_tx;
 		TX_NORMAL_DESC = GET_TX_DESC_PTR(qInx, tx_desc_data->cur_tx);
+		TX_CONTEXT_DESC = GET_TX_DESC_PTR(qInx, tx_desc_data->cur_tx);
 		buffer = GET_TX_BUF_PTR(qInx, tx_desc_data->cur_tx);
 	}
 #endif /* End of DWC_ETH_QOS_ENABLE_DVLAN */
@@ -3703,7 +3749,6 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 
 		tx_desc_data->default_mss = tx_pkt_features->mss;
 
-		original_start_index = tx_desc_data->cur_tx;
 		INCR_TX_DESC_INDEX(tx_desc_data->cur_tx, 1);
 		start_index = tx_desc_data->cur_tx;
 		TX_NORMAL_DESC = GET_TX_DESC_PTR(qInx, tx_desc_data->cur_tx);
@@ -3823,8 +3868,10 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 #endif
 
 	/* set OWN bit of FIRST descriptor at end to avoid race condition */
+	dma_wmb();
 	TX_NORMAL_DESC = GET_TX_DESC_PTR(qInx, start_index);
 	TX_NORMAL_DESC_TDES3_OWN_Mlf_Wr(TX_NORMAL_DESC->TDES3, 0x1);
+	wmb();
 
 #ifdef DWC_ETH_QOS_ENABLE_TX_DESC_DUMP
 	dump_tx_desc(pdata, original_start_index, (tx_desc_data->cur_tx - 1),
@@ -4046,7 +4093,7 @@ static INT DWC_ETH_QOS_yexit(struct DWC_ETH_QOS_prv_data *pdata)
 	vy_count = 0;
 	while (1) {
 		if (vy_count > retryCount) {
-			printk("%s: sw reset timeout\n", __func__);
+			printk("%s: EQOS reset fail, ethernet function will be error, plz check rx_clk waveform.\n", __func__);
 			return -Y_FAILURE;
 		} else {
 			vy_count++;
@@ -4876,6 +4923,9 @@ void DWC_ETH_QOS_init_function_ptrs_dev(struct hw_if_struct *hw_if)
 
 	hw_if->disable_rx_interrupt = disable_rx_interrupt;
 	hw_if->enable_rx_interrupt = enable_rx_interrupt;
+
+	hw_if->disable_dma_interrupt = disable_dma_interrupt;
+	hw_if->enable_dma_interrupt = enable_dma_interrupt;
 
 	/* for handling MMC */
 	hw_if->disable_mmc_interrupts = disable_mmc_interrupts;

@@ -39,7 +39,7 @@
 #include <linux/of_device.h>
 #endif
 
-#define DRV_VERSION		"1.03.010"
+#define DRV_VERSION		"1.04.020"
 static UCHAR dev_addr[6] = {0, 0x55, 0x7b, 0xb5, 0x7d, 0xf7};
 
 void __iomem *ETH_QOS_REG_BASE;
@@ -92,7 +92,7 @@ static void nvt_eth_env_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Unable to find IORESOURCE_MEM, assume 0xFD2B0000\n");
 		ETH_QOS_REG_BASE = (void __iomem *)(0xFD2B0000);    // pre-assume base address
 	} else {
-        ETH_QOS_REG_BASE = base;
+		ETH_QOS_REG_BASE = base;
 	}
 	printk("%s: get IO MEM 0x%px\r\n", __func__, base);
 
@@ -105,6 +105,25 @@ static void nvt_eth_env_probe(struct platform_device *pdev)
 		unsigned long reg;
 
 		printk("%s: pinmux detect RMII 0x%x\r\n", __func__, pinmux_config[0].config);
+		if (nvt_get_chip_id() != CHIP_NA51055) {
+			struct clk *eth_clk;
+			struct clk *src_clk;
+
+			eth_clk = clk_get(&pdev->dev, dev_name(&pdev->dev));
+			if (IS_ERR(eth_clk)) {
+				pr_err("%s: failed to get eth clock\n", __func__);
+				ret = -EPERM;
+			} else {
+				src_clk = clk_get(NULL, "pll16");
+				if (IS_ERR(src_clk)) {
+					pr_err("%s: failed to get pll16\n", __func__);
+					ret = -EPERM;
+				}
+				clk_set_parent(eth_clk, src_clk);
+				clk_put(src_clk);
+			}
+			clk_put(eth_clk);
+		}
 #ifdef CONFIG_OF
 		// output 25 MHz as external phy crystal input by DTB setting
 		if(!of_property_read_u32(np, "sp-clk", &spclk_en)) {
@@ -165,8 +184,24 @@ static void nvt_eth_env_probe(struct platform_device *pdev)
 	} else if ((pinmux_config[0].config & PIN_ETH_CFG_RGMII) &&
 			(nvt_get_chip_id() != CHIP_NA51055)) {
 		unsigned long reg;
+		struct clk *eth_clk;
+		struct clk *src_clk;
 
 		printk("%s: pinmux detect RGMII 0x%x\r\n", __func__, pinmux_config[0].config);
+		eth_clk = clk_get(&pdev->dev, dev_name(&pdev->dev));
+                if (IS_ERR(eth_clk)) {
+                        pr_err("%s: failed to get eth clock\n", __func__);
+                        ret = -EPERM;
+                } else {
+                        src_clk = clk_get(NULL, "pll16");
+                        if (IS_ERR(src_clk)) {
+                                pr_err("%s: failed to get pll16\n", __func__);
+                                ret = -EPERM;
+                        }
+                        clk_set_parent(eth_clk, src_clk);
+                        clk_put(src_clk);
+                }
+                clk_put(eth_clk);
 #ifdef CONFIG_OF
 		// output 25 MHz as external phy crystal input by DTB setting
 		if(!of_property_read_u32(np, "sp-clk", &spclk_en)) {
@@ -215,13 +250,261 @@ static void nvt_eth_env_probe(struct platform_device *pdev)
 		reg |= 1<<30;
 		iowrite32(reg, (void *)(base + 0x3000 + 0x14));
 	} else {
+		int emb_phy_driving;
+
 		printk("%s: pinmux detect emb phy 0x%x\r\n", __func__, pinmux_config[0].config);
 		nvt_eth_phy_poweron();
+		if(!of_property_read_u32(np, "emb-phy-driving", &emb_phy_driving)) {
+			unsigned long reg;
+			unsigned long step;
+			int value;
+
+			reg = ioread32((void*)(ETH_QOS_REG_BASE + 0x3800 + 0x378));
+			step = reg & 0x1F;
+			reg &= ~0x1F;
+			// transform 2's compelment to integer
+			if (step & 0x10) {
+				step = ~step;
+				step++;
+				value = step & 0x1F;
+				value = 0 - value;
+			} else {
+				value = step & 0xF;
+			}
+			value += emb_phy_driving;
+			// transform integer to 2's complement
+			if (value >= 0) {
+				if (value > 15) value = 15;
+				step = value;
+			} else {
+				if (value <= -16) value = -16;
+				value = 0 - value;
+				step = value;
+				step = ~step;
+				step++;
+			}
+			step &= 0x1F;
+			reg |= step;
+			iowrite32(reg, (void *)(ETH_QOS_REG_BASE + 0x3800 + 0x378));
+
+			printk("%s: DTS emb driving inc %d\r\n", __func__, emb_phy_driving);
+		}
 	}
 
 
 }
 
+#ifdef CONFIG_NVT_MDIO_NA51055_CFG
+
+/*!
+* \brief API to adjust link parameters.
+*
+* \details This function will be called by PAL to inform the driver
+* about various link parameters like duplex and speed. This function
+* will configure the MAC based on link parameters.
+*
+* \param[in] dev - pointer to net_device structure
+*
+* \return void
+*/
+
+static void DWC_ETH_QOS_adjust_link(struct net_device *dev)
+{
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
+	struct hw_if_struct *hw_if = &(pdata->hw_if);
+	struct phy_device *phydev = pdata->phydev;
+	unsigned long flags;
+	int new_state = 0;
+
+	if (phydev == NULL)
+		return;
+
+	DBGPR_MDIO("-->DWC_ETH_QOS_adjust_link. address %d link %d\n", phydev->addr,
+	      phydev->link);
+
+	spin_lock_irqsave(&pdata->lock, flags);
+
+	if (phydev->link) {
+		/* Now we make sure that we can be in full duplex mode.
+		 * If not, we operate in half-duplex mode */
+		if (phydev->duplex != pdata->oldduplex) {
+			new_state = 1;
+			if (phydev->duplex)
+				hw_if->set_full_duplex();
+			else {
+				hw_if->set_half_duplex();
+			}
+			pdata->oldduplex = phydev->duplex;;
+		}
+
+		/* FLOW ctrl operation */
+		if (phydev->pause || phydev->asym_pause) {
+			if (pdata->flow_ctrl != pdata->oldflow_ctrl)
+				DWC_ETH_QOS_configure_flow_ctrl(pdata);
+		}
+
+		if (phydev->speed != pdata->speed) {
+			new_state = 1;
+			switch (phydev->speed) {
+			case SPEED_1000:
+				hw_if->set_gmii_speed();
+				break;
+			case SPEED_100:
+				hw_if->set_mii_speed_100();
+				break;
+			case SPEED_10:
+				hw_if->set_mii_speed_10();
+				break;
+			}
+			pdata->speed = phydev->speed;
+		}
+
+		if (!pdata->oldlink) {
+			hw_if->start_mac_tx_rx();
+			printk("%s: start tx/rx\r\n", __func__);
+			new_state = 1;
+			pdata->oldlink = 1;
+		}
+	} else if (pdata->oldlink) {
+		hw_if->stop_mac_tx_rx();
+		printk("%s: stop tx/rx\r\n", __func__);
+
+		new_state = 1;
+		pdata->oldlink = 0;
+		pdata->speed = 0;
+		pdata->oldduplex = -1;
+	}
+
+	if (new_state)
+		phy_print_status(phydev);
+
+#ifdef DWC_ETH_QOS_CONFIG_EEE
+	/* At this stage, it could be need to setup the EEE or adjust some
+	 * MAC related HW registers.
+	 * */
+	pdata->eee_enabled = DWC_ETH_QOS_eee_init(pdata);
+#endif
+
+	spin_unlock_irqrestore(&pdata->lock, flags);
+
+	DBGPR_MDIO("<--DWC_ETH_QOS_adjust_link\n");
+}
+
+static int DWC_ETH_QOS_init_phy(struct net_device *dev)
+{
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
+	struct phy_device *phydev = NULL;
+	char phy_id_fmt[MII_BUS_ID_SIZE + 3];
+	char bus_id[MII_BUS_ID_SIZE];
+
+	DBGPR_MDIO("-->DWC_ETH_QOS_init_phy\n");
+
+	pdata->oldlink = 0;
+	pdata->speed = 0;
+	pdata->oldduplex = -1;
+	pdata->bus_id = 0x1;
+
+	snprintf(bus_id, MII_BUS_ID_SIZE, "dwc_phy-%x", pdata->bus_id);
+
+	snprintf(phy_id_fmt, MII_BUS_ID_SIZE + 3, PHY_ID_FMT, bus_id,
+		 pdata->phyaddr);
+
+	if (pdata->phy_node) {
+		printk("%s: trying to attach fixed phy\r\n", __func__);
+		phydev = of_phy_connect(dev, pdata->phy_node,
+			&DWC_ETH_QOS_adjust_link, 0, pdata->interface);
+	} else {
+	DBGPR_MDIO("trying to attach to %s\n", phy_id_fmt);
+	phydev = phy_connect(dev, phy_id_fmt, &DWC_ETH_QOS_adjust_link,
+			     pdata->interface);
+	}
+
+	if (IS_ERR(phydev)) {
+		printk(KERN_ALERT "%s: Could not attach to PHY\n", dev->name);
+		return PTR_ERR(phydev);
+	}
+
+	if (phydev->phy_id == 0) {
+		phy_disconnect(phydev);
+		return -ENODEV;
+	}
+
+	if (pdata->interface == PHY_INTERFACE_MODE_GMII) {
+		phydev->supported = PHY_GBIT_FEATURES;
+#ifdef DWC_ETH_QOS_CERTIFICATION_PKTBURSTCNT_HALFDUPLEX
+		phydev->supported &= ~SUPPORTED_1000baseT_Full;
+#endif
+	} else if ((pdata->interface == PHY_INTERFACE_MODE_MII) ||
+		(pdata->interface == PHY_INTERFACE_MODE_RMII)) {
+		phydev->supported = PHY_BASIC_FEATURES;
+	}
+
+#ifndef DWC_ETH_QOS_CONFIG_PGTEST
+	phydev->supported |= (SUPPORTED_Pause | SUPPORTED_Asym_Pause);
+#endif
+
+    /* Lets Make the code support for both 100M and Giga bit */
+//#ifdef DWC_ETH_QOS_CONFIG_PGTEST
+//	phydev->supported = PHY_BASIC_FEATURES;
+//#endif
+
+	phydev->advertising = phydev->supported;
+
+	DBGPR_MDIO("%s: attached to PHY (UID 0x%x) Link = %d\n", dev->name,
+	      phydev->phy_id, phydev->link);
+
+	pdata->phydev = phydev;
+//	phy_start(pdata->phydev);
+
+	DBGPR_MDIO("<--DWC_ETH_QOS_init_phy\n");
+
+	return 0;
+}
+
+int DWC_ETH_QOS_mdio_connect(struct net_device *dev)
+{
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
+	int ret = Y_SUCCESS;
+	struct device_node *dn;
+	int mii_status;
+	unsigned short phy_detected = 0;
+	int phyaddr = 0;
+
+	pdata->phyaddr=1;
+	dn = of_find_compatible_node(NULL, NULL, "nvt,eth_mdio");
+	pdata->mii = of_mdio_find_bus(dn);
+	if(pdata->mii != NULL){
+
+		for (phyaddr = 0; phyaddr < 32; phyaddr++) {
+
+			mii_status = mdiobus_read(pdata->mii, phyaddr, MII_BMSR);
+
+			if (mii_status != 0x0000 && mii_status != 0xffff) {
+				printk(KERN_ALERT "Phy detected at"\
+				" ID/ADDR %d\n" , phyaddr);
+				phy_detected = 1;
+				break;
+			}
+
+		}
+		if (!phy_detected) {
+			printk(KERN_ALERT "No phy could be detected\n");
+			return -ENOLINK;
+		}
+		pdata->phyaddr=phyaddr;
+	}else{
+		printk(KERN_ALERT "No mdio could be detected\n");
+		return -ENOLINK;
+	}
+
+	ret = DWC_ETH_QOS_init_phy(dev);
+	if (unlikely(ret)) {
+		printk(KERN_ALERT "Cannot attach to PHY (error: %d)\n", ret);
+	}
+	return ret;
+}
+
+#endif
 
 /*!
 * \brief API to initialize the device.
@@ -290,6 +573,15 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	pdata->tx_queue_cnt = tx_q_count;
 	pdata->rx_queue_cnt = rx_q_count;
 
+	pdata->mau_dummy_ptr = dma_alloc_coherent(&pdata->pdev->dev,
+						DUMMY_BUF_SIZE,
+						&pdata->mau_dummy_dma_addr,
+						GFP_KERNEL);
+	if (pdata->mau_dummy_ptr == NULL) {
+		printk("%s: allocate mau dummy buffer fail\r\n", __func__);
+		goto err_out_q_alloc_failed;
+	}
+
 #ifdef CONFIG_OF
 	clk = clk_get(&pdev->dev, dev_name(&pdev->dev));
 	if (IS_ERR(clk)) {
@@ -327,9 +619,24 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	dev->netdev_ops = DWC_ETH_QOS_get_netdev_ops();
 
 	pdata->interface = DWC_ETH_QOS_get_phy_interface(pdata);
+#if CONFIG_OF
+	if (of_phy_is_fixed_link(pdev->dev.of_node)) {
+		printk("%s: fixed link found\r\n", __func__);
+		if (of_phy_register_fixed_link(pdev->dev.of_node) == 0) {
+			pdata->phy_node = of_node_get(pdev->dev.of_node);
+			printk("%s: register fixed phy ok\r\n", __func__);
+		}
+	}
+#endif
 	/* Bypass PHYLIB for TBI, RTBI and SGMII interface */
 	if (1 == pdata->hw_feat.sma_sel) {
+#ifdef CONFIG_NVT_MDIO_NA51055_CFG
+		printk("%s: mdio driver connect \r\n", __func__);
+		ret = DWC_ETH_QOS_mdio_connect(dev);
+#else
+		printk("%s: mdio driver register \r\n", __func__);
 		ret = DWC_ETH_QOS_mdio_register(dev);
+#endif
 		if (ret < 0) {
 			printk(KERN_ALERT "MDIO bus (id %d) registration failed\n",
 			       pdata->bus_id);
@@ -454,13 +761,25 @@ err_out_dev_failed:
 	DWC_ETH_QOS_free_pg(pdata);
 err_out_pg_failed:
 #endif
-	if (1 == pdata->hw_feat.sma_sel)
-		DWC_ETH_QOS_mdio_unregister(dev);
+	if (1 == pdata->hw_feat.sma_sel){
+#ifdef CONFIG_NVT_MDIO_NA51055_CFG
+		if (pdata->phydev) {
+			phy_stop(pdata->phydev);
+			phy_disconnect(pdata->phydev);
+			pdata->phydev = NULL;
+		}
+#else
+		 DWC_ETH_QOS_mdio_unregister(dev);
+#endif
+	}
 
 err_out_mdio_reg:
 	desc_if->free_queue_struct(pdata);
 
 err_out_q_alloc_failed:
+	if (pdata->mau_dummy_ptr != NULL) {
+		dma_free_coherent(&pdata->pdev->dev, DUMMY_BUF_SIZE, pdata->mau_dummy_ptr, pdata->mau_dummy_dma_addr);
+	}
 	free_netdev(dev);
 	return ret;
 }
@@ -492,8 +811,17 @@ static int DWC_ETH_QOS_remove(struct platform_device *pdev)
 		pdata->irq_number = 0;
 	}
 
-	if (1 == pdata->hw_feat.sma_sel)
+	if (1 == pdata->hw_feat.sma_sel){
+#ifdef CONFIG_NVT_MDIO_NA51055_CFG
+		if (pdata->phydev) {
+			phy_stop(pdata->phydev);
+			phy_disconnect(pdata->phydev);
+			pdata->phydev = NULL;
+		}
+#else
 		DWC_ETH_QOS_mdio_unregister(dev);
+#endif
+	}
 
 #ifdef DWC_ETH_QOS_CONFIG_PTP
 	DWC_ETH_QOS_ptp_remove(pdata);
@@ -506,6 +834,10 @@ static int DWC_ETH_QOS_remove(struct platform_device *pdev)
 #endif /* end of DWC_ETH_QOS_CONFIG_PGTEST */
 
 	desc_if->free_queue_struct(pdata);
+
+	if (pdata->mau_dummy_ptr != NULL) {
+		dma_free_coherent(&pdata->pdev->dev, DUMMY_BUF_SIZE, pdata->mau_dummy_ptr, pdata->mau_dummy_dma_addr);
+	}
 
 	free_netdev(dev);
 

@@ -18,6 +18,7 @@
 #include <linux/clk-provider.h>
 
 #define CLK_NAME_STR_SIZE 32
+#define CLK_NAME_STR_CNT 100
 
 /* Reset or not during clk_prepare() */
 #define DO_RESET	1
@@ -46,6 +47,7 @@
 #define SSC_NEW_MODE     BIT1
 #define SSC_STEP         BIT2
 #define SSC_DSSC         BIT6
+#define SSC_528_BOUND    0x4000
 #define SSC_528_RST      BIT1
 #define SSC_528_NEW_MODE BIT2
 #define SSC_528_STEP     BIT4
@@ -197,6 +199,8 @@ struct nvt_composite_gate_clk {
 
 	unsigned long parent_rate;	/* HZ */
 	struct clk_hw *divider;
+	unsigned long max_rate;	/* HZ */
+	int keep_rate;
 
 	spinlock_t *lock;
 };
@@ -297,6 +301,8 @@ struct nvt_composite_mux_clk {
 	unsigned char mux_flags;
 
 	unsigned long parent_rate;	/* HZ */
+	unsigned long max_rate;	/* HZ */
+	int keep_rate;
 
 	spinlock_t *lock;
 };
@@ -345,7 +351,12 @@ struct nvt_clk_gating_init {
 	.autogating_value	=	_autogating_value,\
 }
 
+struct nvt_clk_rate_keeper {
+	char name[CLK_NAME_STR_SIZE];
+};
+
 void nvt_fastboot_detect(int fastboot_init);
+void nvt_logoboot_detect(int logo_init);
 void nvt_cg_base_remap(void __iomem *);
 int nvt_fixed_rate_clk_register(struct nvt_fixed_rate_clk[], int);
 int nvt_pll_clk_register(struct nvt_pll_clk[], int, unsigned long,
@@ -357,4 +368,8 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk[], int,
 int nvt_composite_group_pwm_clk_register(struct nvt_composite_group_pwm_clk[],
 					 int, spinlock_t *);
 void nvt_init_clk_auto_gating(struct nvt_clk_gating_init[], int, spinlock_t *);
+
+int nvt_get_max_freq_node(void);
+
+void nvt_get_max_freq_info(int index, char *name, int *freq);
 #endif

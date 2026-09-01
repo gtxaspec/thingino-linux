@@ -43,6 +43,11 @@ static int DWC_ETH_QOS_getsettings(struct net_device *dev,
 				   struct ethtool_cmd *cmd);
 static int DWC_ETH_QOS_setsettings(struct net_device *dev,
 				   struct ethtool_cmd *cmd);
+#else
+static int DWC_ETH_QOS_get_link_settings(struct net_device *dev,
+				   struct ethtool_link_ksettings *cmd);
+static int DWC_ETH_QOS_set_link_settings(struct net_device *dev,
+				   const struct ethtool_link_ksettings *cmd);
 #endif
 static void DWC_ETH_QOS_get_wol(struct net_device *dev,
 				struct ethtool_wolinfo *wol);

@@ -41,7 +41,7 @@
 #include <plat/nvt_serial.h>
 #include <plat/top.h>
 
-#define DRIVER_VERSION		"2.0.1"
+#define DRIVER_VERSION		"2.0.4"
 
 #define DRIVER_NAME		"nvt_serial"
 
@@ -88,6 +88,50 @@ module_param_named(serial_flow_debug, __serial_flow_debug, int, 0600);
 } while (0)
 
 #define UART_TO_NVT(uart_port)	((struct nvt_port *) uart_port)
+
+static unsigned int nvt_read(struct uart_port *port, unsigned int off)
+{
+	return readl_relaxed(port->membase + off);
+}
+
+static void nvt_write(struct uart_port *port, unsigned int off, unsigned int val)
+{
+	struct nvt_port *nvt_port = container_of(port, struct nvt_port, uart);
+	unsigned long flags = 0;
+
+	spin_lock_irqsave(&nvt_port->write_lock, flags);
+
+	writel_relaxed(val, port->membase + off);
+
+	spin_unlock_irqrestore(&nvt_port->write_lock, flags);
+}
+
+static void nvt_masked_write(struct uart_port *port, unsigned int off, unsigned int mask, unsigned int val)
+{
+	struct nvt_port *nvt_port = container_of(port, struct nvt_port, uart);
+	unsigned long flags = 0;
+	unsigned int tmp = nvt_read(port, off);  /* be careful that some registers are cleared after reading, such as RBR */
+
+	spin_lock_irqsave(&nvt_port->write_lock, flags);
+
+	tmp &= ~mask;
+	tmp |= val & mask;
+	writel_relaxed(tmp, port->membase + off);
+
+	spin_unlock_irqrestore(&nvt_port->write_lock, flags);
+}
+
+static DEFINE_SPINLOCK(write_lock_early);
+static void nvt_write_early(struct uart_port *port, unsigned int off, unsigned int val)
+{
+	unsigned long flags = 0;
+
+	spin_lock_irqsave(&write_lock_early, flags);
+
+	writel_relaxed(val, port->membase + off);
+
+	spin_unlock_irqrestore(&write_lock_early, flags);
+}
 
 static void nvt_enable_rx_dma(struct work_struct *work)
 {
@@ -294,11 +338,18 @@ static void nvt_stop_tx(struct uart_port *port)
 	}
 
 	nvt_masked_write(port, UART_IER_REG, THR_EMPTY_INTEN_BIT, 0);
+	while (nvt_read(port, UART_IER_REG) & THR_EMPTY_INTEN_BIT) {
+		;
+	}
 }
 
+#define UART_LSR_BRK_ERROR_BITS    0x1E /* BI, FE, PE, OE bits */
+#define LSR_SAVE_FLAGS             UART_LSR_BRK_ERROR_BITS
+static void nvt_handle_tx(struct uart_port *port);
 static void nvt_start_tx(struct uart_port *port)
 {
 	struct nvt_port *nvt_port = UART_TO_NVT(port);
+	unsigned char lsr;
 
 	serial_flow_dbg();
 
@@ -311,7 +362,8 @@ static void nvt_start_tx(struct uart_port *port)
 	 * data.
 	 */
 	if (uart_circ_empty(&port->state->xmit) || uart_tx_stopped(port)) {
-		serial_dbg("start_tx without THR data, so return\n");
+		nvt_stop_tx(port);
+		serial_dbg("uart_circ_empty or uart_tx_stopped, so return\n");
 		return;
 	}
 
@@ -324,14 +376,32 @@ static void nvt_start_tx(struct uart_port *port)
 		nvt_enable_tx_dma(port);
 	} else {
 		nvt_masked_write(port, UART_IER_REG, THR_EMPTY_INTEN_BIT, THR_EMPTY_INTEN_BIT);
+		while (!(nvt_read(port, UART_IER_REG) & THR_EMPTY_INTEN_BIT)) {
+			;
+		}
+
+		lsr = nvt_read(port, UART_LSR_REG);
+		nvt_port->lsr_saved_flags |= lsr & LSR_SAVE_FLAGS;
+		if (lsr & THR_EMPTY_BIT) {
+			nvt_handle_tx(port);
+		}
 	}
 }
 
 static unsigned int nvt_tx_empty(struct uart_port *port)
 {
+	struct nvt_port *nvt_port = UART_TO_NVT(port);
+	unsigned int lsr_r;
+	unsigned long flags;
+
 	serial_flow_dbg();
 
-	return (nvt_read(port, UART_LSR_REG) & TRANSMITTER_EMPTY_BIT) ? TIOCSER_TEMT : 0;
+	spin_lock_irqsave(&port->lock, flags);
+	lsr_r = nvt_read(port, UART_LSR_REG);
+	nvt_port->lsr_saved_flags |= lsr_r & LSR_SAVE_FLAGS;
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	return (lsr_r & BOTH_EMPTY_BIT) ? TIOCSER_TEMT : 0;
 }
 
 static void nvt_handle_rx(struct uart_port *port, unsigned int lsr_r)
@@ -353,6 +423,9 @@ static void nvt_handle_rx(struct uart_port *port, unsigned int lsr_r)
 		port->icount.rx++;
 
 		serial_dbg("LSR(0x%x) IER(0x%x) cnt_rx(%d), read ch(0x%x) from RBR\n", lsr_r, nvt_read(port, UART_IER_REG), port->icount.rx, ch);
+
+		lsr_r |= nvt_port->lsr_saved_flags;
+		nvt_port->lsr_saved_flags = 0;
 
 		lsr_r |= nvt_port->lsr_break_flag;
 		nvt_port->lsr_break_flag = 0;
@@ -433,11 +506,15 @@ static void nvt_handle_tx(struct uart_port *port)
 	 * If num chars in xmit buffer are too few, ask tty layer for more.
 	 * By Hard ISR to schedule processing in software interrupt part.
 	 */
-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS) {
+		spin_unlock(&port->lock);
 		uart_write_wakeup(port);
+		spin_lock(&port->lock);
+	}
 
-	if (uart_circ_empty(xmit))
+	if (uart_circ_empty(xmit)) {
 		nvt_stop_tx(port);
+	}
 }
 
 static irqreturn_t nvt_irq(int irq, void *dev_id)
@@ -559,12 +636,18 @@ static void nvt_set_mctrl(struct uart_port *port, unsigned int mctrl)
 
 static void nvt_break_ctl(struct uart_port *port, int break_ctl)
 {
+	unsigned long flags;
+
 	serial_flow_dbg();
+
+	spin_lock_irqsave(&port->lock, flags);
 
 	if (break_ctl)
 		nvt_masked_write(port, UART_LCR_REG, SET_BREAK_BIT, SET_BREAK_BIT);
 	else
 		nvt_masked_write(port, UART_LCR_REG, SET_BREAK_BIT, 0);
+
+	spin_unlock_irqrestore(&port->lock, flags);
 }
 
 static int nvt_startup(struct uart_port *port)
@@ -581,6 +664,17 @@ static int nvt_startup(struct uart_port *port)
 			  nvt_port->name, port);
 	if (unlikely(ret))
 		return ret;
+
+	/*
+	 * Clear the interrupt registers again for luck, and clear the
+	 * saved flags to avoid getting false values from polling
+	 * routines or the previous session.
+	 */
+	nvt_read(port, UART_LSR_REG);
+	nvt_read(port, UART_THR_REG);
+	nvt_read(port, UART_IIR_REG);
+	nvt_port->lsr_saved_flags = 0;
+	nvt_port->lsr_break_flag = 0;
 
 #if defined(NVT_FR) && defined(CONFIG_SERIAL_NVT_DMA)
 	/* Set DMA feature */
@@ -615,7 +709,7 @@ static int nvt_startup(struct uart_port *port)
 		if (!nvt_port->rx_virt_addr) {
 			serial_err("allocate DMA failed, using PIO\n");
 			nvt_port->rx_dma_en = 0;
-		} else if (!IS_ALIGNED(nvt_port->rx_dma_addr, (dma_addr_t)RX_DMA_ADDR_ALIGN)) {
+		} else if (!IS_ALIGNED(nvt_port->rx_dma_addr, (dma_addr_t)RX_DMA_ADDR_ALIGN) && (nvt_get_chip_id() == CHIP_NA51055 || nvt_get_chip_id() == CHIP_NA51084)) {
 			serial_err("rx_dma_addr(0x%x) failed to align %d bytes, using PIO\n", nvt_port->rx_dma_addr, RX_DMA_ADDR_ALIGN);
 			nvt_port->rx_dma_en = 0;
 		} else {
@@ -629,10 +723,14 @@ static int nvt_startup(struct uart_port *port)
 static void nvt_shutdown(struct uart_port *port)
 {
 	struct nvt_port *nvt_port = UART_TO_NVT(port);
+	unsigned long flags;
 
 	serial_flow_dbg();
 
+	spin_lock_irqsave(&port->lock, flags);
 	nvt_write(port, UART_IER_REG, 0);  /* disable interrupts to avoid hanging in start_tx */
+	spin_unlock_irqrestore(&port->lock, flags);
+
 	free_irq(port->irq, port);
 
 	/* Free DMA */
@@ -833,6 +931,8 @@ static inline void wait_for_xmitr(struct uart_port *port, int bits)
 	for (;;) {
 		status = nvt_read(port, UART_LSR_REG);
 
+		nvt_port->lsr_saved_flags |= status & LSR_SAVE_FLAGS;
+
 		if (status & BREAK_INT_BIT)
 			nvt_port->lsr_break_flag = BREAK_INT_BIT;
 
@@ -909,13 +1009,13 @@ static struct nvt_port nvt_uart_ports[] = {
 		 **********************************************************************/
 			.uartclk = 24000000,
 			.iotype = UPIO_MEM32,
-			.fifosize = 16,
+			.fifosize = 64,
 			.regshift = 2,
 		},
 		.baud = 115200, /* set into termios structure when first used, and can be modified through user interface such as stty */
-		.tx_loadsz = 16, /* maximum number of characters tx can send in one handle_tx cycle, usually following fifosize */
+		.tx_loadsz = 64, /* maximum number of characters tx can send in one handle_tx cycle, usually following fifosize */
 		.hw_flowctrl = 0, /* default hardware flow control is on or off, also we can use stty crtscts/-crtscts to turn on/off */
-		.rx_trig_level = 0,
+		.rx_trig_level = 3,
 	},
 #endif
 	{
@@ -934,7 +1034,7 @@ static struct nvt_port nvt_uart_ports[] = {
 		.baud = 115200,
 		.tx_loadsz = 64,
 		.hw_flowctrl = 0,
-		.rx_trig_level = 0,
+		.rx_trig_level = 3,
 	},
 	{
 		.uart = {
@@ -952,7 +1052,7 @@ static struct nvt_port nvt_uart_ports[] = {
 		.baud = 0,
 		.tx_loadsz = 64,
 		.hw_flowctrl = 0,
-		.rx_trig_level = 0,
+		.rx_trig_level = 3,
 	},
 	{
 		.uart = {
@@ -970,7 +1070,7 @@ static struct nvt_port nvt_uart_ports[] = {
 		.baud = 0,
 		.tx_loadsz = 64,
 		.hw_flowctrl = 0,
-		.rx_trig_level = 0,
+		.rx_trig_level = 3,
 	},
 	{
 		.uart = {
@@ -988,7 +1088,7 @@ static struct nvt_port nvt_uart_ports[] = {
 		.baud = 0,
 		.tx_loadsz = 64,
 		.hw_flowctrl = 0,
-		.rx_trig_level = 0,
+		.rx_trig_level = 3,
 	},
 	{
 		.uart = {
@@ -1006,7 +1106,7 @@ static struct nvt_port nvt_uart_ports[] = {
 		.baud = 0,
 		.tx_loadsz = 64,
 		.hw_flowctrl = 0,
-		.rx_trig_level = 0,
+		.rx_trig_level = 3,
 	},
 };
 
@@ -1087,11 +1187,17 @@ static int __init nvt_console_setup(struct console *co, char *options)
 	return uart_set_options(port, co, baud, parity, bits, flow);
 }
 
+static void nvt_serial_early_putchar(struct uart_port *port, int ch)
+{
+	wait_for_xmitr(port, THR_EMPTY_BIT);
+	nvt_write_early(port, UART_THR_REG, ch);
+}
+
 static void nvt_serial_early_write(struct console *con, const char *s, unsigned n)
 {
 	struct earlycon_device *dev = con->data;
 
-	uart_console_write(&dev->port, s, n, nvt_console_putchar);
+	uart_console_write(&dev->port, s, n, nvt_serial_early_putchar);
 }
 
 static int __init nvt_serial_early_console_setup(struct earlycon_device *device, const char *opt)
@@ -1179,9 +1285,9 @@ static int nvt_serial_probe(struct platform_device *pdev)
 	port->irq = irq;
 
 	if (line == 0) {
-		if (nvt_get_chip_id() == CHIP_NA51084) {
-			port->fifosize = 64;
-			nvt_port->tx_loadsz = 64;
+		if (nvt_get_chip_id() == CHIP_NA51055) {
+			port->fifosize = 16;
+			nvt_port->tx_loadsz = 16;
 		}
 	}
 

@@ -226,44 +226,6 @@ typedef enum {
 #define   MMCST_DMA_ERROR                     BIT(19)
 /*  end for nt96650_mmc.c ,the same define*/
 
-#define SDIO_DLY_PHASE_UNIT_SFT	4
-#define SDIO_DLY_CMD_PHASE_SFT	0
-#define SDIO_DLY_DATA_SFT	20
-#define SDIO_DLY_SAMPEDGE_DATA_SFT	12
-#define SDIO_DLY_SAMPEDGE_DATA_POS	(0<<SDIO_DLY_SAMPEDGE_DATA_SFT)
-#define SDIO_DLY_SAMPEDGE_DATA_NEG	(1<<SDIO_DLY_SAMPEDGE_DATA_SFT)
-#define SDIO_DLY_CLK_SRC	13
-#define SDIO_DLY_DET_SEL	8
-#define SDIO_DLY_DET_AUTO	19
-
-#define SDIO_DLY_DS_DEFAULT             (SDIO_DLY_SAMPEDGE_DATA_POS)+ \
-						(0<<SDIO_DLY_PHASE_UNIT_SFT) + \
-						(0<<SDIO_DLY_CMD_PHASE_SFT) + \
-						(0<<SDIO_DLY_DATA_SFT) + \
-						(1<<SDIO_DLY_CLK_SRC) + \
-						(1<<SDIO_DLY_DET_SEL) + \
-						(1<<SDIO_DLY_DET_AUTO)
-#define SDIO_DLY_HS_DEFAULT             (SDIO_DLY_SAMPEDGE_DATA_POS)+ \
-						(0<<SDIO_DLY_PHASE_UNIT_SFT) + \
-						(0<<SDIO_DLY_CMD_PHASE_SFT) + \
-						(0<<SDIO_DLY_DATA_SFT) + \
-						(1<<SDIO_DLY_CLK_SRC) + \
-						(1<<SDIO_DLY_DET_SEL) + \
-						(1<<SDIO_DLY_DET_AUTO)
-#define SDIO_DLY_SDR50_DEFAULT      	(SDIO_DLY_SAMPEDGE_DATA_POS)+ \
-						(2<<SDIO_DLY_PHASE_UNIT_SFT) + \
-						(6<<SDIO_DLY_CMD_PHASE_SFT) + \
-						(0<<SDIO_DLY_DATA_SFT) + \
-						(1<<SDIO_DLY_CLK_SRC) + \
-						(1<<SDIO_DLY_DET_SEL) + \
-						(1<<SDIO_DLY_DET_AUTO)
-#define SDIO_DLY_SDR104_DEFAULT		(SDIO_DLY_SAMPEDGE_DATA_POS)+ \
-						(2<<SDIO_DLY_PHASE_UNIT_SFT) + \
-						(8<<SDIO_DLY_CMD_PHASE_SFT) + \
-						(0<<SDIO_DLY_DATA_SFT) + \
-						(1<<SDIO_DLY_CLK_SRC) + \
-						(1<<SDIO_DLY_DET_SEL) + \
-						(1<<SDIO_DLY_DET_AUTO)
 
 /*
     SDIO voltage switch result.
@@ -388,9 +350,11 @@ struct mmc_nvt_host {
 	int mmc_irq;
 	int mmc_cd_irq;
 	unsigned char bus_mode;
+	unsigned char timing;
 	unsigned char data_dir;
 	unsigned char voltage_switch;
 	u32 status;
+	spinlock_t lock;
 
 	/* buffer is used during PIO of one scatterlist segment, and
 	 * is updated along with buffer_bytes_left.  bytes_left applies
@@ -419,6 +383,12 @@ struct mmc_nvt_host {
 	int max_voltage;
 	int cd_state;
 	int neg_sample_edge;
+	bool need_power_cycle;
+	int indly_sel;
+	bool scan_indly_engineering_mode;
+	bool force_power_cycle;
+	int force_power_cycle_period;
+	int power_down_delay_ms;
 
 	/* Defines pad_driving of each mode, as:
 	 * DS_MODE_CLK
@@ -556,10 +526,15 @@ extern u32 sdiohost_set_voltage_switch(struct mmc_nvt_host *host);
 
 extern int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mode);
 
-extern void sdiohost_delay_chain(struct mmc_nvt_host *host, uint32_t clock_delay,
-			uint32_t delay_chain_setting);
+extern void sdiohost_setphyrst(struct mmc_nvt_host *host);
 
-extern int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode);
+extern void sdiohost_setphysample(struct mmc_nvt_host *host, bool internal, bool before);
+
+extern void sdiohost_setphyclkoutdly(struct mmc_nvt_host *host, uint32_t outdly_sel);
+
+extern void sdiohost_setphyclkindly(struct mmc_nvt_host *host, uint32_t indly_sel);
+
+extern int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode, bool print_pattern_err);
 
 extern void sdiohost_setphyclrdetval(struct mmc_nvt_host *host);
 
@@ -579,8 +554,9 @@ extern void sdiohost_power_down(struct mmc_nvt_host *host);
 
 extern void sdiohost_power_up(struct mmc_nvt_host *host);
 
-extern void sdiohost_stroredatarerult(uint32_t id, uint32_t dataintsts);
-
 extern void sdio_copy_info(struct mmc_nvt_host *info);
 
+extern void sdiohost_power_cycle(struct mmc_nvt_host *host, uint32_t delay_ms);
+
+extern void sdiohost_set_paddirection(struct mmc_nvt_host *host);
 #endif

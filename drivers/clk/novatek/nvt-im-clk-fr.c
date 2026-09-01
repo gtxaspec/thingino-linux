@@ -26,8 +26,12 @@
 #include <plat/cg-reg.h>
 #define div_mask(width)	((1 << (width)) - 1)
 
+static int log_index_cgate = 0;
+static int log_index_cmux = 0;
+
 void __iomem *cg_base = NULL;
 int fastboot = 0x0;
+int logoboot = 0x0;
 
 #define CG_SETREG(ofs, value)	writel((value), (cg_base+(ofs)))
 #define CG_GETREG(ofs)		readl(cg_base+(ofs))
@@ -37,12 +41,17 @@ void nvt_fastboot_detect(int fastboot_init)
 	fastboot = fastboot_init;
 }
 
+void nvt_logoboot_detect(int logo_init)
+{
+	logoboot = logo_init;
+}
+
 void nvt_cg_base_remap(void __iomem *remap_base)
 {
 	cg_base = remap_base;
 }
 
-void nvt_init_clk_auto_gating(struct nvt_clk_gating_init nvt_clk_gating_init[], 
+void nvt_init_clk_auto_gating(struct nvt_clk_gating_init nvt_clk_gating_init[],
 				int array_size, spinlock_t *lock)
 {
 	unsigned long flags;
@@ -146,6 +155,7 @@ static long nvt_pll_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 				   unsigned long *parent_rate)
 {
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
+#ifndef CONFIG_NVT_FPGA_EMULATION
 	unsigned long long temp_rate, ratio;
 
 	temp_rate = rate;
@@ -165,7 +175,7 @@ static long nvt_pll_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 	do_div(temp_rate, pll_cal_factor);
 
 	pll->current_rate = temp_rate;
-
+#endif
 	return pll->current_rate;
 }
 
@@ -173,6 +183,7 @@ static unsigned long nvt_pll_clk_recalc_rate(struct clk_hw *hw,
 					     unsigned long parent_rate)
 {
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
+#ifndef CONFIG_NVT_FPGA_EMULATION
 	unsigned long long temp_rate;
 	unsigned int ratio0, ratio1, ratio2;
 
@@ -187,18 +198,19 @@ static unsigned long nvt_pll_clk_recalc_rate(struct clk_hw *hw,
 	do_div(temp_rate, pll_cal_factor);
 
 	pll->current_rate = temp_rate;
-
+#endif
 	return pll->current_rate;
 }
 
 static int nvt_pll_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 				unsigned long parent_rate)
 {
+#ifndef CONFIG_NVT_FPGA_EMULATION
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
 	unsigned long flags;
 
 	spin_lock_irqsave(pll->lock, flags);
-	if ((nvt_get_chip_id() != CHIP_NA51055) && (pll->gate_bit_idx == PLL_CPU_BIT)) {
+	if ((nvt_get_chip_id() == CHIP_NA51084) && (pll->gate_bit_idx == PLL_CPU_BIT)) {
 		/* set mux_sel_sw to 0 for choose synthesizer output as MPLL/CPU_CK */
 		CG_SETREG(CG528_ARMPLL_CONTROL0_REG_OFFSET, 0x2);
 		/* assert resetb_armpll to 0 */
@@ -209,7 +221,7 @@ static int nvt_pll_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 	CG_SETREG(pll->rate_reg_offset + 0x4, (pll->pll_ratio >> 8) & 0xFF);
 	CG_SETREG(pll->rate_reg_offset + 0x8, (pll->pll_ratio >> 16) & 0xFF);
 
-	if ((nvt_get_chip_id() != CHIP_NA51055) && (pll->gate_bit_idx == PLL_CPU_BIT)) {
+	if ((nvt_get_chip_id() == CHIP_NA51084) && (pll->gate_bit_idx == PLL_CPU_BIT)) {
 		unsigned long pll_rate = pll->current_rate * 8;
 		u32 reg;
 
@@ -234,7 +246,7 @@ static int nvt_pll_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 		CG_SETREG(CG528_ARMPLL_CONTROL0_REG_OFFSET, 0x3);
 	}
 	spin_unlock_irqrestore(pll->lock, flags);
-
+#endif
 	return 0;
 }
 
@@ -282,8 +294,11 @@ int nvt_pll_clk_register(struct nvt_pll_clk pll_clks[], int array_size,
 					      pll_div_value);
 		p_pll_clk->fixed_factor = __clk_get_hw(clk);
 		p_pll_clk->parent_rate = clk_get_rate(clk_get_parent(clk));
+#ifndef CONFIG_NVT_FPGA_EMULATION
 		p_pll_clk->current_rate = clk_get_rate(clk);
-
+#else
+		p_pll_clk->current_rate = pll_clks[i].pll_ratio;
+#endif
 		memcpy(p_pll_clk->name, pll_clks[i].name, CLK_NAME_STR_SIZE);
 		p_pll_clk->pll_ratio = pll_clks[i].pll_ratio;
 		p_pll_clk->rate_reg_offset = pll_clks[i].rate_reg_offset;
@@ -392,6 +407,12 @@ static int nvt_composite_gate_clk_enable(struct clk_hw *hw)
 	struct nvt_composite_gate_clk *gate =
 	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
+	if ((gate->max_rate) && (gate->current_rate > gate->max_rate)) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
+			__func__, gate->name, gate->current_rate, gate->max_rate);
+		return -1;
+	}
+
 	if (gate->gate_reg_offset != 0) {
 		/* race condition protect. enter critical section */
 		spin_lock_irqsave(gate->lock, flags);
@@ -447,6 +468,11 @@ static long nvt_composite_gate_clk_round_rate(struct clk_hw *hw,
 	struct nvt_composite_gate_clk *gate =
 	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
+	if ((gate->max_rate) && (gate->current_rate > gate->max_rate) && nvt_composite_gate_clk_is_enabled(hw) && log_index_cgate) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
+			__func__, gate->name, gate->current_rate, gate->max_rate);
+	}
+
 	if (gate->divider == NULL)
 		return rate;
 	else
@@ -461,6 +487,11 @@ static unsigned long nvt_composite_gate_clk_recalc_rate(struct clk_hw *hw,
 	struct nvt_composite_gate_clk *gate =
 	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
+	if ((gate->max_rate) && (gate->current_rate > gate->max_rate) && nvt_composite_gate_clk_is_enabled(hw) && log_index_cgate) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
+			__func__, gate->name, gate->current_rate, gate->max_rate);
+	}
+
 	return gate->current_rate;
 }
 
@@ -474,6 +505,13 @@ static int nvt_composite_gate_clk_set_rate(struct clk_hw *hw,
 
 	if (gate->divider == NULL)
 		return -EPERM;
+
+	if ((gate->max_rate) && (gate->current_rate > gate->max_rate)) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
+			__func__, gate->name, gate->current_rate, gate->max_rate);
+		return -1;
+	}
+
 	/* race condition protect. enter critical section */
 	ret = clk_divider_ops.set_rate(gate->divider, rate, gate->parent_rate);
 	/* race condition protect. leave critical section */
@@ -488,10 +526,11 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 	unsigned long flags;
 	unsigned int reg_val;
-	unsigned long ssc_step = 0x2;
+//	unsigned long ssc_step = 0x2;
 	unsigned long ssc_period_value = 1 << 7;
 
 	spin_lock_irqsave(gate->lock, flags);
+
 	/*Disable PLLx*/
 	reg_val = CG_GETREG(0x0);
 	reg_val &= ~(0x1 << gate->gate_bit_idx);
@@ -499,36 +538,45 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 
 	/* Setup period vlaue */
 	CG_SETREG(gate->autogating_reg_offset, ssc_period_value);
+
 	/* Setup MULFAC */
 	CG_SETREG(gate->reset_reg_offset, steps);
-	/* Setup SET_SEL */
 
+	/* Setup SET_SEL */
 	if ((nvt_get_chip_id() == CHIP_NA51055)) {
-		reg_val = CG_GETREG(gate->div_reg_offset);
+		#if 0  /* use default value 0x44CC = 0x14 */
+		reg_val = CG_GETREG(gate->gate_reg_offset);
 		reg_val &= ~(0x3 << SSC_STEP);
 		reg_val |= (ssc_step << SSC_STEP);
-		CG_SETREG(gate->div_reg_offset, reg_val);
+		CG_SETREG(gate->gate_reg_offset, reg_val);
+
 		/*Write 1 to SSC_NEW_MODE, DSSC*/
 		reg_val &= ~((0x1 << SSC_NEW_MODE) | (0x1 << SSC_DSSC));
 		reg_val |= (0x1 << SSC_NEW_MODE) | (0x1 << SSC_DSSC);
-		CG_SETREG(gate->div_reg_offset, reg_val);
+		CG_SETREG(gate->gate_reg_offset, reg_val);
+		#endif
+
 		/*Write 1 to SSC_EN*/
-		reg_val = CG_GETREG(gate->gate_reg_offset);
+		reg_val = CG_GETREG(gate->div_reg_offset);
 		if (steps == 0) {
 			reg_val &= ~0x1;
 		} else {
 			reg_val |= 0x1;
 		}
-		CG_SETREG(gate->gate_reg_offset, reg_val);
+		CG_SETREG(gate->div_reg_offset, reg_val);
 	} else {
+		#if 0  /* use default value 0x11C8 = 0x6 */
 		reg_val = CG_GETREG(gate->div_reg_offset);
 		reg_val &= ~(0x3 << SSC_528_STEP);
 		reg_val |= (ssc_step << SSC_528_STEP);
 		CG_SETREG(gate->div_reg_offset, reg_val);
+
 		/*Write 1 to SSC_NEW_MODE, DSSC*/
 		reg_val &= ~((0x1 << SSC_528_NEW_MODE) | (0x1 << SSC_528_DSSC));
 		reg_val |= (0x1 << SSC_528_NEW_MODE) | (0x1 << SSC_528_DSSC);
 		CG_SETREG(gate->div_reg_offset, reg_val);
+		#endif
+
 		/*Write 1 to SSC_EN*/
 		reg_val = CG_GETREG(gate->div_reg_offset);
 		if (steps == 0) {
@@ -556,6 +604,18 @@ static int nvt_composite_gate_clk_set_phase(struct clk_hw *hw, int enable)
 	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if (gate->gate_reg_offset > SSC_BOUND) {
+		if ((nvt_get_chip_id() == CHIP_NA51055) &&
+			(gate->gate_reg_offset > SSC_528_BOUND)) {
+			pr_debug("not support 528 ssc\n");
+			return 0;
+		}
+
+		if ((nvt_get_chip_id() == CHIP_NA51084) &&
+			(gate->gate_reg_offset < SSC_528_BOUND)) {
+			pr_debug("not support 520 ssc\n");
+			return 0;
+		}
+
 		nvt_pll_clk_set_ss_rate(hw, enable);
 	} else if (gate->autogating_reg_offset != 0) {
 		/* race condition protect. enter critical section */
@@ -740,6 +800,8 @@ int nvt_composite_gate_clk_register(struct nvt_composite_gate_clk
 				       p_cgate_clk->name);
 		}
 	}
+
+	log_index_cgate = 1;
 
 	kfree(pstr);
 
@@ -1126,6 +1188,12 @@ static int nvt_composite_mux_clk_enable(struct clk_hw *hw)
 	struct nvt_composite_mux_clk *mux =
 	    container_of(cmux, struct nvt_composite_mux_clk, mux);
 
+	if ((mux->max_rate) && (mux->current_rate > mux->max_rate)) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
+			__func__, mux->name, mux->current_rate, mux->max_rate);
+		return -1;
+	}
+
 	if (mux->gate_reg_offset == SIEMCLK_COMM_CLK_EN_REG0_OFFSET) {
 		unsigned long offset = mux->gate_reg_offset & SIEMCLK_COMM_MASK;
 
@@ -1210,6 +1278,11 @@ static long nvt_composite_mux_clk_round_rate(struct clk_hw *hw,
 
 	mux->current_rate = *prate/best_div;
 
+	if ((mux->max_rate) && (mux->current_rate > mux->max_rate) && nvt_composite_mux_clk_is_enabled(hw) && log_index_cmux) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
+			__func__, mux->name, mux->current_rate, mux->max_rate);
+	}
+
 	return mux->current_rate;
 }
 
@@ -1239,15 +1312,15 @@ static unsigned long nvt_composite_mux_clk_recalc_rate(struct clk_hw
 
 		spin_lock_irqsave(mux->lock, flags);
 		reg_val = CG_GETREG(offset);
-		reg_val &= (div_mask(mux->div_bit_width) << 
+		reg_val &= (div_mask(mux->div_bit_width) <<
 				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
-		divider = (reg_val >> 
+		divider = (reg_val >>
 				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
 		spin_unlock_irqrestore(mux->lock, flags);
 
 		siemclk2_rate = parent_rate/(divider+1);
 
-		mux->current_rate = (siemclk1_rate == siemclk2_rate) ? 
+		mux->current_rate = (siemclk1_rate == siemclk2_rate) ?
 					siemclk1_rate : 0;
 
 		return mux->current_rate;
@@ -1267,6 +1340,11 @@ static unsigned long nvt_composite_mux_clk_recalc_rate(struct clk_hw
 		mux->current_rate = parent_rate/(divider+1);
 	}
 
+	if ((mux->max_rate) && (mux->current_rate > mux->max_rate) && nvt_composite_mux_clk_is_enabled(hw) && log_index_cmux) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
+			__func__, mux->name, mux->current_rate, mux->max_rate);
+	}
+
 	return mux->current_rate;
 }
 
@@ -1284,6 +1362,12 @@ static int nvt_composite_mux_clk_set_rate(struct clk_hw *hw,
 	if (!(mux->div_reg_offset))
 		return 0;
 
+	if ((mux->max_rate) && (mux->current_rate > mux->max_rate)) {
+		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
+			__func__, mux->name, mux->current_rate, mux->max_rate);
+		return -1;
+	}
+
 	divider = (parent_rate / rate);
 	if (!divider)
 		divider = 1;
@@ -1299,7 +1383,7 @@ static int nvt_composite_mux_clk_set_rate(struct clk_hw *hw,
 		CG_SETREG(offset, reg_val);
 		udelay(2);
 		reg_val |= ((divider - 1) << mux->div_bit_idx);
-		reg_val |= ((divider - 1) << 
+		reg_val |= ((divider - 1) <<
 				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
 		CG_SETREG(offset, reg_val);
 		spin_unlock_irqrestore(mux->lock, flags);
@@ -1332,7 +1416,7 @@ static int nvt_composite_mux_clk_set_parent(struct clk_hw *hw, u8 index)
 		spin_lock_irqsave(mux->lock, flags);
 		reg_val = CG_GETREG(offset);
 		reg_val &= ~(div_mask(mux->mux_bit_width) << mux->mux_bit_idx);
-		reg_val &= ~(div_mask(mux->mux_bit_width) << 
+		reg_val &= ~(div_mask(mux->mux_bit_width) <<
 				(mux->mux_bit_idx + SIEMCLK_COMM_RATE_SHIFT));
 		reg_val |= (index << mux->mux_bit_idx);
 		reg_val |= (index << (mux->mux_bit_idx + SIEMCLK_COMM_RATE_SHIFT));
@@ -1365,13 +1449,13 @@ static u8 nvt_composite_mux_clk_get_parent(struct clk_hw *hw)
 		unsigned long offset = mux->mux_reg_offset & SIEMCLK_COMM_MASK;
 
 		reg_val = CG_GETREG(offset);
-		index = reg_val & div_mask(mux->mux_bit_width);
+		index = reg_val & (div_mask(mux->mux_bit_width) << mux->mux_bit_idx);
 
 		return index >> mux->mux_bit_idx;
 	}
 
 	reg_val = CG_GETREG(mux->mux_reg_offset);
-	index = reg_val & div_mask(mux->mux_bit_width);
+	index = reg_val & (div_mask(mux->mux_bit_width) << mux->mux_bit_idx);
 
 	return index >> mux->mux_bit_idx;
 }
@@ -1529,20 +1613,27 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
 			}
 		}
 
-		clk_set_parent(clk,
-			       __clk_lookup(composite_mux_clks[i].parent_names
-					    [composite_mux_clks
-					     [i].parent_idx]));
+		if (logoboot && ((strncmp(p_cmux_clk->name, "f0800000.ide", 16) == 0) || (strncmp(p_cmux_clk->name, "f0800000.ideif", 16) == 0))) {
+			p_cmux_clk->parent_rate = clk_get_rate(clk_get_parent(clk));
+			p_cmux_clk->current_rate = clk_get_rate(clk);
+		} else {
+			if (fastboot == 0) {
+				clk_set_parent(clk,
+					__clk_lookup(composite_mux_clks[i].parent_names
+						[composite_mux_clks
+						[i].parent_idx]));
+			}
 
+			p_cmux_clk->parent_rate = clk_get_rate(clk_get_parent(clk));
 
-		p_cmux_clk->parent_rate = clk_get_rate(clk_get_parent(clk));
+			if ((composite_mux_clks[i].div_bit_width) && (fastboot == 0) && !composite_mux_clks[i].keep_rate)
+				clk_set_rate(clk, composite_mux_clks[i].current_rate);
 
-		if ((composite_mux_clks[i].div_bit_width) && (fastboot == 0))
-			clk_set_rate(clk, composite_mux_clks[i].current_rate);
-
-		p_cmux_clk->current_rate = clk_get_rate(clk);
+			p_cmux_clk->current_rate = clk_get_rate(clk);
+		}
 	}
 
+	log_index_cmux = 1;
 err:
 	return ret;
 }

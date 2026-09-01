@@ -14,3 +14,4 @@ config NET_VENDOR_NOVATEK
 	  for your specific device in the following questions.
 
 source "drivers/net/ethernet/novatek/na51055/Kconfig"
+source "drivers/net/ethernet/novatek/na51089/Kconfig"

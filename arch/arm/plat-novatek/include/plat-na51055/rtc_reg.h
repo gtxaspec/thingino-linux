@@ -82,10 +82,21 @@ union RTC_CTRL_REG {
 	unsigned int pwralarmtime_sel:1;
 	unsigned int pwralarmday_sel:1;
 	unsigned int cset_inten:1;
-	unsigned int reserved0:23;
+	unsigned int reserved0:3;
+	unsigned int data0_sel:1;
+	unsigned int reserved1:19;
 	} bit;
 };
-/*Reserved (0x14)*/
+
+// RTC Data Register
+#define RTC_DATA_REG_OFS 0x14
+union RTC_DATA_REG {
+	uint32_t reg;
+	struct {
+	unsigned int data0:8;
+	unsigned int reserved:24;
+	} bit;
+};
 
 // RTC Power Button Control Register
 #define RTC_PWBC_REG_OFS 0x18

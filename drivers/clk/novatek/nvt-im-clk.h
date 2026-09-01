@@ -17,7 +17,7 @@
 	#include "nvt-im-clk-bk.h"
 #endif
 
-#ifdef CONFIG_COMMON_CLK_NA51055
+#if defined(CONFIG_COMMON_CLK_NA51055) || defined(CONFIG_COMMON_CLK_NA51089)
 	#include "nvt-im-clk-fr.h"
 #endif
 

@@ -37,16 +37,13 @@
 #include <asm/mmu.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-#include <linux/kthread.h>
 #include <linux/platform_device.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/of.h>
 #include <linux/spinlock.h>
 #include <linux/cpumask.h>
-#include <mach/fmem.h>
 #include <linux/smp.h>
-#include <linux/completion.h>
-#include <linux/mutex.h>
+#include <mach/fmem.h>
 #include "../../arch/arm/mm/dma.h"
 #include "../../arch/arm/mm/mm.h"
 
@@ -64,7 +61,9 @@
 static DEFINE_SEMAPHORE(sema_cma);
 static DEFINE_SEMAPHORE(sema_cma_mem);
 static DEFINE_SEMAPHORE(sema_mem_lock);
+#ifdef CONFIG_CMA
 struct list_head nvt_cma_info_list_root;
+#endif
 
 u32 nonlinear_cpuaddr_flush = 0;
 u32 cpuaddr_flush = 0;
@@ -91,17 +90,6 @@ unsigned long  fmem_dcache_sync_op(void *vaddr, u32 len, enum dma_data_direction
 	defined(CONFIG_NVT_CACHE_INVALIDATE_ALL_FOR_HDAL))
 static DEFINE_RAW_SPINLOCK(l1_flush_all_lock);
 
-struct cache_op_info {
-	struct task_struct *kthread_struct;
-	struct completion cache_op_start;
-	struct completion cache_op_finish;
-	struct mutex cache_op_lock;
-	unsigned long result;
-	void *vaddr;
-	unsigned int len;
-	enum dma_data_direction dir;
-};
-
 #define CACHE_THREAD_OP_THRESHOLD    0x400000
 #ifdef CONFIG_CACHE_L2X0
 	extern unsigned int l2c310_get_l2_size(void);
@@ -120,8 +108,6 @@ extern unsigned long nvt_l2c210_flush_all(void);
 #if defined(CONFIG_CPU_V7)
 extern void v7_flush_d_cache_all_if(void);
 #endif
-
-struct cache_op_info cache_op[NR_CPUS];
 
 unsigned long nvt_cache_op(void *vaddr, phys_addr_t paddr, u32 len, enum dma_data_direction dir, unsigned int max_retry, unsigned int num_cpu_involve)
 {
@@ -258,25 +244,9 @@ unsigned long nvt_cache_op(void *vaddr, phys_addr_t paddr, u32 len, enum dma_dat
 	return ret;
 }
 
-static int kthread_cache_op(void *data)
-{
-	unsigned int cpu_id = smp_processor_id();
-
-	while (!kthread_should_stop()) {
-		init_completion(&cache_op[cpu_id].cache_op_start);
-		wait_for_completion(&cache_op[cpu_id].cache_op_start);
-
-
-		cache_op[cpu_id].result = fmem_dcache_sync_op(cache_op[cpu_id].vaddr, cache_op[cpu_id].len, cache_op[cpu_id].dir, 1, 0);
-		complete(&cache_op[cpu_id].cache_op_finish);
-	}
-
-	return 0;
-}
-
 unsigned long fmem_dcache_sync_by_cpu(void *vaddr, u32 len, enum dma_data_direction dir, unsigned int cache_op_cpu_id)
 {
-	unsigned int cpu_id = smp_processor_id();
+	unsigned int cpu_id;
 	unsigned long result;
 
 	if (cache_op_cpu_id >= total_num_cpu) {
@@ -288,31 +258,16 @@ unsigned long fmem_dcache_sync_by_cpu(void *vaddr, u32 len, enum dma_data_direct
 		result = fmem_dcache_sync_op(vaddr, len, dir, NR_CPUS, 1);
 	} else {
 
-		mutex_lock(&cache_op[cache_op_cpu_id].cache_op_lock);
+		cpu_id = get_cpu();
 
 		if (cpu_id == cache_op_cpu_id) {
 			result = fmem_dcache_sync_op(vaddr, len, dir, 1, 0);
 		} else {
-			if (len < CACHE_THREAD_OP_THRESHOLD) {
-				result = fmem_dcache_sync_op(vaddr, len, dir, NR_CPUS, 0);
-			} else {
-
-			/* wake up the thread to do cache operation*/
-			init_completion(&cache_op[cache_op_cpu_id].cache_op_finish);
-
-			cache_op[cache_op_cpu_id].vaddr = vaddr;
-			cache_op[cache_op_cpu_id].len = len;
-			cache_op[cache_op_cpu_id].dir = dir;
-
-			complete(&cache_op[cache_op_cpu_id].cache_op_start);
-
-			/* wait for the cache operation finished */
-			result = cache_op[cache_op_cpu_id].result;
-			wait_for_completion(&cache_op[cache_op_cpu_id].cache_op_finish);
-			}
+			pr_err("%s:cpu_id mismatch(cpu_id:%d cache_op_cpu_id:%d), use default API to do cache operation\n", __func__, cpu_id, cache_op_cpu_id);
+			result = fmem_dcache_sync_op(vaddr, len, dir, total_num_cpu, 0);
 		}
 
-		mutex_unlock(&cache_op[cache_op_cpu_id].cache_op_lock);
+		put_cpu();
 	}
 
 	return result;
@@ -333,6 +288,7 @@ static struct proc_dir_entry *fmem_proc_root = NULL;
  * cma handling
  *************************************************************************************************************/
 
+#ifdef CONFIG_CMA
 static struct nvt_cma_info_t* fmem_get_cma_info(unsigned int id)
 {
 	struct nvt_cma_info_t *curr_info, *next_info;
@@ -411,6 +367,7 @@ static struct nvt_fmem_mem_cma_info_t* fmem_get_cmamem_info(struct nvt_fmem_mem_
 
 	return NULL;
 }
+
 
 static void* fmem_mem_info_alloc(struct nvt_fmem_mem_info_t *nvt_fmem_info, unsigned int id)
 {
@@ -588,15 +545,18 @@ static int __init nvt_cma_early_init(void)
 	return 0;
 }
 core_initcall(nvt_cma_early_init);
+#endif
 
 void* fmem_alloc_from_cma(struct nvt_fmem_mem_info_t *nvt_fmem_info, unsigned int index)
 {
+	#ifdef CONFIG_CMA
 	struct page *pages;
 	void *vaddr = NULL;
 	void *handle = NULL;
 	unsigned page_count = ALIGN(nvt_fmem_info->size, PAGE_SIZE)/PAGE_SIZE;
 	struct nvt_cma_info_t *cma_info = NULL;
 	struct device * dev = NULL;
+
 
 	down(&sema_mem_lock);
 	/* To get cma info by id */
@@ -657,10 +617,14 @@ void* fmem_alloc_from_cma(struct nvt_fmem_mem_info_t *nvt_fmem_info, unsigned in
 alloc_cma_exit:
 	up(&sema_mem_lock);
 	return NULL;
+	#else
+	return NULL;
+	#endif
 }
 
 int fmem_release_from_cma(void *handle, unsigned int index)
 {
+	#ifdef CONFIG_CMA
 	struct nvt_fmem_mem_cma_info_t* my_fmem_meminfo = NULL;
 	int ret = 0;
 	struct nvt_cma_info_t *cma_info = NULL;
@@ -704,6 +668,9 @@ int fmem_release_from_cma(void *handle, unsigned int index)
 release_cma_exit:
 	up(&sema_mem_lock);
 	return -1;
+	#else
+	return 0;
+	#endif
 }
 
 /*************************************************************************************************************
@@ -745,6 +712,7 @@ static const struct file_operations resolve_proc_fops = {
 	.write		= proc_resolve_pa,
 };
 
+#ifdef CONFIG_CMA
 struct nvtcma_proc_list_cmainfo_t {
 	struct seq_file *sfile;
 	phys_addr_t		base;
@@ -818,6 +786,7 @@ static const struct file_operations nvtcma_proc_fops = {
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
+#endif
 
 static int version_proc_show(struct seq_file *sfile, void *v)
 {
@@ -825,6 +794,7 @@ static int version_proc_show(struct seq_file *sfile, void *v)
 
 	return 0;
 }
+
 static int version_proc_open(struct inode *inode, struct file *file)
 {
 	return single_open(file, version_proc_show, NULL);
@@ -858,10 +828,11 @@ static int __init fmem_proc_init(void)
 		panic("FMEM: Fail to create proc resolve_proc!\n");
 
 	/* CMA info */
+	#ifdef CONFIG_CMA
 	myproc = proc_create("cma_info", S_IRUGO, fmem_proc_root, &nvtcma_proc_fops);
 	if (myproc == NULL)
 		panic("FMEM: Fail to create proc cma info!\n");
-
+	#endif
 	/* Version info */
 	myproc = proc_create("version", S_IRUGO, fmem_proc_root, &version_proc_fops);
 	if (myproc == NULL)
@@ -869,41 +840,6 @@ static int __init fmem_proc_init(void)
 
 	return 0;
 }
-
-#if (defined(CONFIG_NVT_CACHE_FLUSH_ALL_FOR_HDAL) || \
-	defined(CONFIG_NVT_CACHE_INVALIDATE_ALL_FOR_HDAL))
-static int fmem_cache_op_init(void)
-{
-	unsigned int cpu;
-	int ret = 0;
-
-	/* init cache op info */
-	for (cpu = 0 ; cpu < NR_CPUS ; cpu++) {
-		mutex_init(&cache_op[cpu].cache_op_lock);
-	}
-
-	/* create kthread for cache operation */
-	for_each_online_cpu(cpu) {
-       cache_op[cpu].kthread_struct = kthread_create_on_cpu(kthread_cache_op, &cpu, cpu, "kthread/%d");
-       if (IS_ERR(cache_op[cpu].kthread_struct)) {
-           pr_err("fail to kthread_create_on_cpu\n");
-           ret = -1;
-           return ret;
-       }
-	}
-
-	for_each_online_cpu(cpu) {
-		ret = wake_up_process(cache_op[cpu].kthread_struct);
-		if (!ret) {
-           pr_err("fail to wake up process for cpu:%d\n", cpu);
-           ret = -1;
-           return ret;
-		}
-	}
-
-	return ret;
-}
-#endif
 
 static int __init fmem_init(void)
 {
@@ -916,11 +852,6 @@ static int __init fmem_init(void)
 #endif
 
 	ret =fmem_proc_init();
-
-#if (defined(CONFIG_NVT_CACHE_FLUSH_ALL_FOR_HDAL) || \
-	defined(CONFIG_NVT_CACHE_INVALIDATE_ALL_FOR_HDAL))
-	fmem_cache_op_init();
-#endif
 
 	return ret;
 }
@@ -957,10 +888,15 @@ phys_addr_t fmem_lookup_pa(unsigned int vaddr)
 	/*
 	* The pgd is never bad, and a pmd always exists(as it's folded into the pgd entry)
 	*/
-	if (vaddr >= TASK_SIZE) /* use init_mm as mmu to look up in kernel mode */
+	if (vaddr >= TASK_SIZE) { /* use init_mm as mmu to look up in kernel mode */
 		pgdp = pgd_offset_k(vaddr);
-	else
+	} else if (current && current->mm){
 		pgdp = pgd_offset(current->mm, vaddr);
+	} else {
+		printk("Invalid va 0x%x\r\n", vaddr);
+		dump_stack();
+		return paddr;
+	}
 
 	if (unlikely(pgd_none(*pgdp))) {
 		printk("fmem: 0x%x not mapped in pgd table! \n", vaddr);

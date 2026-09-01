@@ -283,5 +283,5 @@ module_exit(nvt_pinctrl_exit);
 
 MODULE_DESCRIPTION("Novatek pinctrl driver");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.03.030");
+MODULE_VERSION("1.03.031");
 MODULE_DEVICE_TABLE(of, nvt_pinctrl_of_match);

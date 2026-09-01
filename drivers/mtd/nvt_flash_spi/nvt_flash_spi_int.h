@@ -252,6 +252,12 @@ struct drv_nand_dev_info {
 	u32                     flash_freq;
 	u32                     trace_stdtable;
 	u8                      hspeed_dummy_cycle;
+
+    /* W25Q256FV not support 0x12 cmd, need ues 4byte addr mode*/
+    int                     enter_4byte_addr_mode;
+
+	/* set flash ecc status type, 0x1 for XT26G01C ecc_bit[7..4] */
+	int                     ecc_status_type;
 };
 
 #define SRAMRDY_DELAY           5
@@ -266,6 +272,11 @@ struct drv_nand_dev_info {
 #define MXIC_MX35LF2G14AC       0x20C2
 #define MICRON_MT29F2G01AB      0x242C
 #define WINBOND_W25N02KV        0x22AAEF
+#define WINBOND_W25Q256FV       0x1940EF
+#define MICRON_MT29F1G01AA      0x122C  /* ecc only corrected 1 bit */
+#define XTX_XT26G01B            0xF10B
+#define XTX_XT26G01C            0x110B
+
 /* vendor ID */
 #define MFG_ID_MICRON           0x2C
 #define MFG_ID_WINBOND          0xEF
@@ -409,6 +420,8 @@ struct drv_nand_dev_info {
 
 #define FLASH_CMD_AAI                    (0xADul)        //(AAI)Single-WORD program
 #define FLASH_CMD_EWSR                   (0x50)          //Enable Write Status Register
+#define FLASH_CMD_ENTER_4BYTE_ADDR       0xB7            //FLASH CMD Enter 4-byte address mode
+#define FLASH_CMD_LEAVE_4BYTE_ADDR       0xE9            //FLASH CMD Leave 4-byte address mode
 
 // ------------------------------------------------------------------------
 // memory module 0,1,2,3,4 configuration register (0x00,0x04,0x08,0x0C,0x10)
@@ -592,6 +605,11 @@ struct smc_setup_trans {
 #define SPINAND_FEATURE_STATUS_ERASE_FAIL       (0x04)
 #define SPINAND_FEATURE_STATUS_ECC_ERR          (0x10)
 #define SPINAND_FEATURE_STATUS_ECC_UNCORR_ERR   (0x20)
+#define SPINAND_FEATURE_STATUS_ECC_MASK         (0x30)  /* ecc_status[1..0] */
+
+// special ecc_sts type for XT26G01C
+#define SPINAND_ECC_STATUS_TYPE1_UNCORR_ERR   (0xF0)	/* uncorrect = 1111b */
+#define SPINAND_ECC_STATUS_TYPE1_MASK         (0xF0)	/* ecc_status[7..4]  */
 
 // ------------------------------------------------------------------------
 //  Time out register (0x40)
@@ -1073,4 +1091,8 @@ int spinor_read_sfdp(struct drv_nand_dev_info *info, u32 addr, u32 byte_size, u8
 void nand_phy_config(struct drv_nand_dev_info *info);
 
 void flash_copy_info(struct drv_nand_dev_info *info);
+
+int enter_4byte_address(struct drv_nand_dev_info *info);
+int leave_4byte_address(struct drv_nand_dev_info *info);
+
 #endif

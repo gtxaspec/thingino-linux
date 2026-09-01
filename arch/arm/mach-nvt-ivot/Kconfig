@@ -56,11 +56,4 @@ config NVT_CACHE_INVALIDATE_ALL_THRESHOLD
 		Set a threshold to judgment whether execute flush all L2 cache instead of invalidate range.
 		The threshold is an order of L2 cache size. When flush range over the threshold then L2 cache are flushed and invalidated
 
-config NVT_PERF_MEASURE
-	bool "Enable nvt_perf driver for ivot Linux kernel performance measurement"
-	depends on ARCH_NVT_IVOT_V7
-	default n
-	help
-		Enable nvt_perf driver for ivot Linux kernel performance measurement
-		
 endmenu

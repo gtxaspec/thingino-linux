@@ -41,7 +41,7 @@
 #include <linux/dma-mapping.h>
 
 #include "plat/i2c_reg.h"
-#define DRV_VERSION         "1.00.009"
+#define DRV_VERSION         "1.00.014"
 #define NVTIM_I2C_TIMEOUT (msecs_to_jiffies(1000))
 
 static struct semaphore i2c_sem;
@@ -90,6 +90,7 @@ static struct nvtim_i2c_platform_data nvtim_i2c_platform_data_default = {
 	.upd_bus_freq_num       = 0,
 	.upd_timeout_ms_num     = 0,
 	.upd_rtytimes_num       = 0,
+	.err_hdl				= 0,
 };
 
 static inline void nvtim_i2c_write_reg(struct nvtim_i2c_dev *i2c_dev,
@@ -252,6 +253,50 @@ static void nvtim_calc_clk_dividers(struct nvtim_i2c_dev *dev, u32 input_clock, 
 
 }
 
+/* error handle - bus clear (send 9 clock on SCL) */
+static int i2c_nvtim_busclr(struct nvtim_i2c_dev *dev)
+{
+	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, nvtim_i2c_read_reg(dev, I2C_CTRL_REG) | (1 << I2C_CTRL_BUS_CLR_EN));
+
+	do {
+		udelay(1);
+	} while ((nvtim_i2c_read_reg(dev, I2C_CTRL_REG) & (1 << I2C_CTRL_BUS_CLR_EN)) == (1 << I2C_CTRL_BUS_CLR_EN));
+
+	dev_err(dev->dev, "%s\n", __func__);
+
+	return 0;
+}
+
+/* error handle - module reset */
+static int i2c_nvtim_rst_module(struct nvtim_i2c_dev *dev)
+{
+#define reg_num 0x40
+#define reg_sz reg_num >> 2
+
+	int i, reg_val[reg_sz] = {0};
+
+	/* read ori register, for I2C_RSTN(DO_RESET) */
+	for (i = 0; i < reg_sz; i++) {
+		reg_val[i] = nvtim_i2c_read_reg(dev, i << 2);
+//		dev_err(dev->dev, "0x%.2x=0x%.8x\n", (unsigned int)(i << 2), (unsigned int)reg_val[i]);
+	}
+
+	clk_disable_unprepare(dev->clk);
+
+    clk_prepare(dev->clk);
+    clk_enable(dev->clk);
+
+	/* write ori register, for I2C_RSTN(DO_RESET) */
+	for (i = 0; i < reg_sz; i++) {
+		nvtim_i2c_write_reg(dev, i << 2, reg_val[i]);
+//		dev_err(dev->dev, "0x%.2x=0x%.8x\n", (unsigned int)(i << 2), (unsigned int)reg_val[i]);
+	}
+
+	dev_err(dev->dev, "%s: staus 0x%.8x\n", __func__, nvtim_i2c_read_reg(dev, I2C_STS_REG));
+
+	return 0;
+}
+
 /*This function configures I2C init conditions*/
 static int i2c_nvtim_init(struct nvtim_i2c_dev *dev)
 {
@@ -269,8 +314,23 @@ static int i2c_nvtim_init(struct nvtim_i2c_dev *dev)
 
 	/*Set busfree time*/
 	nvtim_i2c_write_reg(dev, I2C_BUSFREE_REG, dev->busfree_interval);
+	/*clear interrupts sts*/
+	nvtim_i2c_write_reg(dev, I2C_STS_REG, I2C_ALL_BIT);
 	/*Enable interrupts*/
 	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, I2C_INTR_ALL);
+
+	/*
+		I2C error handle
+	*/
+	// NVT_I2C_AUTO_BUCLEAR (must send befor reset i2c module)
+	if ((dev->pdata->err_hdl & NVT_I2C_AUTO_BUCLEAR_BIT) == NVT_I2C_AUTO_BUCLEAR_BIT) {
+		i2c_nvtim_busclr(dev);
+	}
+
+	// NVT_I2C_AUTO_RSTMDL
+	if ((dev->pdata->err_hdl & NVT_I2C_AUTO_RSTMDL_BIT) == NVT_I2C_AUTO_RSTMDL_BIT) {
+		i2c_nvtim_rst_module(dev);
+	}
 
 	return 0;
 }
@@ -316,7 +376,8 @@ static void i2c_nvtim_handle_nack(struct nvtim_i2c_dev *dev)
 	do {
 		timeout--;
 		reg = nvtim_i2c_read_reg(dev, I2C_STS_REG);
-		reg = (reg >> I2C_STS_BUSY) & ~(I2C_STS_BUSBUSY >> I2C_STS_BUSY);
+		reg = (reg & (1 << I2C_STS_BUSY));
+		reg = reg >> I2C_STS_BUSY;
 	} while ((reg == 1) && timeout);
 
 	if (timeout == 0)
@@ -420,6 +481,7 @@ static void
 nvt_i2c_config(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 {
 	struct nvtim_i2c_dev *dev = i2c_get_adapdata(adap);
+
 	if (msgs[0].flags & NVT_I2C_VD_SRC) {
 		dev->vd_src = msgs[0].buf[0];
 		//printk("%s dev->vd_src = %d\n", __func__, dev->vd_src);
@@ -429,6 +491,37 @@ nvt_i2c_config(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 		dev->busfree_interval = msgs[0].buf[0] | (msgs[0].buf[1] << 8) | (msgs[0].buf[2] << 16);
 		nvtim_i2c_write_reg(dev, I2C_BUSFREE_REG, dev->busfree_interval);
 		//printk("%s dev->busfree_interval = 0x%x\n", __func__, dev->busfree_interval);
+	}
+
+	/* NVT_I2C_SET_CFG_FLG */
+	if (msgs[0].flags == NVT_I2C_SET_CFG_FLG) {
+		/* check msg len */
+		if (msgs[0].len < 1) {
+			dev_err(dev->dev, "%s: len %d error\n", __func__, msgs[0].len);
+			return;
+		}
+		if ((msgs[0].buf[0] == NVT_I2C_AUTO_RSTMDL) || (msgs[0].buf[0] == NVT_I2C_AUTO_BUCLEAR)) {
+			if (msgs[0].len < 2) {
+				dev_err(dev->dev, "%s: len %d error\n", __func__, msgs[0].len);
+				return;
+			}
+		}
+		/* parse buffer data and set cfg */
+		if (msgs[0].buf[0] == NVT_I2C_AUTO_RSTMDL) {
+			if (msgs[0].buf[1] == 0) {
+				dev->pdata->err_hdl &= ~(NVT_I2C_AUTO_RSTMDL_BIT);
+			} else {
+				dev->pdata->err_hdl |= NVT_I2C_AUTO_RSTMDL_BIT;
+			}
+		}
+
+		if (msgs[0].buf[0] == NVT_I2C_AUTO_BUCLEAR) {
+			if (msgs[0].buf[1] == 0) {
+				dev->pdata->err_hdl &= ~(NVT_I2C_AUTO_BUCLEAR_BIT);
+			} else {
+				dev->pdata->err_hdl |= NVT_I2C_AUTO_BUCLEAR_BIT;
+			}
+		}
 	}
 }
 
@@ -575,7 +668,7 @@ i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int stop)
 
 
 		if (dev->berr) {
-			//dev_err(dev->dev, "%s(%d) NACK!\n",__func__,__LINE__);
+			dev_err(dev->dev, "%s(%d) NACK!\n",__func__,__LINE__);
 			i2c_nvtim_handle_nack(dev);
 			i2c_nvtim_init(dev);
 			return -EREMOTEIO;
@@ -730,6 +823,12 @@ i2c_nvtim_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	int i, is_upd[3], ret;
 	int rtytimes;
 
+	if (msgs[0].flags == NVT_I2C_USER_RST) {
+		dev_warn(dev->dev, "i2c module reset\n");
+		i2c_nvtim_init(dev);
+		return num;
+	}
+
 	ret = i2c_nvtim_wait_bus_not_busy(dev, 1);
 	if (ret < 0) {
 		dev_warn(dev->dev, "timeout waiting for bus ready\n");
@@ -738,6 +837,13 @@ i2c_nvtim_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	}
 
 	if ((num == 1) && (msgs[0].flags & NVT_I2C_CONFIG_MASK)) {
+		loc_cpu();
+		nvt_i2c_config(adap, msgs, num);
+		unl_cpu();
+		return num;
+	}
+
+	if ((num == 1) && (msgs[0].flags == NVT_I2C_SET_CFG_FLG)) {
 		loc_cpu();
 		nvt_i2c_config(adap, msgs, num);
 		unl_cpu();
@@ -853,7 +959,7 @@ static int dtsi_i2c_id = -1;
 static int nvtim_i2c_of_probe(struct platform_device *pdev, struct nvtim_i2c_dev *i2c)
 {
 	struct device_node *np = pdev->dev.of_node;
-	u32 clock_frequency, gsr, tsr;
+	u32 clock_frequency, gsr, tsr, user_data_u32;
 	int rt, cnt, i;
 	unsigned int *user_data = NULL;
 	struct nvtim_i2c_clk_info clk_info = {0};
@@ -884,6 +990,24 @@ static int nvtim_i2c_of_probe(struct platform_device *pdev, struct nvtim_i2c_dev
 		// used dtsi id
 	} else {
 		dtsi_i2c_id = -1;
+	}
+
+	/* auto_rst [option]*/
+	if((rt = of_property_read_u32(np, "auto_rst", &user_data_u32)) == 0) {
+		if (user_data_u32 == 0) {
+			i2c->pdata->err_hdl &= ~(NVT_I2C_AUTO_RSTMDL_BIT);
+		} else {
+			i2c->pdata->err_hdl |= NVT_I2C_AUTO_RSTMDL_BIT;
+		}
+	}
+
+	/* auto_busclear [option]*/
+	if((rt = of_property_read_u32(np, "auto_busclear", &user_data_u32)) == 0) {
+		if (user_data_u32 == 0) {
+			i2c->pdata->err_hdl &= ~(NVT_I2C_AUTO_BUCLEAR_BIT);
+		} else {
+			i2c->pdata->err_hdl |= NVT_I2C_AUTO_BUCLEAR_BIT;
+		}
 	}
 
 	/*
@@ -1135,7 +1259,7 @@ static int nvtim_i2c_probe(struct platform_device *pdev)
 		goto err_unuse_clocks;
 	}
 
-	dev_info(&pdev->dev, "Register %s successfully\n", __func__);
+	dev_info(&pdev->dev, "Register %s successfully ver:%s\n", __func__, DRV_VERSION);
 
 	return 0;
 

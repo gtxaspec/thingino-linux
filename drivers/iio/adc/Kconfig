@@ -944,7 +944,7 @@ config XILINX_XADC
 
 config NVT_ADC
 	tristate "Novatek ADC support"
-	depends on NVT_IVOT_PLAT_NA51055 && NVT_OTP_SUPPORT
+	depends on (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089) && NVT_OTP_SUPPORT
 	help
 	  Say yes here to enable Novatek adc module
 

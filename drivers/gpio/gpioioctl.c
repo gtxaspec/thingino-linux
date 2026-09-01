@@ -14,15 +14,18 @@
 #include <linux/ioctl.h>
 #include <linux/uaccess.h>
 #include <linux/fs.h>
+#define DRV_VERSION		"1.00.000"
 
-#define INIT_CMD_MAGIC  0xdc
-#define RESET_CMD_MAGIC 0xdd
-#define GET_CMD_MAGIC   0xde
-#define SET_CMD_MAGIC   0xdf
+#define UNINIT_CMD_MAGIC 0xdb
+#define INIT_CMD_MAGIC   0xdc
+#define RESET_CMD_MAGIC  0xdd
+#define GET_CMD_MAGIC    0xde
+#define SET_CMD_MAGIC    0xdf
 #define GET_CMD         _IOWR(GET_CMD_MAGIC, 0, unsigned int)
 #define SET_CMD         _IOW(SET_CMD_MAGIC, 0, unsigned int)
 #define INIT_CMD        _IOWR(INIT_CMD_MAGIC, 0, unsigned int)
 #define RESET_CMD       _IOW(RESET_CMD_MAGIC, 0, unsigned int)
+#define UNINIT_CMD      _IOWR(UNINIT_CMD_MAGIC, 0, unsigned int)
 
 struct gpio_ioctl_data{
 	int gpio_num;
@@ -65,6 +68,13 @@ static long gpio_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 			gpio_direction_input(val.gpio_num);
 			break;
+		case UNINIT_CMD:
+			if(copy_from_user(&val, (struct gpio_ioctl_data *)arg, \
+				sizeof(struct gpio_ioctl_data)))
+				return -EFAULT;
+
+			gpio_free(val.gpio_num);
+			break;
 		default:
 			return -EINVAL;
 	}
@@ -106,3 +116,4 @@ module_exit(gpio_ctrl_dev_exit);
 MODULE_AUTHOR("Novatek Microelectronics Corp.");
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("GPIO IOCTL driver");
+MODULE_VERSION(DRV_VERSION);

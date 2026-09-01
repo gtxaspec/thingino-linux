@@ -14,6 +14,8 @@
 #include <linux/of.h>
 #include <linux/clk-provider.h>
 #include <plat/nvt-sramctl.h>
+#include <plat/top.h>
+#include <plat/efuse_protected.h>
 
 static void disable_cnn(void)
 {
@@ -55,6 +57,23 @@ static void disable_cnn(void)
 		clk_put(turnoff_clk);
 	} else
 		pr_err("*** %s Get NUE Clock error\n", __func__);
+}
+
+static void check_cpu_freq(void)
+{
+	if (nvt_get_chip_id() == CHIP_NA51084) {
+		struct clk* pll8_clk; 
+		unsigned long cpu_clk;
+
+		pll8_clk = clk_get(NULL, "pll8");
+		cpu_clk = clk_get_rate(pll8_clk);
+		cpu_clk *= 8;
+
+		if (efuse_check_available_extend(EFUSE_ABILITY_CPU_PLL_FREQ , cpu_clk) == FALSE) {
+			pr_err("cpu clock exceeds limitation with %ld, reset to 1.05 GHz\n", cpu_clk);
+			clk_set_rate(pll8_clk, 1050000000 / 8);
+		}
+	}
 }
 
 static int __init nvt_preset_pll(void)
@@ -100,6 +119,8 @@ static int __init nvt_preset_pll(void)
 		pr_err("*** %s not get dts node ***\n", __func__);
 
 	disable_cnn();
+
+	check_cpu_freq();
 
 	return 0;
 }

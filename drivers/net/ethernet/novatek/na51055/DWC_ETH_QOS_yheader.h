@@ -82,6 +82,7 @@
 #include <linux/ioport.h>
 #include <linux/phy.h>
 #include <linux/mdio.h>
+#include <linux/of_mdio.h>
 #if defined(CONFIG_VLAN_8021Q) || defined(CONFIG_VLAN_8021Q_MODULE)
 #define DWC_ETH_QOS_ENABLE_VLAN_TAG
 #endif
@@ -217,11 +218,20 @@
 #define MASK (0x1ULL << 0 | \
 	0x13c7ULL << 32)
 #define MAC_MASK (0x10ULL << 0)
+#ifdef CONFIG_TX_DESC
+#define TX_DESC_CNT CONFIG_TX_DESC
+#else
 #define TX_DESC_CNT 256
+#endif
+#ifdef CONFIG_RX_DESC
+#define RX_DESC_CNT CONFIG_RX_DESC
+#else
 #define RX_DESC_CNT 256
+#endif
 #define MIN_RX_DESC_CNT 16
 #define TX_BUF_SIZE 1536
 #define RX_BUF_SIZE 1568
+#define DUMMY_BUF_SIZE	64
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,6,00)
 #define DWC_ETH_QOS_MAX_LRO_DESC 16
 #define DWC_ETH_QOS_MAX_LRO_AGGR 32
@@ -724,6 +734,9 @@ struct hw_if_struct {
 	INT(*disable_rx_interrupt)(UINT);
 	INT(*enable_rx_interrupt)(UINT);
 
+	INT(*disable_dma_interrupt)(UINT);
+	INT(*enable_dma_interrupt)(UINT);
+
 	/* for handling MMC */
 	INT(*disable_mmc_interrupts)(VOID);
 	INT(*config_mmc_counters)(VOID);
@@ -1224,6 +1237,7 @@ struct DWC_ETH_QOS_prv_data {
 
 	struct mii_bus *mii;
 	struct phy_device *phydev;
+	struct device_node *phy_node;
 	int oldlink;
 	int speed;
 	int oldduplex;
@@ -1367,6 +1381,9 @@ struct DWC_ETH_QOS_prv_data {
 	 * set to 1 if skb has TCP payload else set to 0
 	 * */
 	int tcp_pkt;
+
+	void *mau_dummy_ptr;
+	dma_addr_t mau_dummy_dma_addr;
 };
 
 typedef enum {
@@ -1391,14 +1408,18 @@ void DWC_ETH_QOS_get_pdata(struct DWC_ETH_QOS_prv_data *pdata);
 int create_debug_files(void);
 void remove_debug_files(void);
 
+void dbgpr_regs(void);
+#ifndef CONFIG_NVT_MDIO_NA51055_CFG
 int DWC_ETH_QOS_mdio_register(struct net_device *dev);
 void DWC_ETH_QOS_mdio_unregister(struct net_device *dev);
 INT DWC_ETH_QOS_mdio_read_direct(struct DWC_ETH_QOS_prv_data *pdata,
-				 int phyaddr, int phyreg, int *phydata);
+                                int phyaddr, int phyreg, int *phydata);
 INT DWC_ETH_QOS_mdio_write_direct(struct DWC_ETH_QOS_prv_data *pdata,
-				  int phyaddr, int phyreg, int phydata);
-void dbgpr_regs(void);
+                                 int phyaddr, int phyreg, int phydata);
 void dump_phy_registers(struct DWC_ETH_QOS_prv_data *);
+
+#endif
+
 void dump_tx_desc(struct DWC_ETH_QOS_prv_data *pdata, int first_desc_idx,
 		  int last_desc_idx, int flag, UINT qInx);
 void dump_rx_desc(UINT, struct s_RX_NORMAL_DESC *desc, int cur_rx);
@@ -1412,6 +1433,8 @@ u32 DWC_ETH_QOS_usec2riwt(u32 usec, struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_init_rx_coalesce(struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_enable_all_ch_rx_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_disable_all_ch_rx_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
+void DWC_ETH_QOS_enable_all_ch_dma_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
+void DWC_ETH_QOS_disable_all_ch_dma_interrpt(struct DWC_ETH_QOS_prv_data *pdata);
 void DWC_ETH_QOS_update_rx_errors(struct net_device *, unsigned int);
 void DWC_ETH_QOS_stop_all_ch_tx_dma(struct DWC_ETH_QOS_prv_data *pdata);
 UCHAR get_tx_queue_count(void);

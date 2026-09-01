@@ -97,6 +97,10 @@ static bool ignore_oc = 0;
 module_param (ignore_oc, bool, S_IRUGO);
 MODULE_PARM_DESC (ignore_oc, "ignore bogus hardware overcurrent indications");
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+int ehci_mask_connect = 0;
+#endif
+
 #define	INTR_MASK (STS_IAA | STS_FATAL | STS_PCD | STS_ERR | STS_INT)
 
 /*-------------------------------------------------------------------------*/
@@ -788,6 +792,14 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 #endif
 		u32		ppcd = ~0;
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+		//printk("K-psts=0x%X\n",port_status);
+		if(ehci_mask_connect && (port_status & 0x1)) {
+			bh = 0;
+			goto skip_pcd;
+		}
+#endif
+
 		/* kick root hub later */
 		pcd_status = status;
 
@@ -895,6 +907,11 @@ dead:
 
 	if (bh)
 		ehci_work (ehci);
+
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+skip_pcd:
+#endif
+
 
 #ifdef CONFIG_USB_NVTIVOT_HCD
 	if (unlikely(test_bit(1, &hcd->porcd2)))
@@ -1378,6 +1395,11 @@ MODULE_LICENSE ("GPL");
 #ifdef CONFIG_NVT_IVOT_PLAT_NA51068
 #include "ehci-na51068.c"
 #define PLATFORM_DRIVER					ehci_hcd_na51068_driver
+#endif
+
+#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
+#include "ehci-na51089.c"
+#define PLATFORM_DRIVER					ehci_hcd_na51089_driver
 #endif
 #endif
 

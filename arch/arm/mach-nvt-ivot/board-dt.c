@@ -57,7 +57,7 @@ static const char * const nvt_dt_match[] __initconst = {
 	"nvt,ca53",
 	NULL,
 };
-#elif defined(CONFIG_NVT_IVOT_PLAT_NA51055)
+#elif defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 static const char * const nvt_dt_match[] __initconst = {
 	"nvt,ca9",
 	NULL,
@@ -77,7 +77,7 @@ DT_MACHINE_START(NVT_IVOT_DT, "Novatek Video Platform")
 #endif /* CONFIG_TEE */
 #endif /* CONFIG_CACHE_L2X0 */
 #ifdef CONFIG_SMP
-	#if (defined(CONFIG_NVT_IVOT_PLAT_NA51068) || defined(CONFIG_NVT_IVOT_PLAT_NA51055))
+	#if (defined(CONFIG_NVT_IVOT_PLAT_NA51068) || defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089))
 	.smp		= smp_ops(nvt_ca9_smp_ops),
 	#else
 	.smp		= smp_ops(nvt_smp_ops),

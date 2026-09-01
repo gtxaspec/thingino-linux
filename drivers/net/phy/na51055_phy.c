@@ -11,7 +11,11 @@
 //#include <linux/gpio.h>
 //#include <nvt-gpio.h>
 //#include <nvt-gpio.h>
+#include <plat/top.h>
 #include <linux/delay.h>
+#ifdef CONFIG_OF
+#include <linux/of.h>
+#endif
 
 #include "na51055_reg.h"
 static int bplug = 0;
@@ -85,6 +89,25 @@ static int nvt_soft_reset(struct phy_device *phydev)
 	return phy_poll_reset(phydev);
 }
 
+static int nvt_config_aneg(struct phy_device *phydev)
+{
+	int ret;
+
+	if (phydev->autoneg) {
+		iowrite32(0xE0, (void *)(0xFD2B3800 + 0x380));
+	} else {
+		iowrite32(0xA0, (void *)(0xFD2B3800 + 0x380));
+	}
+	ret = genphy_config_aneg(phydev);
+	if (ret) return ret;
+
+	if (phydev->autoneg) {
+		ret = genphy_restart_aneg(phydev);
+	}
+
+	return ret;
+}
+
 static void eth_phy_poweron(void)
 {
 	unsigned long reg;
@@ -110,14 +133,48 @@ static void eth_phy_poweron(void)
 
 static int nvt_resume(struct phy_device *phydev)
 {
+	int ret = 0;
+	int inv_led = 0;
+	PIN_GROUP_CONFIG pinmux_config[1] = {0};
+#ifdef CONFIG_OF
+	struct device_node* of_node = of_find_node_by_path("/phy@f02b3800");
+#endif
+
 	na510xx_phy_state = phydev->state;
+
+#ifdef CONFIG_OF
+	if (of_node) {
+		printk("%s: find node\r\n", __func__);
+		if(!of_property_read_u32(of_node, "led-inv", &inv_led)) {
+			printk("%s: led-inv found\r\n", __func__);
+		}
+	}
+#endif
+	printk("%s: led-inv = %d\r\n", __func__, inv_led);
+
+	pinmux_config[0].pin_function = PIN_FUNC_ETH;
+	ret = nvt_pinmux_capture(pinmux_config, 1);
+	if (ret) {
+		printk("%s: pinmux not found\r\n", __func__);
+	}
+	printk("%s: pinmux 0x%x\r\n", __func__, (int)pinmux_config[0].config);
 
 	eth_phy_poweron();
 
 	set_best_setting();
 	phy_sw_reset_enable();
 	set_break_link_timer();
-	set_two_leds_link_act();
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
+	if ((pinmux_config[0].config&PIN_ETH_CFG_LED_1ST_ONLY) ||
+			(pinmux_config[0].config&PIN_ETH_CFG_LED_2ND_ONLY)) {
+		set_one_led_link_act();
+	} else {
+		set_two_leds_link_act();
+	}
+#endif
+	if (inv_led) {
+		set_led_inv();
+	}
 	mdelay(10);
 	phy_sw_reset_disable();
 	genphy_config_aneg(phydev);
@@ -157,7 +214,7 @@ static struct phy_driver novatek_drv[] = {
 		.features           = PHY_BASIC_FEATURES,
 		.soft_reset         = nvt_soft_reset,
 		.config_init        = genphy_config_init,
-		.config_aneg        = genphy_config_aneg,
+		.config_aneg        = nvt_config_aneg,
 		.read_status        = genphy_read_status,
 		.suspend            = nvt_suspend,
 		.resume	            = nvt_resume,
@@ -175,5 +232,5 @@ static struct mdio_device_id __maybe_unused novatek_tbl[] = {
 MODULE_DEVICE_TABLE(mdio, novatek_tbl);
 
 MODULE_DESCRIPTION("Novatek Ethernet PHY Driver");
-MODULE_VERSION("1.00.000");
+MODULE_VERSION("1.00.002");
 MODULE_LICENSE("GPL");
