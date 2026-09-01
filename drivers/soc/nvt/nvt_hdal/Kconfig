@@ -1,0 +1,17 @@
+menu "Novatek HDAL Drivers"
+
+config NVT_VOS_KWRAP
+	bool "Novatek vos basic handling API"
+	default y
+	depends on NVT_HDAL_BUILD_IN
+	help
+	  Novatek VOS api to provide basic multi-OS interface.
+
+config NVT_HDAL_KDRV_BUILTIN
+	bool "Novatek hdal k-driver built-in part"
+	default y
+	depends on NVT_HDAL_BUILD_IN
+	help
+	  Novatek hdal k-driver's built-in
+
+endmenu
