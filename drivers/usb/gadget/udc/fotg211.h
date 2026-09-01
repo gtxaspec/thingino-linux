@@ -8,6 +8,7 @@
 
 #include <linux/kernel.h>
 
+#define FOTG210_DEFAULT_NUM_EP	8
 #define FOTG210_MAX_NUM_EP	16 /* ep0...ep4 */
 #define FOTG210_MAX_FIFO_NUM	16 /* fifo0...fifo4 */
 
@@ -51,7 +52,7 @@
 #define DCFESR_CX_DATAPORT_EN	(1 << 31)
 #define DCFESR_CX_FNT_OUT	(0x7F << 24)
 #define DCFESR_CX_FNT_IN	(0x7F << 16)
-#define DCFESR_FIFO_EMPTY(fifo)	(1 << 8 << (fifo))
+#define DCFESR_FIFO_EMPTY(fifo)	(fifo < 8) ? (1 << 8 << (fifo)):(1 << 16 << (fifo))
 #define DCFESR_CX_EMP		(1 << 5)
 #define DCFESR_CX_CLR		(1 << 3)
 #define DCFESR_CX_STL		(1 << 2)
@@ -129,6 +130,9 @@
 #define DISGR2_RESM_INT		(1 << 2)
 #define DISGR2_SUSP_INT		(1 << 1)
 #define DISGR2_USBRST_INT	(1 << 0)
+
+#define DISGR2_OUT_INT(fifo)	(1 << 16 << ((fifo-8) * 2))
+#define DISGR2_SPK_INT(fifo)	(1 << 16 << 1 << ((fifo-8) * 2))
 
 /* Device Receive Zero-Length Data Packet Register (0x150)*/
 #define FOTG210_RX0BYTE		0x150
@@ -221,7 +225,7 @@
 #endif
 
 /* Device FIFO n Instruction and Byte Count Register (0x1B0+4*n) */
-#define FOTG210_FIBCR(fifo)	(0x1B0 + (fifo) * 4)
+#define FOTG210_FIBCR(fifo)	((fifo < 4) ? (0x1B0 + (fifo) * 4) : (0x1F0 + (fifo - 4) * 4))
 #define FIBCR_BCFX		0x7FF
 #define FIBCR_FFRST		(1 << 12)
 

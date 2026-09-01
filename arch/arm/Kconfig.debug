@@ -1904,4 +1904,11 @@ config PID_IN_CONTEXTIDR
 	  additional instructions during context switch. Say Y here only if you
 	  are planning to use hardware trace tools with this kernel.
 
+config LOGFILE
+	bool "LOGFILE serial message logging system"
+	depends on DEBUG_LL
+	help
+	  Saving all serial message into memory buffer.
+	  Logs are saved in in-kernel memory and can be used.
+
 source "drivers/hwtracing/coresight/Kconfig"

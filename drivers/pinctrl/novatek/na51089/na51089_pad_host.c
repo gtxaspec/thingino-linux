@@ -13,6 +13,7 @@
 #include <plat/pad.h>
 #include <plat/pad_reg.h>
 #include "na51089_pinmux.h"
+#include <linux/gpio.h>
 
 static u32 TOP_PAD_REG_BASE;
 #define PAD_GETREG(ofs)         readl((void __iomem *)(TOP_PAD_REG_BASE + ofs))
@@ -206,21 +207,21 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 			bit_mask   = 0x07;
 			driving &= PAD_DS_GROUP_40_MSK;
 
-			if (driving & PAD_DRIVINGSINK_5MA) {
+			if (driving & PAD_DRIVINGSINK_3MA) {
 				driving = 0;
-			} else if (driving & PAD_DRIVINGSINK_10MA) {
+			} else if (driving & PAD_DRIVINGSINK_6MA) {
 				driving = 1;
-			} else if (driving & PAD_DRIVINGSINK_15MA) {
+			} else if (driving & PAD_DRIVINGSINK_9MA) {
 				driving = 2;
-			} else if (driving & PAD_DRIVINGSINK_20MA) {
+			} else if (driving & PAD_DRIVINGSINK_12MA) {
 				driving = 3;
-			} else if (driving & PAD_DRIVINGSINK_25MA) {
+			} else if (driving & PAD_DRIVINGSINK_15MA) {
 				driving = 4;
-			} else if (driving & PAD_DRIVINGSINK_30MA) {
+			} else if (driving & PAD_DRIVINGSINK_18MA) {
 				driving = 5;
-			} else if (driving & PAD_DRIVINGSINK_35MA) {
+			} else if (driving & PAD_DRIVINGSINK_21MA) {
 				driving = 6;
-			} else if (driving & PAD_DRIVINGSINK_40MA) {
+			} else if (driving & PAD_DRIVINGSINK_24MA) {
 				driving = 7;
 			} else {
 				pr_err("No Valid DS value.(0x%X), PAD_DS_GROUP_40\r\n", name);
@@ -233,32 +234,22 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
 			}
 			bit_offset = name & 0x1F;
-			bit_mask   = 0x03;
+			bit_mask   = 0x07;
 
-			if (name & PAD_DS_GROUP_16) {
+			if (name & PAD_DS_GROUP_16)
 				driving &= PAD_DS_GROUP_COMBO_MSK;
 
-				if (driving == PAD_DRIVINGSINK_4MA) {
-					driving = 0;
-				} else if (driving == PAD_DRIVINGSINK_8MA) {
-					driving = 1;
-				} else if (driving == PAD_DRIVINGSINK_12MA) {
-					driving = 2;
-				} else if (driving == PAD_DRIVINGSINK_16MA) {
-					driving = 3;
-				} else {
-					pr_err("No Valid DS value.(0x%X), PAD_DS_GROUP_16\r\n", name);
-					return E_PAR;
-				}
+			if (driving == PAD_DRIVINGSINK_4MA) {
+				driving = 0;
+			} else if ((driving == PAD_DRIVINGSINK_8MA) || (driving == PAD_DRIVINGSINK_10MA)) {
+				driving = 1;
+			} else if (driving == PAD_DRIVINGSINK_12MA) {
+				driving = 2;
+			} else if (driving == PAD_DRIVINGSINK_16MA) {
+				driving = 3;
 			} else {
-				if (driving == PAD_DRIVINGSINK_4MA) {
-					driving = 0;
-				} else if (driving == PAD_DRIVINGSINK_10MA) {
-					driving = 1;
-				} else {
-					pr_err("No Valid DS value.(0x%X), PAD_DS_GROUP_10\r\n", name);
+					pr_err("No Valid DS value.(0x%X)\r\n", name);
 					return E_PAR;
-				}
 			}
 		}
 
@@ -373,31 +364,28 @@ ER pad_get_drivingsink(PAD_DS name, PAD_DRIVINGSINK *driving)
 			*driving = (reg_data >> bit_offset) & bit_mask;
 
 			if (*driving == 0) {
-				*driving = PAD_DRIVINGSINK_5MA;
+				*driving = PAD_DRIVINGSINK_3MA;
 			} else if (*driving == 1) {
-				*driving = PAD_DRIVINGSINK_10MA;
+				*driving = PAD_DRIVINGSINK_6MA;
 			} else if (*driving == 2) {
-				*driving = PAD_DRIVINGSINK_15MA;
+				*driving = PAD_DRIVINGSINK_9MA;
 			} else if (*driving == 3) {
-				*driving = PAD_DRIVINGSINK_20MA;
+				*driving = PAD_DRIVINGSINK_12MA;
 			} else if (*driving == 4) {
-				*driving = PAD_DRIVINGSINK_25MA;
+				*driving = PAD_DRIVINGSINK_15MA;
 			} else if (*driving == 5) {
-				*driving = PAD_DRIVINGSINK_30MA;
+				*driving = PAD_DRIVINGSINK_18MA;
 			} else if (*driving == 6) {
-				*driving = PAD_DRIVINGSINK_35MA;
+				*driving = PAD_DRIVINGSINK_21MA;
 			} else {
-				*driving = PAD_DRIVINGSINK_40MA;
+				*driving = PAD_DRIVINGSINK_24MA;
 			}
-		} else {
-			/* 10MA GROUP */
-			if ((name >= PAD_DS_HSIGPIO0) && !(name & PAD_DS_GROUP_16)) {
-				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2) + 0x28;
-			} else {
-				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
-			}
+		}
+		else if(name & PAD_DS_GROUP_16) {
+			/* 16MA GROUP */
+			dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
 			bit_offset = name & 0x1F;
-			bit_mask   = 0x07;
+			bit_mask   = 0x01;
 
 			reg_data = PAD_GETREG(PAD_DS_REG_OFS + dw_offset);
 			*driving = (reg_data >> bit_offset) & bit_mask;
@@ -410,6 +398,24 @@ ER pad_get_drivingsink(PAD_DS name, PAD_DRIVINGSINK *driving)
 				*driving = PAD_DRIVINGSINK_12MA;
 			} else {
 				*driving = PAD_DRIVINGSINK_16MA;
+			}
+		} else {
+			/* 10MA GROUP */
+			if (name >= PAD_DS_HSIGPIO0) {
+				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2) + 0x28;
+			} else {
+				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
+			}
+			bit_offset = name & 0x1F;
+			bit_mask   = 0x01;
+
+			reg_data = PAD_GETREG(PAD_DS_REG_OFS + dw_offset);
+			*driving = (reg_data >> bit_offset) & bit_mask;
+
+			if(*driving == 0) {
+				*driving = PAD_DRIVINGSINK_4MA;
+			} else {
+				*driving = PAD_DRIVINGSINK_10MA;
 			}
 		}
 	}
@@ -429,6 +435,8 @@ EXPORT_SYMBOL(pad_get_drivingsink);
         - @b E_OK: Done with no error
         - Others: Error occured.
 */
+//#define VOLTAGE_SWITCH_GPIO               (D_GPIO(0))
+//#define VOLTAGE_SWITCH_GPIO_1P8V_VALUE    (1)
 ER pad_set_power(PAD_POWER_STRUCT *pad_power)
 {
 	union PAD_PWR1_REG pad_power1_reg = {0};
@@ -443,6 +451,26 @@ ER pad_set_power(PAD_POWER_STRUCT *pad_power)
 		pr_err("MC1 power id no exist\r\n");
 		return E_NOEXS;
 	} else if (pad_power->pad_power_id == PAD_POWERID_MC0) {
+		if (nvt_get_chip_id() == CHIP_NA51089) {
+#if (defined(VOLTAGE_SWITCH_GPIO) && defined(VOLTAGE_SWITCH_GPIO_1P8V_VALUE))
+			if (gpio_is_valid(VOLTAGE_SWITCH_GPIO)) {
+				if (pad_power->pad_power & PAD_1P8V) {
+					gpio_direction_output(VOLTAGE_SWITCH_GPIO, VOLTAGE_SWITCH_GPIO_1P8V_VALUE);
+					if (gpio_get_value(VOLTAGE_SWITCH_GPIO) != VOLTAGE_SWITCH_GPIO_1P8V_VALUE) {
+						pr_info("voltage switch gpio to 1.8V failed\r\n");
+					}
+				} else {
+					gpio_direction_output(VOLTAGE_SWITCH_GPIO, !VOLTAGE_SWITCH_GPIO_1P8V_VALUE);
+					if (gpio_get_value(VOLTAGE_SWITCH_GPIO) == VOLTAGE_SWITCH_GPIO_1P8V_VALUE) {
+						pr_info("voltage switch gpio to 3.3V failed\r\n");
+					}
+				}
+			} else {
+				pr_err("voltage switch gpio is invalid\r\n");
+			}
+#endif
+		}
+
 		pad_power1_reg.bit.MC_POWER0 = pad_power->pad_power;
 		pad_power1_reg.bit.MC_SEL = pad_power->bias_current;
 		pad_power1_reg.bit.MC_OPSEL = pad_power->opa_gain;

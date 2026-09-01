@@ -1900,6 +1900,10 @@ int vprintk_store(int facility, int level,
 	if (dict)
 		lflags |= LOG_PREFIX|LOG_NEWLINE;
 
+#ifdef CONFIG_LOGFILE
+	logfile_save_str(text, (lflags & LOG_NEWLINE) ? (text_len + 1) : text_len, 1);
+#endif
+
 	return log_output(facility, level, lflags,
 			  dict, dictlen, text, text_len);
 }

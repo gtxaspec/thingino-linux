@@ -30,10 +30,12 @@
 #include "fotg200-EP.h"
 #include <linux/gpio.h>
 #include <plat/nvt-gpio.h>
+#include <linux/usb/cdc.h>
 
 #define	DRIVER_DESC	"NOVATEK iVot USB Device FOTG200 Controller Driver"
-#define	DRIVER_VERSION	"1.00.038"
+#define	DRIVER_VERSION	"1.00.039"
 
+static bool is_cdc_class = 0;
 u32 vbus_gpio_no = D_GPIO(7);
 static const char udc_name[] = "nvt,fotg200_udc";
 //static const char * const fotg210_ep_name[] = {
@@ -694,14 +696,64 @@ static void fotg210_ep_free_request(struct usb_ep *_ep,
 	kfree(req);
 }
 
+#define BC_STUCK_CHK_CNT 300
 static void fotg210_enable_dma(struct fotg210_ep *ep,
 			      dma_addr_t d, u32 len)
 {
 	u32 value;
 	struct fotg210_udc *fotg210 = ep->fotg210;
+	bool cable_out_ret = 0;
+	u32 pre_bc = 0;
+	u32 cur_bc = 0;
+	u32 temp = 0;
+	u32 count = 0;
+	u32 pre_dma_remain = 0;
+	u32 cur_dma_remain = 0;
 
 	if(!ep->epnum)
 		pr_err("ep0 has no dma. shall not enter fotg210_enable_dma!!\n");
+
+	/* check if fifo empty */
+	if (is_cdc_class) {
+		if ((ep->epnum)&&(ep->dir_in)) {
+			do {
+				if (debug_on) {
+					pr_info("cdc case check fifo reset\n");
+				}
+
+				value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
+			} while (!(value & DCFESR_FIFO_EMPTY(gEPMap[ep->epnum -1])));
+		}
+	} else {
+		if ((ep->epnum)&&(ep->dir_in)) {
+			do {
+				udelay(50);
+				// check whether fifo stuck normally during DMA
+				temp = ioread32(ep->fotg210->reg + FOTG210_FIBCR(gEPMap[ep->epnum -1]));
+				cur_bc = ((gEPMap[ep->epnum - 1])&0x1) ? (temp>>16)&FIBCR_BCFX : temp&FIBCR_BCFX;
+				pre_dma_remain = ioread32(ep->fotg210->reg + 0x1D4);
+				if (debug_on) {
+					pr_info("[fifo reset]cur_bc is 0x%x, pre_bc is 0x%x\n", cur_bc, pre_bc);
+					pr_info("[fifo reset]cur_dma_remain is 0x%x, pre_dma_remain is 0x%x\n", cur_dma_remain, pre_dma_remain);
+				}
+
+				if ((cur_bc == pre_bc) && (cur_dma_remain == pre_dma_remain)) {
+					count++;
+					if (count == BC_STUCK_CHK_CNT) {
+						pr_info("count is %d times\n", count);
+						cable_out_ret = fotg210_cable_out_clear(ep);
+						return;
+					}
+				} else {
+					pre_bc = cur_bc;
+					pre_dma_remain = cur_dma_remain;
+					count = 0;
+				}
+
+				value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
+			} while (!(value & DCFESR_FIFO_EMPTY(gEPMap[ep->epnum - 1])));
+		}
+	}
 
 	/*
 	 *BLOCK the cross DMA section case. ex. ep2 use fifo3 and fifo4, which cross two fifo section.
@@ -770,7 +822,6 @@ static void fotg210_disable_dma(struct fotg210_ep *ep)
 	//iowrite32(DMATFNR_DISDMA, ep->fotg210->reg + FOTG210_DMATFNR);
 }
 
-#define BC_STUCK_CHK_CNT 300
 static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 {
 	u32 value,completebit;
@@ -779,6 +830,7 @@ static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 	u32 vbus_gpio = 0;
 	u32 pre_bc = 0;
 	u32 cur_bc = 0;
+	u32 temp = 0;
 	u32 count = 0;
 	u32 pre_dma_remain = 0;
 	u32 cur_dma_remain = 0;
@@ -795,77 +847,45 @@ static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 
 	timeout = jiffies + msecs_to_jiffies(500);
 
-	do {
-		udelay(50);
-		// check whether plugout cable during DMA
-		vbus_gpio = gpio_get_value(vbus_gpio_no);
-		if (!vbus_gpio) {
+	if (is_cdc_class) {
+		do {
 			if (debug_on) {
-				pr_info("[dma complete]vbus_gpio is %d\n", vbus_gpio);
-
+				pr_info("cdc case check dma cmplt\n");
 			}
-		}
+			value = ioread32(ep->fotg210->reg + FOTG210_DISGR2);
+			if ((value & DISGR2_USBRST_INT) ||
+					(value & DISGR2_DMA_ERROR))
+				goto dma_reset;
 
-		// check whether fifo stuck normally during DMA
-		cur_bc = (ioread32(ep->fotg210->reg + FOTG210_FIBCR(gEPMap[ep->epnum -1])) & FIBCR_BCFX);
-		cur_dma_remain = ioread32(ep->fotg210->reg + 0x1D4);
-		if (debug_on) {
-			pr_info("[dma complt]cur_bc is 0x%x, pre_bc is 0x%x\n", cur_bc, pre_bc);
-			pr_info("[dma complt]cur_dma_remain is 0x%x, pre_dma_remain is 0x%x\n", cur_dma_remain, pre_dma_remain);
-		}
-
-		if ((cur_bc == pre_bc) && (cur_dma_remain == pre_dma_remain)) {
-			count++;
-			if (count == BC_STUCK_CHK_CNT) {
-				pr_info("count is %d times\n", count);
-				cable_out_ret = fotg210_cable_out_clear(ep);
-				value |= DISGR2_DMA_CMPLT;
-				iowrite32(value, ep->fotg210->reg + FOTG210_DISGR2);
-				return;
+			if (time_after(jiffies, timeout)) {
+				pr_err("%s timeout\n", __func__);
+				goto dma_reset;
 			}
-		} else {
-			pre_bc = cur_bc;
-			pre_dma_remain = cur_dma_remain;
-			count = 0;
-		}
+			cpu_relax();
 
-		value = ioread32(ep->fotg210->reg + FOTG210_DISGR2);
-		if ((value & DISGR2_USBRST_INT) ||
-		    (value & DISGR2_DMA_ERROR))
-			goto dma_reset;
+		} while (!(value & completebit));
 
-		cpu_relax();
-
-		if (time_after(jiffies, timeout)) {
-			//pr_err("%s timeout\n", __func__);
-			goto dma_reset;
-		}
-	} while (!(value & completebit));
-
-	pre_bc = 0;
-	pre_dma_remain = 0;
-	count = 0;
-	value = 0;
-	value |= completebit;
-	iowrite32(value, ep->fotg210->reg + FOTG210_DISGR2);
-
-	if ((ep->epnum)&&(ep->dir_in)) {
+		value |= completebit;
+		iowrite32(value, ep->fotg210->reg + FOTG210_DISGR2);
+	} else {
 		do {
 			udelay(50);
 			// check whether plugout cable during DMA
 			vbus_gpio = gpio_get_value(vbus_gpio_no);
 			if (!vbus_gpio) {
 				if (debug_on) {
-					pr_info("[fifo reset]vbus_gpio is %d\n", vbus_gpio);
+					pr_info("[dma complete]vbus_gpio is %d\n", vbus_gpio);
+
 				}
 			}
 
 			// check whether fifo stuck normally during DMA
-			cur_bc = (ioread32(ep->fotg210->reg + FOTG210_FIBCR(gEPMap[ep->epnum -1])) & FIBCR_BCFX);
-			pre_dma_remain = ioread32(ep->fotg210->reg + 0x1D4);
+			temp = ioread32(ep->fotg210->reg + FOTG210_FIBCR(gEPMap[ep->epnum -1]));
+			cur_bc = ((gEPMap[ep->epnum - 1])&0x1) ? (temp>>16)&FIBCR_BCFX : temp&FIBCR_BCFX;
+			cur_dma_remain = ioread32(ep->fotg210->reg + 0x1D4);
 			if (debug_on) {
-				pr_info("[fifo reset]cur_bc is 0x%x, pre_bc is 0x%x\n", cur_bc, pre_bc);
-				pr_info("[fifo reset]cur_dma_remain is 0x%x, pre_dma_remain is 0x%x\n", cur_dma_remain, pre_dma_remain);
+				pr_info("[dma complt]cur_bc is 0x%x, pre_bc is 0x%x\n", cur_bc, pre_bc);
+				pr_info("[dma complt]cur_dma_remain is 0x%x, pre_dma_remain is 0x%x\n", cur_dma_remain, pre_dma_remain);
 			}
 
 			if ((cur_bc == pre_bc) && (cur_dma_remain == pre_dma_remain)) {
@@ -873,6 +893,8 @@ static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 				if (count == BC_STUCK_CHK_CNT) {
 					pr_info("count is %d times\n", count);
 					cable_out_ret = fotg210_cable_out_clear(ep);
+					value |= completebit;
+					iowrite32(value, ep->fotg210->reg + FOTG210_DISGR2);
 					return;
 				}
 			} else {
@@ -881,8 +903,21 @@ static void fotg210_wait_dma_done(struct fotg210_ep *ep)
 				count = 0;
 			}
 
-			value = ioread32(ep->fotg210->reg + FOTG210_DCFESR);
-		} while (!(value & DCFESR_FIFO_EMPTY(gEPMap[ep->epnum - 1])));
+			value = ioread32(ep->fotg210->reg + FOTG210_DISGR2);
+			if ((value & DISGR2_USBRST_INT) ||
+					(value & DISGR2_DMA_ERROR))
+				goto dma_reset;
+
+			if (time_after(jiffies, timeout)) {
+				//pr_err("%s timeout\n", __func__);
+				goto dma_reset;
+			}
+			cpu_relax();
+		} while (!(value & completebit));
+
+		value |= completebit;
+		iowrite32(value, ep->fotg210->reg + FOTG210_DISGR2);
+
 	}
 
 	if (debug_on) {
@@ -1744,6 +1779,12 @@ static int fotg210_setup_packet(struct fotg210_udc *fotg210,
 		if (debug_on)
 			pr_info("none standard request, ctrl->bRequestType is 0x%x, ctrl->bRequest is 0x%x\n",  ctrl->bRequestType, ctrl->bRequest);
 
+		if ((ctrl->bRequestType & 0xFF) == USB_CDC_REQ_GET_LINE_CODING) {
+			if (debug_on) {
+				pr_info("CDC case\n");
+			}
+			is_cdc_class = 1;
+		}
 
 		if ((ctrl->bRequest == UVC_GET_CUR) || (ctrl->bRequest == UVC_GET_MIN) || (ctrl->bRequest == UVC_GET_MAX) || (ctrl->bRequest == UVC_GET_RES)
 				|| (ctrl->bRequest ==  UVC_GET_LEN) || (ctrl->bRequest ==  UVC_GET_DEF) || (ctrl->bRequest == UVC_GET_INFO)) {

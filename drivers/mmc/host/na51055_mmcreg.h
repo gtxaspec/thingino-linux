@@ -294,6 +294,20 @@ union SDIO_DLY4_REG {
 	} bit;
 };
 
+#define SDIO_DLY5_REG_OFS           0x64
+union SDIO_DLY5_REG {
+	uint32_t reg;
+	struct {
+	unsigned int Reserved0:4;
+	unsigned int OUT_DLY_EN:1;
+	unsigned int DATA_OUT_DLY_INV:1;
+	unsigned int CMD_OUT_DLY_INV:1;
+	unsigned int Reserved1:1;
+	unsigned int OUT_DLY_SEL:5;
+	unsigned int Reserved2:19;
+	} bit;
+};
+
 #define SDIO_DATA_PORT_REG_OFS     0x100
 union SDIO_DATA_PORT_REG {
 	uint32_t reg;

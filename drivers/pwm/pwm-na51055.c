@@ -88,6 +88,8 @@ static int check = 0;
 #define PWM_SELECT_CPU1 1
 //#define PWM_SELECT_CPU2 1
 
+int clkdiv_tbl[86] = {4, 5, 6, 8, 10, 12, 15, 16, 20, 24, 25, 30, 32, 40, 48, 50, 60, 64, 75, 80, 96, 100, 120, 125, 128, 150, 160, 192, 200, 240, 250, 256, 300, 320, 375, 384, 400, 480, 500, 512, 600, 625, 640, 750, 768, 800, 960, 1000, 1200, 1250, 1280, 1500, 1536, 1600, 1875, 1920, 2000, 2400, 2500, 2560, 3000, 3125, 3200, 3750, 3840, 4000, 4800, 5000, 6000, 6250, 6400, 7500, 7680, 8000, 9375, 9600, 10000, 12000, 12500, 12800, 15000, 15625, 16000, 18750, 19200, 20000};
+
 static inline void nvt_pwm_write_reg(struct nvt_pwm *pwm_dev,
 					 int reg, u32 val)
 {
@@ -212,6 +214,7 @@ static int nvt_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	u64 src_freq = 120000000;
 	u64 p = 0;
     u64 f = 0;
+	int clkdiv_idx = 0;
 
 	if ((pwm->hwpwm >= PWMID_NO_0) && (pwm->hwpwm <= PWMID_NO_7)) {
 		if ((period_ns >= 67) && (period_ns <= 1000000000)) {
@@ -222,7 +225,8 @@ static int nvt_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 			pwmcfg.base_period = (u32)p;
 
 			while (pwmcfg.base_period > 65535) {
-				clkdiv += 4;
+				clkdiv_idx++;
+				clkdiv = clkdiv_tbl[clkdiv_idx] - 1;
 				p = src_freq * period_ns;
 				do_div(p, 1000000000);
 				do_div(p, (clkdiv + 1));
@@ -252,7 +256,8 @@ static int nvt_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 			pwmcfg.base_period = (u32)p;
 
 			while (pwmcfg.base_period > 255) {
-				clkdiv += 4;
+				clkdiv_idx++;
+				clkdiv = clkdiv_tbl[clkdiv_idx] - 1;
 				p = src_freq * period_ns;
 				do_div(p, 1000000000);
 				do_div(p, (clkdiv + 1));
@@ -593,4 +598,4 @@ module_exit(nvt_pwm_exit_driver);
 MODULE_DESCRIPTION("NVT PWM Driver");
 MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.00.009");
+MODULE_VERSION("1.00.010");

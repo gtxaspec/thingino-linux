@@ -1997,6 +1997,9 @@ static int pinmux_config_i2c(uint32_t config)
 
 			top_reg_sgpio0.bit.SGPIO_7 = GPIO_ID_EMUM_FUNC;
 			top_reg_sgpio0.bit.SGPIO_8 = GPIO_ID_EMUM_FUNC;
+			pad_set_pull_updown(PAD_PIN_SGPIO7, PAD_NONE);
+			pad_set_pull_updown(PAD_PIN_SGPIO8, PAD_NONE);
+
 			top_reg5.bit.I2C = I2C_ENUM_I2C;
 		}
 
@@ -2027,6 +2030,8 @@ static int pinmux_config_i2c(uint32_t config)
 
 			top_reg_sgpio0.bit.SGPIO_10 = GPIO_ID_EMUM_FUNC;
 			top_reg_sgpio0.bit.SGPIO_11 = GPIO_ID_EMUM_FUNC;
+			pad_set_pull_updown(PAD_PIN_SGPIO10, PAD_NONE);
+			pad_set_pull_updown(PAD_PIN_SGPIO11, PAD_NONE);
 
 			top_reg5.bit.I2C2 = I2C_ENUM_I2C;
 		}
@@ -2051,6 +2056,8 @@ static int pinmux_config_i2c(uint32_t config)
 
 			top_reg_cgpio0.bit.CGPIO_17 = GPIO_ID_EMUM_FUNC;
 			top_reg_cgpio0.bit.CGPIO_18 = GPIO_ID_EMUM_FUNC;
+			pad_set_pull_updown(PAD_PIN_CGPIO17, PAD_NONE);
+			pad_set_pull_updown(PAD_PIN_CGPIO18, PAD_NONE);
 
 			top_reg5.bit.I2C2 = I2C_ENUM_I2C_2ND;
 		}
@@ -2058,6 +2065,8 @@ static int pinmux_config_i2c(uint32_t config)
 		if (config & PIN_I2C_CFG_CH3) {
 			top_reg_pgpio0.bit.PGPIO_22 = GPIO_ID_EMUM_FUNC;
 			top_reg_pgpio0.bit.PGPIO_21 = GPIO_ID_EMUM_FUNC;
+			pad_set_pull_updown(PAD_PIN_PGPIO22, PAD_NONE);
+			pad_set_pull_updown(PAD_PIN_PGPIO21, PAD_NONE);
 			top_reg5.bit.I2C3 = I2C_ENUM_I2C;
 		}
 
@@ -2091,6 +2100,8 @@ static int pinmux_config_i2c(uint32_t config)
 
 			top_reg_cgpio0.bit.CGPIO_11 = GPIO_ID_EMUM_FUNC;
 			top_reg_cgpio0.bit.CGPIO_12 = GPIO_ID_EMUM_FUNC;
+			pad_set_pull_updown(PAD_PIN_CGPIO11, PAD_NONE);
+			pad_set_pull_updown(PAD_PIN_CGPIO12, PAD_NONE);
 
 			top_reg5.bit.I2C3 = I2C_ENUM_I2C_2ND;
 		}
@@ -2106,6 +2117,8 @@ static int pinmux_config_i2c(uint32_t config)
 
 				top_reg_pgpio0.bit.PGPIO_11 = GPIO_ID_EMUM_FUNC;
 				top_reg_pgpio0.bit.PGPIO_12 = GPIO_ID_EMUM_FUNC;
+				pad_set_pull_updown(PAD_PIN_PGPIO11, PAD_NONE);
+				pad_set_pull_updown(PAD_PIN_PGPIO12, PAD_NONE);
 				top_reg5.bit.I2C4 = I2C_ENUM_I2C;
 			}
 
@@ -2135,12 +2148,16 @@ static int pinmux_config_i2c(uint32_t config)
 
 				top_reg_cgpio0.bit.CGPIO_6 = GPIO_ID_EMUM_FUNC;
 				top_reg_cgpio0.bit.CGPIO_7 = GPIO_ID_EMUM_FUNC;
+				pad_set_pull_updown(PAD_PIN_CGPIO6, PAD_NONE);
+				pad_set_pull_updown(PAD_PIN_CGPIO7, PAD_NONE);
 				top_reg5.bit.I2C4 = I2C_ENUM_I2C_2ND;
 			}
 
 			if (config & PIN_I2C_CFG_CH5) {
 				top_reg_pgpio0.bit.PGPIO_2 = GPIO_ID_EMUM_FUNC;
 				top_reg_pgpio0.bit.PGPIO_3 = GPIO_ID_EMUM_FUNC;
+				pad_set_pull_updown(PAD_PIN_PGPIO2, PAD_NONE);
+				pad_set_pull_updown(PAD_PIN_PGPIO3, PAD_NONE);
 				top_reg4.bit.I2C5 = I2C_ENUM_I2C;
 			}
 

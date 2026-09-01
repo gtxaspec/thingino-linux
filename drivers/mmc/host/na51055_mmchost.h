@@ -385,6 +385,7 @@ struct mmc_nvt_host {
 	int neg_sample_edge;
 	bool need_power_cycle;
 	int indly_sel;
+	int outdly_sel;
 	bool scan_indly_engineering_mode;
 	bool force_power_cycle;
 	int force_power_cycle_period;
@@ -529,6 +530,8 @@ extern int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mod
 extern void sdiohost_setphyrst(struct mmc_nvt_host *host);
 
 extern void sdiohost_setphysample(struct mmc_nvt_host *host, bool internal, bool before);
+
+extern void sdiohost_setinvoutdly(struct mmc_nvt_host *host, bool data_outdly_inv, bool cmd_outdly_inv);
 
 extern void sdiohost_setphyclkoutdly(struct mmc_nvt_host *host, uint32_t outdly_sel);
 

@@ -172,6 +172,15 @@ static int nvt_resume(struct phy_device *phydev)
 		set_two_leds_link_act();
 	}
 #endif
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+        if ((pinmux_config[0].config&PIN_ETH_CFG_LINKLED_ONLY) ||
+                        (pinmux_config[0].config&PIN_ETH_CFG_ACTLED_ONLY)) {
+                set_one_led_link_act();
+        } else {
+                set_two_leds_link_act();
+        }
+#endif
+
 	if (inv_led) {
 		set_led_inv();
 	}
@@ -232,5 +241,5 @@ static struct mdio_device_id __maybe_unused novatek_tbl[] = {
 MODULE_DEVICE_TABLE(mdio, novatek_tbl);
 
 MODULE_DESCRIPTION("Novatek Ethernet PHY Driver");
-MODULE_VERSION("1.00.002");
+MODULE_VERSION("1.00.003");
 MODULE_LICENSE("GPL");

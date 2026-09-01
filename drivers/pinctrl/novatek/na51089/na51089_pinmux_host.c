@@ -1046,6 +1046,9 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	case SP_CLK_SEL_ENUM_SP_2_CLK:
 		value |= PIN_MISC_CFG_SPCLK_2ND;
 		break;
+	case SP_CLK_SEL_ENUM_SP_3_CLK:
+		value |= PIN_MISC_CFG_SPCLK_3RD;
+		break;
 	default:
 		break;
 	}
@@ -1059,6 +1062,9 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 		break;
 	case SP2_CLK_SEL_ENUM_SP2_2_CLK:
 		value |= PIN_MISC_CFG_SP2CLK_2ND;
+		break;
+	case SP2_CLK_SEL_ENUM_SP2_3_CLK:
+		value |= PIN_MISC_CFG_SP2CLK_3RD;
 		break;
 	default:
 		break;
@@ -3507,7 +3513,7 @@ static int pinmux_config_misc(uint32_t config)
 		}
 		top_reg_cgpio0.bit.CGPIO_9 = GPIO_ID_EMUM_FUNC;
 		top_reg6.bit.SP2_CLK = SP2_CLK_SEL_ENUM_SP2_2_CLK;
-	} else if (config & PIN_SENSOR_CFG_SP2CLK_3RD) {
+	} else if (config & PIN_MISC_CFG_SP2CLK_3RD) {
 		if(top_reg7.bit.PWM5 == PWM_ENUM_PWM_4TH) {
 			pr_err("SP_CLK2_3 conflict with PWM5_4\r\n");
 			return E_OBJ;

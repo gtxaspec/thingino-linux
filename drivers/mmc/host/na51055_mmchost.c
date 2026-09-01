@@ -296,6 +296,17 @@ void sdiohost_setphysample(struct mmc_nvt_host *host, bool internal, bool before
 	sdiohost_setreg(host, host->id, SDIO_DLY0_REG_OFS, dly0_reg.reg);
 }
 
+void sdiohost_setinvoutdly(struct mmc_nvt_host *host, bool data_outdly_inv, bool cmd_outdly_inv)
+{
+	union SDIO_DLY5_REG dly5_reg;
+
+	dly5_reg.reg = sdiohost_getreg(host, host->id, SDIO_DLY5_REG_OFS);
+	dly5_reg.bit.DATA_OUT_DLY_INV = data_outdly_inv;
+	dly5_reg.bit.CMD_OUT_DLY_INV = cmd_outdly_inv;
+
+	sdiohost_setreg(host, host->id, SDIO_DLY5_REG_OFS, dly5_reg.reg);
+}
+
 void sdiohost_setphyclkoutdly(struct mmc_nvt_host *host, uint32_t outdly_sel)
 {
 	union SDIO_CLOCK_CTRL2_REG clock_ctrl;
@@ -989,11 +1000,20 @@ uint32_t uidmaaddress, uint32_t uidatalength, bool bisread, uint32_t *vuisdio_de
 	/* patch for sd fifo bug end */
 
 	datactrlreg.reg = sdiohost_getreg(host, id, SDIO_DATA_CTRL_REG_OFS);
+
+	#if 0
 	/* multiple read => disable SDIO INT detection after transfer end */
 	if (bisread && (uidatalength > datactrlreg.bit.BLK_SIZE))
 		datactrlreg.bit.DIS_SDIO_INT_PERIOD = 1;
 	else
 		datactrlreg.bit.DIS_SDIO_INT_PERIOD = 0;
+	#else
+	/*
+	 * The DIS_SDIO_INT_PERIOD is designed for reading infinite blocks.
+	 * But there are some compatibility and performance issues, so it should not be used.
+	 */
+	datactrlreg.bit.DIS_SDIO_INT_PERIOD = 0;
+	#endif
 
 	/*move data en after fifo en*/
 	/*datactrlreg.bit.DATA_EN = 1;*/
@@ -1519,15 +1539,15 @@ int sdiohost_open(struct mmc_nvt_host *host, uint32_t id, int voltage_switch)
 {
 	sdiohost_setpaddriving(host, SDIO_MODE_DS);
 
+	sdiohost_resetdata(host, id);
+
+	sdiohost_resetasync(host, id);
+
 	if (nvt_get_chip_id() == CHIP_NA51055) {
 		sdiohost_setphysample(host, true, false);
 	} else {
 		sdiohost_setphysample(host, false, true);
 	}
-
-	sdiohost_resetdata(host, id);
-
-	sdiohost_resetasync(host, id);
 
 	/* Pass TG1.1-15: init freq should <=400Khz. */
 	/* Set to 399KHz to guarantee pass TG1.1-15 */

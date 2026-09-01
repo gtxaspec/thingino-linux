@@ -26,7 +26,7 @@
 #include <linux/proc_fs.h>
 #include <linux/of.h>
 
-#define DRV_VERSION		"1.11.010"
+#define DRV_VERSION		"1.11.020"
 
 #ifdef CONFIG_RTC_NVT_PWBC_SDT_USER
 #define RTC_PWBC_SDT_ISR_DISABLE	1
@@ -115,7 +115,10 @@ void nvt_rtc_power_control(int reboot_sec)
 		for (i = 0;i < reboot_sec; i++)
 			nvt_rtc_add_one_sec(&sec, &min, &hour, &days);
 
-		wait_for_completion(&cset_completion);
+		if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+			printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+			return;
+		}
 
 		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 		ctrl_reg.bit.cset = 0;
@@ -146,7 +149,10 @@ void nvt_rtc_power_control(int reboot_sec)
 
 	loc_cpu();
 
-	wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		return;
+	}
 
 	rtc_wait_pwr_alarm_done();
 
@@ -218,17 +224,28 @@ static irqreturn_t rtc_update_handler(int irq, void *data)
 
 void rtc_trigger_cset(void)
 {
+	ulong timeout;
 	union RTC_STATUS_REG status_reg;
 	union RTC_CTRL_REG ctrl_reg;
 
 	/*Wait for RTC SRST done*/
+	timeout = jiffies + msecs_to_jiffies(1000);
 	do {
 		status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+		if (time_after_eq(jiffies, timeout)) {
+			printk("RTC s/w reset timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+			return;
+		}
 	} while (status_reg.bit.srst_sts == 1);
 
 	/*Wait for RTC is ready for next CSET*/
+	timeout = jiffies + msecs_to_jiffies(1000);
 	do {
 		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+		if (time_after_eq(jiffies, timeout)) {
+			printk("RTC cset timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+			return;
+		}
 	} while (ctrl_reg.bit.cset == 1);
 
 	/*Trigger CSET*/
@@ -240,10 +257,17 @@ void rtc_trigger_cset(void)
 
 void rtc_wait_pwr_alarm_done(void)
 {
+	ulong timeout;
 	union RTC_PWBC_REG pwbc_reg;
+
+	timeout = jiffies + msecs_to_jiffies(1000);
 	do
 	{
 		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+		if (time_after_eq(jiffies, timeout)) {
+			printk("RTC cset timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+			return;
+		}
 	} while ((pwbc_reg.bit.pwralarm_en == 1) || \
 			(pwbc_reg.bit.pwralarm_dis == 1));
 }
@@ -446,7 +470,10 @@ static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 	loc_cpu();
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		dev_err(dev, "RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		return -ETXTBSY;
+	}
 	complete(&cset_completion);
 	unl_cpu();
 
@@ -518,7 +545,11 @@ static int nvt_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	loc_cpu();
 
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		dev_err(dev, "RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		unl_cpu();
+		return -ETXTBSY;
+	}
 
 	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 	ctrl_reg.bit.cset = 0;
@@ -552,7 +583,11 @@ static int nvt_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 	loc_cpu();
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		dev_err(dev, "RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		unl_cpu();
+		return -ETXTBSY;
+	}
 	complete(&cset_completion);
 	unl_cpu();
 
@@ -642,7 +677,10 @@ static int nvt_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 		return E_PAR;
 	}
 
-	wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		dev_err(dev, "RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		return -ETXTBSY;
+	}
 
 	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 	ctrl_reg.bit.cset = 0;
@@ -792,7 +830,10 @@ static int data_proc_show(struct seq_file *seq, void *v)
 
 	loc_cpu();
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		return -ETXTBSY;
+	}
 	complete(&cset_completion);
 	unl_cpu();
 
@@ -842,7 +883,10 @@ static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
 	loc_cpu();
 
         /*wait for cset done*/
-        wait_for_completion(&cset_completion);
+	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
+		printk("RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
+		return -ETXTBSY;
+	}
 
         ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
         ctrl_reg.bit.cset = 0;

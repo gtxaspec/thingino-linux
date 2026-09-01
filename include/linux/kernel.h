@@ -1033,4 +1033,10 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
 	 /* OTHER_WRITABLE?  Generally considered a bad idea. */		\
 	 BUILD_BUG_ON_ZERO((perms) & 2) +					\
 	 (perms))
+
+#ifdef CONFIG_LOGFILE
+extern void logfile_save_str(const char *instr, size_t count, int kernel_space);
+extern void logfile_save_syserr(void);
+#endif
+
 #endif

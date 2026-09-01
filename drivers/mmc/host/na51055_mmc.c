@@ -637,6 +637,13 @@ static void nvt_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		SDIO_FLOW("use dts indly(0x%x)\n", host->indly_sel);
 	}
 
+	if (host->outdly_sel >= 0) {
+		sdiohost_setphyclkoutdly(host, host->outdly_sel);
+		SDIO_FLOW("use dts outdly(0x%x)\n", host->outdly_sel);
+	}
+
+	sdiohost_setinvoutdly(host, false, false);
+
 	/*Reset phy to take effect*/
 	sdiohost_setphyrst(host);
 
@@ -1333,7 +1340,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	u32 ss_clk[2] = {0};
 	size_t mem_size;
 	u32 voltage_switch = 0, max_voltage = 0, sample_edge = 0;
-	int indly_sel = -1;
+	int indly_sel = -1, outdly_sel = -1;
 	int idx = -1;
 	const char *clk_parent = NULL;
 
@@ -1363,6 +1370,9 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 
 	of_property_read_u32(pdev->dev.of_node, "indly_sel",
 				&indly_sel);
+
+	of_property_read_u32(pdev->dev.of_node, "outdly_sel",
+				&outdly_sel);
 
 	of_property_read_u32(pdev->dev.of_node, "power_down_delay_ms",
 				&power_down_delay_ms);
@@ -1468,6 +1478,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	host->voltage_switch = voltage_switch;
 	host->neg_sample_edge = sample_edge;
 	host->indly_sel = indly_sel;
+	host->outdly_sel = outdly_sel;
 	host->power_down_delay_ms = power_down_delay_ms;
 
 	if (host->force_power_cycle) {
@@ -1503,12 +1514,12 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 
 	host->clk = clk_get(&pdev->dev, dev_name(&pdev->dev));
 	if (!IS_ERR(host->clk)) {
-		/* Set parent when running at fastboot mode */
-		if (fastboot_determination() && clk_parent) {
+		/* Set parent by dts */
+		if (clk_parent) {
 			if (clk_set_parent(host->clk, clk_get(NULL, clk_parent))) {
-				dev_err(mmc_dev(host->mmc), "%s: fastboot mode, failed to set parent\n", __func__);
+				dev_err(mmc_dev(host->mmc), "%s: dts set clk_parent failed\n", __func__);
 			} else {
-				dev_info(mmc_dev(host->mmc), "%s: fastboot mode, set parent to %s\n", __func__, clk_parent);
+				dev_info(mmc_dev(host->mmc), "%s: dts set clk_parent to %s\n", __func__, clk_parent);
 			}
 		}
 		/*sdio required asyn reset before operation.
@@ -1631,17 +1642,20 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 #endif
 	if (cd_gpio[2]) {
 		if (cd_gpio[0]) {
-			if(gpio_is_valid(host->mmc_cd_irq)) {
+			if(gpio_is_valid(cd_gpio[0])) {
 				ret = request_irq(host->mmc_cd_irq, mmc_irq_cd,
-				IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "mmc_cd", host);
+						IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "mmc_cd", host);
 				if (ret) {
-					dev_err(mmc_dev(host->mmc), "mmc_cd request_irq failed\n");
+					mmc->caps |= MMC_CAP_NEEDS_POLL;
+					dev_err(mmc_dev(host->mmc), "cd_gpio request irq failed\n");
 				}
 			} else
 				mmc->caps |= MMC_CAP_NEEDS_POLL;
 		}
-	} else
+	} else {
 		mmc->caps |= MMC_CAP_NEEDS_POLL;
+		dev_err(mmc_dev(host->mmc), "cd_gpio is invalid\n");
+	}
 
 	platform_set_drvdata(pdev, host);
 	#if 1  // for Brcm drv
@@ -1803,5 +1817,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.109");
+MODULE_VERSION("1.07.112");
 

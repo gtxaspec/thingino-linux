@@ -1042,6 +1042,9 @@ static ssize_t tty_write(struct file *file, const char __user *buf,
 		ret = -EIO;
 	else
 		ret = do_tty_write(ld->ops->write, tty, file, buf, count);
+#ifdef CONFIG_LOGFILE
+	logfile_save_str((char *)buf, count, 0);
+#endif
 	tty_ldisc_deref(ld);
 	return ret;
 }
@@ -2719,7 +2722,7 @@ static int this_tty(const void *t, struct file *file, unsigned fd)
 		return 0;
 	return file_tty(file) != t ? 0 : fd + 1;
 }
-	
+
 /*
  * This implements the "Secure Attention Key" ---  the idea is to
  * prevent trojan horses by killing all processes associated with this
