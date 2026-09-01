@@ -70,16 +70,18 @@ void nand_host_setup_transfer(struct drv_nand_dev_info *info, \
 	{
 		value |= _PROTECT2_EN;
 	}
-
-
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+	//NT9856x only with 1 cs
+	value |= (trans_param->type);
+#else
 	value |= (trans_param->type | trans_param->cs);
+#endif
 
 
 	if(trans_param->fifo_dir == _FIFO_READ)
 		value |= _NAND_WP_EN;
 
 	NAND_SETREG(info, NAND_CTRL0_REG_OFS, value);
-
 	//#NT#2012/09/05#Steven Wang -begin
 	//#NT#1. Clear status
 	//#NT#2. Re enable complete interrupt mask
@@ -101,7 +103,10 @@ void nand_host_setup_transfer(struct drv_nand_dev_info *info, \
 							trans_param->trans_mode));
 	}
 
-
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR) && defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+	gpio_direction_output(info->flash_info->cs_switch_io, 1);
+	gpio_set_value(info->flash_info->cs_switch_io, trans_param->cs);
+#endif
 	if ((page_count == 0) && (length == 0x40)) {
 		NAND_SETREG(info, NAND_FIFO_CTRL_REG_OFS, \
 			(trans_param->fifo_dir | trans_param->trans_mode));
@@ -116,6 +121,7 @@ void nand_host_setup_transfer(struct drv_nand_dev_info *info, \
 	value3 = NAND_GETREG(info, NAND_INTMASK_REG_OFS);
 	value3 |= NAND_COMP_INTREN;
 	NAND_SETREG(info, NAND_INTMASK_REG_OFS, value3);
+	nand_host_set_nand_type(info, info->flash_info->config_nand_type);
 }
 
 /*
@@ -490,15 +496,15 @@ int nand_host_set_nand_type(struct drv_nand_dev_info *info, NAND_TYPE_SEL nand_t
 	case NANDCTRL_SPI_NAND_TYPE:
 	reg_module0.bit.nand_type = 1;
 	reg_module0.bit.spi_flash_type = 0;
-	reg_module0.bit.col_addr = NAND_1COL_ADDR;
-	reg_module0.bit.row_addr = NAND_1ROW_ADDR;
+//	reg_module0.bit.col_addr = NAND_1COL_ADDR;
+//	reg_module0.bit.row_addr = NAND_1ROW_ADDR;
 	break;
 
 	case NANDCTRL_SPI_NOR_TYPE:
 	reg_module0.bit.nand_type = 1;
 	reg_module0.bit.spi_flash_type = 1;
-	reg_module0.bit.col_addr = NAND_1COL_ADDR;
-	reg_module0.bit.row_addr = NAND_1ROW_ADDR;
+//	reg_module0.bit.col_addr = NAND_1COL_ADDR;
+//	reg_module0.bit.row_addr = NAND_1ROW_ADDR;
 	break;
 
 	default:

@@ -8,8 +8,9 @@
 
 #include <linux/kernel.h>
 
-#define FOTG210_MAX_NUM_EP	5 /* ep0...ep4 */
-#define FOTG210_MAX_FIFO_NUM	4 /* fifo0...fifo4 */
+#define FOTG210_DEFAULT_NUM_EP	5 /* ep0...ep4 */
+#define FOTG210_MAX_NUM_EP	9 /* ep0...ep8 */
+#define FOTG210_MAX_FIFO_NUM	8 /* fifo0...fifo8 */
 
 #define FOTG210_OTGCTRLSTS	0x80
 
@@ -219,7 +220,7 @@
 #endif
 
 /* Device FIFO n Instruction and Byte Count Register (0x1B0+4*n) */
-#define FOTG210_FIBCR(fifo)	(0x1B0 + (fifo) * 4)
+#define FOTG210_FIBCR(fifo)	((fifo < 4) ? (0x1B0 + (fifo) * 4) : (0x1F0 + (fifo - 4) * 4))
 #define FIBCR_BCFX		0x7FF
 #define FIBCR_FFRST		(1 << 12)
 

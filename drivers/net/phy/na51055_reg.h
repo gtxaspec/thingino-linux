@@ -90,7 +90,7 @@
         iowrite32(v, (void *)0xFD2B300C);\
 } while (0)
 
-#define set_best_setting() do { \
+#define set_best_setting_t28() do { \
         unsigned long v; \
         v = ioread32((void *)0xFD2B3AF8); \
         v &= ~(0x07); \
@@ -104,3 +104,10 @@
         iowrite32(v, (void *)0xFD2B3B58);\
 }while(0)
 
+#define set_best_setting_t22() do { \
+        unsigned long v; \
+        v = ioread32((void *)0xFD2B3B74); \
+        v &= ~(0x07); \
+        v |= (0x05); \
+        iowrite32(v, (void *)0xFD2B3B74);\
+}while(0)

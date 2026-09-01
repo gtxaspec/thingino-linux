@@ -23,6 +23,7 @@
 
 /*  Device Main Control Register(0x100) */
 #define FOTG210_DMCR		0x100
+#define DMCR_FORCE_FS		(1 << 9)
 #define DMCR_HS_EN		(1 << 6)
 #define DMCR_CHIP_EN		(1 << 5)
 #define DMCR_SFRST		(1 << 4)

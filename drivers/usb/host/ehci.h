@@ -204,6 +204,11 @@ struct ehci_hcd {			/* one per controller */
 
 #if defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51068) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 	u32         fuseData;
+
+	spinlock_t            host_lock;
+	u32                   se_patch_thread;
+	struct task_struct    *task_se_daemon;
+	int                   power_gpio[2];
 #endif
 
 #if defined(CONFIG_NVT_IVOT_PLAT_NA51068)

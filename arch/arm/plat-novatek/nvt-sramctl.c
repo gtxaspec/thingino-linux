@@ -44,7 +44,7 @@ void nvt_disable_sram_shutdown(SRAM_SD id)
 
 void nvt_enable_sram_shutdown(SRAM_SD id)
 {
-	unsigned long flags;    
+	unsigned long flags;
 	u32 reg_data, reg_ofs;
 
 	reg_ofs = (id >> 5) << 2;
@@ -59,6 +59,52 @@ void nvt_enable_sram_shutdown(SRAM_SD id)
 
 	unl_cpu(flags);
 }
+static int sram_count=0;
+
+/**
+    lock sram resource before use sram.
+
+    @return int.          0,lock success,-1,lock fail
+*/
+int sram_trylock(void)
+{
+	unsigned long flags;
+
+    //pr_err("sram_count %d\r\n",sram_count);
+    loc_cpu(flags);
+    if(!sram_count) {
+        sram_count++;
+        unl_cpu(flags);
+        return 0;
+    } else {
+        pr_err("%s sram is lock %d \r\n",__FUNCTION__,sram_count);
+        unl_cpu(flags);
+        return -1;
+    }
+}
+
+
+/**
+    unlock sram resource after use sram.
+
+    @return int.          0,unlock success,-1,unlock fail
+*/
+int sram_unlock(void)
+{
+	unsigned long flags;
+
+    //pr_err("sram_count %d\r\n",sram_count);
+    loc_cpu(flags);
+    if(!sram_count){
+        pr_err("%s alread unlock %d\r\n",__FUNCTION__,sram_count);
+        unl_cpu(flags);
+        return -1;
+    } else {
+        sram_count--;
+        unl_cpu(flags);
+        return 0;
+    }
+}
 
 static int __init nvt_init_sram_membase(void)
 {
@@ -71,6 +117,9 @@ static int __init nvt_init_sram_membase(void)
 	return 0;
 }
 
+
 core_initcall(nvt_init_sram_membase);
 EXPORT_SYMBOL(nvt_enable_sram_shutdown);
 EXPORT_SYMBOL(nvt_disable_sram_shutdown);
+EXPORT_SYMBOL(sram_trylock);
+EXPORT_SYMBOL(sram_unlock);

@@ -17,6 +17,40 @@
 #include <plat/top.h>
 #include <plat/efuse_protected.h>
 
+static void sp_clk_sel(void)
+{
+	struct device_node *node;
+	struct clk *clk, *pll_clk;
+	char *special_clk_parent[] = {"fix480m", "pll4", "pll5", "pll6"};
+	u32 value = 0;
+	
+	node = of_find_node_by_path("/sp_clk@0");
+	if (node) {
+		
+		if (!of_property_read_u32_array(node, "sp_clksel_config", &value, 1)) {
+				pll_clk = clk_get(NULL, special_clk_parent[value]);
+				//pr_err("sp %s %d\n", __func__, value);
+				clk = clk_get(NULL, "sp_clk");
+				if ((!IS_ERR(clk)) && (!IS_ERR(pll_clk)))
+					clk_set_parent(clk, pll_clk);
+				else
+					pr_err("%s get clock err\n", __func__);
+		}
+		
+		if (!of_property_read_u32_array(node, "sp2_clksel_config", &value, 1)) {
+				pll_clk = clk_get(NULL, special_clk_parent[value]);
+				//pr_err("sp2 %s %d\n", __func__, value);
+				clk = clk_get(NULL, "sp2_clk");
+				if ((!IS_ERR(clk)) && (!IS_ERR(pll_clk)))
+					clk_set_parent(clk, pll_clk);
+				else
+					pr_err("%s get clock err\n", __func__);					
+		}			
+
+	}
+}
+
+
 static void disable_cnn(void)
 {
 	struct clk* turnoff_clk;
@@ -159,6 +193,8 @@ static int __init nvt_preset_pll(void)
 	disable_cnn();
 
 	check_cpu_freq();
+
+	sp_clk_sel();
 
 	return 0;
 }

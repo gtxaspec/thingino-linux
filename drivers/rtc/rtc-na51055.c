@@ -26,7 +26,7 @@
 #include <linux/proc_fs.h>
 #include <linux/of.h>
 
-#define DRV_VERSION		"1.11.030"
+#define DRV_VERSION		"1.11.041"
 
 #ifdef CONFIG_RTC_NVT_PWBC_SDT_USER
 #define RTC_PWBC_SDT_ISR_DISABLE	1
@@ -45,6 +45,7 @@ static int is_power_lost;
 
 void rtc_wait_pwr_alarm_done(void);
 void rtc_trigger_cset(void);
+static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm);
 
 static const unsigned short rtc_ydays[2][13] = {
 	/* Normal years */
@@ -391,15 +392,21 @@ static int nvt_rtc_reset(struct device *dev)
 	return 0;
 }
 
-static int nvt_rtc_chk_power(struct device *dev)
+static int nvt_rtc_chk_power(struct device *dev, int reset_date)
 {
-	int ret = 0;
+	int ret = 0, time_ret = 0, data_ret =0, loop ;
 	int year_looper;
 	uint32_t days = 0;
+	uint16_t usr_data1 = 0;
+	struct rtc_time cur_time;
+
+	union RTC_STATUS_REG status_reg;
 	union RTC_DAYKEY_REG daykey_reg;
 	union RTC_CTRL_REG ctrl_reg;
 	union RTC_OSCAN_REG oscan_reg;
 	union RTC_PWBC_REG pwbc_reg;
+	union RTC_DATA_REG data_reg;
+
 	const int RESET_YEAR = 1970 - 1900;
 	const int RESET_MON = 0;
 
@@ -413,50 +420,165 @@ static int nvt_rtc_chk_power(struct device *dev)
 
 	days += rtc_ydays[is_leap_year(year_looper + 1900)][RESET_MON];
 
+	/*Wait for RTC ready done*/
+	for (loop=0; loop<100; loop++) {
+        status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+		if (status_reg.bit.ready) break;
+		usleep_range(50, 100);
+	}
+	if (loop >= 100) {
+		printk("%s: RTC ready timeout, plz check 32K OSC on PCB\r\n", __func__);
+		return -EIO;
+	}
+
 	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
 	if (daykey_reg.bit.key & RTC_INT_KEY_POR) {
 		is_power_lost = 1;
-		printk("%s: RTC power lost detected\r\n", __func__);
-		ret = nvt_rtc_reset(dev);
-		if (ret) return ret;
+		
 	} else {
 		oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
-		if (oscan_reg.bit.osc_analogcfg == RTC_INT_OSC_ANALOG_CFG) {
+		if (oscan_reg.bit.osc_analogcfg == RTC_INT_OSC_ANALOG_CFG) { // No POR
+			if(reset_date == 0){
+				// check usr data initial value bit7-0 is 0xAA
+				data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+				usr_data1 = (data_reg.bit.data1) & 0x00FF;
+
+				if( usr_data1 != 0xAA){
+					//printk("%s: RTC init usr_data0 \r\n", __func__);
+					ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+					ctrl_reg.bit.cset = 0;
+					ctrl_reg.bit.data0_sel = 1;
+					rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+				
+					data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+					usr_data1 = 0XAA;
+					data_reg.bit.data1 = usr_data1;
+					rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
+					rtc_trigger_cset();
+
+				}else {
+					complete(&cset_completion);
+				}
+			}else { // reset_date == 1 
+            	complete(&cset_completion);
+        	}
+			
 			return 0;
+
+		}else { // POR
+			is_power_lost = 1;
+			printk("%s: RTC ANA not expected 0x%x\r\n", __func__, oscan_reg.bit.osc_analogcfg);
 		}
-		is_power_lost = 1;
-		printk("%s: RTC ANA not expected 0x%x\r\n", __func__, oscan_reg.bit.osc_analogcfg);
-		ret = nvt_rtc_reset(dev);
-		if (ret) return ret;
 	}
 
+	// POR
 	loc_cpu();
 
-	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	/* Reset date 1970 when power lost Anyway */
+    if(reset_date == 1){
+		printk("%s: RTC power lost detected\r\n", __func__);
 
-	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
-	ctrl_reg.bit.cset = 0;
-	ctrl_reg.bit.key_sel = 1;
-	ctrl_reg.bit.pwralarmday_sel = 1;
-	ctrl_reg.bit.day_sel = 1;
-	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+		ret = nvt_rtc_reset(dev);
+			if (ret) return ret;
 
+		// Wait for RTC SRST done, RTC is Ready
+		for (loop=0; loop<100; loop++) {
+			status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+			if (status_reg.bit.ready) break;
+			usleep_range(250, 300);
+		}
+		if (loop >= 100) {
+			printk("%s: RTC ready timeout, plz check 32K OSC on PCB\r\n", __func__);
+			return -EIO;
+		}
+
+    	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+    	ctrl_reg.bit.cset = 0;
+    	ctrl_reg.bit.key_sel = 1;
+    	ctrl_reg.bit.pwralarmday_sel = 1;
+    	ctrl_reg.bit.day_sel = 1;
+    	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+    	/*Set default year*/
+    	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+    	daykey_reg.bit.day = days;
+    	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
+
+	}else if (reset_date == 0){
+		 /* Reset date 1970 when power lost & time invalid & data ! = 0xAA */
+		 // check time is valid
+        complete(&cset_completion);
+
+        // check time is valid
+        time_ret = nvt_rtc_read_time(NULL , &cur_time);
+        
+        /*wait for cset done*/
+    	wait_for_completion(&cset_completion);
+        
+        // check usr data bit7-0 is 0xAA
+        data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+        usr_data1 = (data_reg.bit.data1) & 0x00FF;
+
+        if( usr_data1 != 0xAA){
+            data_ret ++;
+            //printk("rtc usr_data reg = 0x%x\n", data_reg.bit.data1);
+        }
+		if (time_ret != 0 || data_ret != 0){
+			ret = nvt_rtc_reset(dev);
+				if (ret) return ret;
+
+			// Wait for RTC SRST done, RTC is Ready
+			for (loop=0; loop<100; loop++) {
+				status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+				if (status_reg.bit.ready) break;
+				usleep_range(250, 300);
+			}
+			if (loop >= 100) {
+				printk("%s: RTC ready timeout, plz check 32K OSC on PCB\r\n", __func__);
+				return -EIO;
+			}
+		}
+		
+		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+    	ctrl_reg.bit.cset = 0;
+    	ctrl_reg.bit.key_sel = 1;
+    	ctrl_reg.bit.pwralarmday_sel = 1;
+        ctrl_reg.bit.data0_sel = 1;
+    	if (time_ret != 0 || data_ret != 0 ){ //rtc time is invalid & data is not 0xAA Reset date
+            ctrl_reg.bit.day_sel = 1;
+        }
+    	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+    	/*Set default date*/
+    	if (time_ret != 0 || data_ret != 0){
+            printk("%s: RTC power lost detected\r\n", __func__);
+
+            daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+    	    daykey_reg.bit.day = days;
+    	    rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
+
+        }else {
+            printk("%s: RTC KEY is 1 \r\n", __func__);
+        }
+
+        /*Set usr data0 bit7-0 is 0xAA */
+        data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+        usr_data1 = 0XAA;
+	    data_reg.bit.data1 = usr_data1;
+        rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
+    }
+
+	/*Set init KEY */
 	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
 	daykey_reg.bit.key = RTC_INT_KEY;
 	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
 
-	/*Set OSC analog parameter*/
+    /*Set OSC analog parameter*/
 	oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
 	oscan_reg.bit.osc_analogcfg = RTC_INT_OSC_ANALOG_CFG;
 	rtc_setreg(RTC_OSCAN_REG_OFS, oscan_reg.reg);
-
-	/*Set default year*/
-	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
-	daykey_reg.bit.day = days;
-	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
-
-	rtc_trigger_cset();
+    
+    rtc_trigger_cset();
 
 	unl_cpu();
 
@@ -469,15 +591,11 @@ static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	union RTC_TIMER_REG timer_reg;
 	union RTC_DAYKEY_REG daykey_reg;
 
-	loc_cpu();
 	/*wait for cset done*/
 	if (!wait_for_completion_timeout(&cset_completion, msecs_to_jiffies(1000))) {
 		dev_err(dev, "RTC completion timeout, plz check RTC 32K osc or PWR_SW or VCC_VBAT\n");
-        unl_cpu();
 		return -ETXTBSY;
 	}
-	complete(&cset_completion);
-	unl_cpu();
 
 	timer_reg.reg = rtc_getreg(RTC_TIMER_REG_OFS);
 	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
@@ -511,6 +629,8 @@ static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	tm->tm_mday = days;
 	tm->tm_mon  = months;
 	tm->tm_year = years;
+
+	complete(&cset_completion);
 
 	pr_debug("after read time: sec = %d, min = %d, hour = %d, mday = %d," \
 	"mon = %d, year = %d, wday = %d, yday = %d," \
@@ -714,6 +834,23 @@ static int nvt_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	return ret;
 }
 
+static int nvt_rtc_alarm_irq_enable(struct device * dev, unsigned int enabled)
+{
+	union RTC_PWBC_REG pwbc_reg;
+
+	rtc_wait_pwr_alarm_done();
+
+	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	if (enabled) {
+		pwbc_reg.bit.pwralarm_en = 1;
+	} else {
+		pwbc_reg.bit.pwralarm_dis = 1;
+	}
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+
+	return 0;
+}
+
 static int pwbc_init(void)
 {
 #if (RTC_PWBC_SDT_ISR_DISABLE == 0)
@@ -821,6 +958,7 @@ static const struct rtc_class_ops nvt_rtc_ops = {
 	.set_time	= nvt_rtc_set_time,
 	.read_alarm	= nvt_rtc_read_alarm,
 	.set_alarm	= nvt_rtc_set_alarm,
+	.alarm_irq_enable = nvt_rtc_alarm_irq_enable,
 };
 
 /*
@@ -923,7 +1061,7 @@ static int nvt_rtc_probe(struct platform_device *pdev)
 	struct nvt_rtc_priv *priv;
 	struct resource *memres = NULL;
 	struct proc_dir_entry *pentry = NULL;
-	int ret = 0, irq = 0;
+	int ret = 0, irq = 0, reset_date = 0;
 
 	/* setup resource */
 	memres = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -970,9 +1108,13 @@ static int nvt_rtc_probe(struct platform_device *pdev)
 
 	init_completion(&cset_completion);
 	sema_init(&rtc_sem, 1);
-	complete(&cset_completion);
 
-	nvt_rtc_chk_power(&pdev->dev);
+	if (of_property_read_u32(pdev->dev.of_node, "rtc_reset_date", &reset_date) != 0) {
+        //printk("can't not find  <rtc_reset_date> in dtsi ");
+        reset_date = 1;
+    }
+
+	nvt_rtc_chk_power(&pdev->dev, reset_date);
 
 	pentry = proc_create("pwbc", S_IRUGO | S_IXUGO, NULL, &proc_pwbc_fops);
         if (pentry == NULL) {

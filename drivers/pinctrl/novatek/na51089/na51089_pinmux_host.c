@@ -385,6 +385,9 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	if (local_top_reg6.bit.SP2_CLK == SP2_CLK_SEL_ENUM_SP2_2_CLK)
 		value |= PIN_SENSOR_CFG_SP2CLK_2ND;
 
+	if (local_top_reg3.bit.SEN_CCIR_VSHS == 1)
+		value |= PIN_SENSOR_CFG_CCIR_2;
+
 	info->top_pinmux[PIN_FUNC_SENSOR].config = value;
 	info->top_pinmux[PIN_FUNC_SENSOR].pin_function = PIN_FUNC_SENSOR;
 
@@ -1508,11 +1511,13 @@ static int pinmux_config_sensor(uint32_t config)
 
 			if(config & PIN_SENSOR_CFG_CCIR_2)
 			{
+				top_reg3.bit.SEN_CCIR_VSHS = 1;
 				top_reg_hgpio0.bit.HSIGPIO_0 = GPIO_ID_EMUM_FUNC; //PXCLK
 				top_reg_hgpio0.bit.HSIGPIO_1 = GPIO_ID_EMUM_FUNC; //VD
 				top_reg_hgpio0.bit.HSIGPIO_10 = GPIO_ID_EMUM_FUNC;; //HD
 				top_reg_hgpio0.bit.HSIGPIO_11 = GPIO_ID_EMUM_FUNC;; //Field
 			} else {
+				top_reg3.bit.SEN_CCIR_VSHS = 0;
 				top_reg_sgpio0.bit.SGPIO_1 = GPIO_ID_EMUM_FUNC; //PXCLK
 				top_reg_sgpio0.bit.SGPIO_2 = GPIO_ID_EMUM_FUNC; //VD
 				top_reg_sgpio0.bit.SGPIO_3 = GPIO_ID_EMUM_FUNC; //HD
@@ -3990,6 +3995,73 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 	unl_cpu(&top_lock, flags);
 
 	return E_OK;
+}
+
+/**
+	Get pin is GPIO or FUNC
+
+	Set Function PINMUX.
+
+	@param[in] pin   GPIO pin
+
+	@return
+		- @b -1: Parsing error
+        - @b GPIO_ID_EMUM_GPIO: GPIO
+		- @b GPIO_ID_EMUM_FUNC: FUNC
+*/
+int pinmux_parsing_gpio_function(u32 pin)
+{
+	u32 gpio_group;
+	u32 gpio_bit;
+	u32 ui_reg;
+    int top_ofs = -1;
+	gpio_group = (pin & ~(0x1F));
+	gpio_bit = (pin & (0x1F));
+
+	switch(gpio_group) {
+		case C_GPIO(0):
+			top_ofs = 0xA0;
+		break;
+
+		case P_GPIO(0):
+			top_ofs = 0xA8;
+		break;
+
+		case S_GPIO(0):
+			top_ofs = 0xB0;
+		break;
+
+		case L_GPIO(0):
+			top_ofs = 0xB8;
+		break;
+
+		case D_GPIO(0):
+			top_ofs = 0xD0;
+		break;
+
+		case H_GPIO(0):
+			top_ofs = 0xD8;
+		break;
+
+		case A_GPIO(0):
+			top_ofs = 0xE0;
+		break;
+
+		default:
+			top_ofs = -1;
+		break;
+	}
+	if(top_ofs < 0) {
+		return -1;
+	} else {
+		ui_reg = TOP_GETREG(info_get_id, top_ofs);
+//pr_info("ofs[0x%08x] = 0x%08x\r\n", top_ofs, ui_reg);
+		if((ui_reg & (1<<gpio_bit)) == (1<<gpio_bit)) {
+			return GPIO_ID_EMUM_GPIO;
+		} else {
+			return GPIO_ID_EMUM_FUNC;
+		}
+	}
 }
 
 /**

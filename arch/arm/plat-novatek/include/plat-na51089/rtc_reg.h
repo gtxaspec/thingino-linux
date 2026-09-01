@@ -94,7 +94,8 @@ union RTC_DATA_REG {
 	uint32_t reg;
 	struct {
 	unsigned int data0:8;
-	unsigned int reserved:24;
+	unsigned int data1:8;
+	unsigned int reserved:16;
 	} bit;
 };
 

@@ -26,7 +26,7 @@
 #include <linux/interrupt.h>
 #include <plat/wdt_reg.h>
 
-#define DRV_VERSION		"1.01.040"
+#define DRV_VERSION		"1.01.041"
 
 /*The WDT range is from 1s to 89.478 s*/
 #define NVT_WDT_DEFAULT_TIME 80 /*s*/
@@ -159,7 +159,6 @@ static int nvt_wdt_settimeout(struct nvt_wdt_device *nvt_wdt, int new_time)
 	clk_value = (new_time * WDT_SOURCE_CLOCK) >> 12;
 	if (clk_value > WDT_MSB_MAX) {
 		pr_err("Invalid value (%d)\n", new_time);
-		clk_value = WDT_MSB_MAX;
 		nvt_wdt->wdd.timeout = wdt_time;
 		return -EINVAL;
 	}
@@ -388,6 +387,7 @@ static int nvt_wdt_probe(struct platform_device *pdev)
 	nvt_wdt->wdd.timeout = wdt_time;
 	nvt_wdt->wdd.parent = &pdev->dev;
 
+	// coverity[side_effect_free]
 	spin_lock_init(&nvt_wdt->wdt_lock);
 
 	nvt_wdt_init(nvt_wdt);

@@ -9,7 +9,7 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 
-#define DRV_VERSION "1.00.24"
+#define DRV_VERSION "1.00.25"
 
 typedef enum
 {
@@ -1066,5 +1066,6 @@ void pinmux_preset(struct nvt_pinctrl_info *info);
 void pad_preset(struct nvt_pinctrl_info *info);
 int pinmux_set_host(struct nvt_pinctrl_info *info, PINMUX_FUNC_ID id, u32 pinmux);
 void pinmux_gpio_parsing(struct nvt_pinctrl_info *info);
+int pinmux_parsing_gpio_function(u32 pin);
 #endif
 

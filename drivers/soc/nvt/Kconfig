@@ -12,14 +12,45 @@ config NVT_OTP_SUPPORT
 	  This option will configure the NVT OTP(one time programmable) function which can be used call OTP api.
 
 config NVT_HDAL_BUILD_IN
-	bool "Novatek IVOT HDAL for Media device drivers support"
+	bool "Novatek IVOT HDAL for Media device drivers builtin support"
 	depends on ARCH_NVT_IVOT_V7
+	default n
 	select NVT_VOS_KWRAP
 	select NVT_HDAL_KDRV_BUILTIN
-	default n
 	help
-	  Enable this option will let a part of your hdal driver link to uImage
-	  You could select which module want to link in the submenu.
+	  Enable this option will let vos, kdrv_builtin builtin in kernel
+
+config NVT_HDAL_BUILD_IN_ADV
+	bool "More HDAL driver builtin"
+	depends on ARCH_NVT_IVOT_V7 && NVT_HDAL_BUILD_IN
+	default n
+	select NVT_HDAL_KDRV_COMM
+	select NVT_HDAL_KDRV_GFX2D
+	select NVT_HDAL_KDRV_VIDEOCAPTURE
+	select NVT_HDAL_KDRV_VIDEOPROCESS
+	select NVT_HDAL_KDRV_VIDEOCODEC
+	select NVT_HDAL_KDRV_AUDIO_COMMON
+	select NVT_HDAL_KDRV_AUDIO
+	select NVT_HDAL_KFLOW_COMMON
+	select NVT_HDAL_KFLOW_VIDEOCAPTURE
+	select NVT_HDAL_KFLOW_VIDEOPROCESS
+	select NVT_HDAL_KFLOW_VIDEOENC
+	select NVT_HDAL_KFLOW_GFX2D
+	select NVT_HDAL_KFLOW_VIDEOSPRITE
+	select NVT_HDAL_KFLOW_AUDIOCAPTURE
+	select NVT_HDAL_ISP_ISP
+	select NVT_HDAL_ISP_IQ
+	help
+	  Enable this option will let more kdrv, kflow builtin in kernel
+
+config NVT_HDAL_BUILD_IN_2A
+	bool "2A driver builtin"
+	depends on ARCH_NVT_IVOT_V7 && NVT_HDAL_BUILD_IN && NVT_HDAL_BUILD_IN_ADV
+	default y
+	select NVT_HDAL_ISP_AE
+	select NVT_HDAL_ISP_AWB
+	help
+	  Enable this option to use Novatek 2A algorithm
 
 config NVT_STACK_CHECK
 	bool "NVT STACK check"

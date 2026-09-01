@@ -64,6 +64,19 @@ module_param_named(flow_debug_on, flow_debug_on, uint, 0600);
 static unsigned int routine_debug_on = 0;
 module_param_named(routine_debug_on, routine_debug_on, uint, 0600);
 
+/* Some cards require more response time. The global variables are only used for debugging */
+static unsigned int g_read_timeout_ns_on = 0;
+module_param_named(g_read_timeout_ns_on, g_read_timeout_ns_on, int, 0600);
+
+static unsigned int g_read_timeout_ns = 100000000UL;
+module_param_named(g_read_timeout_ns, g_read_timeout_ns, uint, 0600);
+
+static unsigned int g_write_timeout_ns_on = 0;
+module_param_named(g_write_timeout_ns_on, g_write_timeout_ns_on, int, 0600);
+
+static unsigned int g_write_timeout_ns = 3000000000UL;
+module_param_named(g_write_timeout_ns, g_write_timeout_ns, uint, 0600);
+
 #define SDIO_TR(fmt, ...) do { \
 	if (debug_on && host) \
 		pr_info("SDIO%d: "fmt, host->id, ##__VA_ARGS__); \
@@ -290,9 +303,13 @@ static int fastboot_determination(void)
 {
 	u32 m_fastboot = 0x0;
 	struct device_node* of_node = of_find_node_by_path("/fastboot");
+	int ret = 0;
 
 	if (of_node) {
-		of_property_read_u32(of_node, "enable", &m_fastboot);
+		ret = of_property_read_u32(of_node, "enable", &m_fastboot);
+        if (ret) {
+            pr_info("get fastboot property: %d, %d\n", ret, m_fastboot);
+        }
 	}
 
 	return m_fastboot;
@@ -305,13 +322,19 @@ static void nvt_mmc_check_fastboot(void)
 	int ret = 0;
 
 	if (of_node) {
-		of_property_read_u32(of_node, "enable", &m_fastboot);
+		ret = of_property_read_u32(of_node, "enable", &m_fastboot);
+        if (ret) {
+            pr_info("get fastboot property: %d, %d\n", ret, m_fastboot);
+        }
 	}
 
 	of_node = of_find_node_by_path("/fastboot/emmc");
 
 	if (of_node) {
-		of_property_read_u32(of_node, "preload", &preload);
+		ret = of_property_read_u32(of_node, "preload", &preload);
+        if (ret) {
+            pr_info("get preload property: %d, %d\n", ret, preload);
+        }
 	}
 
 	if (m_fastboot && preload) {
@@ -357,6 +380,10 @@ static void nvt_mmc_start_command(struct mmc_nvt_host *host, struct mmc_command 
 	u32 cmd_reg = 0;
 	unsigned long flags;
 	char *s;
+
+    if (host == NULL || cmd == NULL) {
+        return;
+    }
 
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_R1:
@@ -431,6 +458,30 @@ static void nvt_mmc_prepare_data(struct mmc_nvt_host *host, struct mmc_request *
 	if (data == NULL)
 		return;
 
+	if (host->read_timeout_ns_on && !(data->flags & MMC_DATA_WRITE)) {
+		SDIO_DATA("read_tout_ns_on: replace tout_ns from (%u) to (%u)\n",
+			data->timeout_ns, host->read_timeout_ns);
+
+		data->timeout_ns = host->read_timeout_ns;
+	} else if (host->write_timeout_ns_on && (data->flags & MMC_DATA_WRITE)) {
+		SDIO_DATA("write_tout_ns_on: replace tout_ns from (%u) to (%u)\n",
+			data->timeout_ns, host->write_timeout_ns);
+
+		data->timeout_ns = host->write_timeout_ns;
+	}
+
+	if (g_read_timeout_ns_on && !(data->flags & MMC_DATA_WRITE)) {
+		SDIO_DATA("!!!g_read_tout_ns_on: replace tout_ns from (%u) to (%u)\n",
+			data->timeout_ns, g_read_timeout_ns);
+
+		data->timeout_ns = g_read_timeout_ns;
+	} else if (g_write_timeout_ns_on && (data->flags & MMC_DATA_WRITE)) {
+		SDIO_DATA("!!!g_write_tout_ns_on: replace tout_ns from (%u) to (%u)\n",
+			data->timeout_ns, g_write_timeout_ns);
+
+		data->timeout_ns = g_write_timeout_ns;
+	}
+
 	timeout = data->timeout_clks +
 		(data->timeout_ns / host->ns_in_one_cycle);
 
@@ -445,8 +496,9 @@ static void nvt_mmc_prepare_data(struct mmc_nvt_host *host, struct mmc_request *
 	host->data_dir = ((data->flags & MMC_DATA_WRITE) ?
 		SDIO_HOST_WRITE_DATA : SDIO_HOST_READ_DATA);
 
-	SDIO_DATA("%s bytes_left(0x%x) blk(%d) blksz(%d), tout(0x%x) tout_clks(%d) tout_ns(%d) cycle_ns(%d)\n",
-		(data->flags & MMC_DATA_WRITE) ? "write" : "read", host->bytes_left, data->blocks, data->blksz,
+	SDIO_DATA("%s: [bytes_left(0x%x) blocks(%u) blk_addr(%u) blksz(%u)] [tout(0x%x) tout_clks(%u) tout_ns(%u) cycle_ns(%u)]\n",
+		(data->flags & MMC_DATA_WRITE) ? "write" : "read",
+		host->bytes_left, data->blocks, data->blk_addr, data->blksz,
 		timeout, data->timeout_clks, data->timeout_ns, host->ns_in_one_cycle);
 
 	if ((host->mmc->ios.clock >= 50000000) && host->use_dma) {
@@ -617,7 +669,7 @@ static void nvt_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	if ((host->voltage_switch == 0) && (ios->clock >= SDIO_MODE_DS) && \
 		(ios->clock != mmc->f_max))
-		ios->clock = mmc->f_max;
+		ios->clock = min(ios->clock, mmc->f_max);
 
 	switch (ios->bus_width) {
 	case MMC_BUS_WIDTH_8:
@@ -749,10 +801,6 @@ static void nvt_mmc_cmd_done(struct mmc_nvt_host *host, struct mmc_command *cmd)
 			SDIO_ISR("%s: cmd timeout, call mmc_request_done\r\n", __func__);
 		} else if (cmd->error == -EILSEQ) {
 			cmd->mrq->cmd->retries = 0;
-			if (data == NULL) {
-				mmc_request_done(host->mmc, cmd->mrq);
-				SDIO_ISR("%s: cmd crc, call mmc_request_done\r\n", __func__);
-			}
 		}
 	}
 }
@@ -774,7 +822,13 @@ static irqreturn_t mmc_irq_cd(int irq, void *dev_id)
 {
 	struct mmc_nvt_host *host = (struct mmc_nvt_host *)dev_id;
 
-	mmc_detect_change(host->mmc, msecs_to_jiffies(200));
+	SDIO_ROUTINE("%s:\n", __func__);
+
+	if (host) {
+		mmc_detect_change(host->mmc, msecs_to_jiffies(200));
+	} else {
+		printk("[WARN]: SD ISR %d NULL host\n", irq);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -785,8 +839,8 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 	unsigned int qstatus;
 	int end_command = 0;
 	int end_transfer = 0;
-	struct mmc_data *data = host->data;
-	u32 tuning_cmd = sdiohost_getcmd(host);
+	struct mmc_data *data = NULL;
+	u32 tuning_cmd;
 
 	if (!host) {
 		SDIO_ISR("mmc_nvt_host is null\n");
@@ -795,6 +849,9 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 		SDIO_ISR("mmc_host is null\n");
 		return IRQ_HANDLED;
 	}
+
+	tuning_cmd = sdiohost_getcmd(host);
+	data = host->data;
 
 	sdiohost_disinten(host, host->id, SDIO_STATUS_REG_CMD_SEND);
 	qstatus = sdiohost_getstatus(host, host->id);
@@ -868,6 +925,11 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 			end_transfer = 1;
 			nvt_mmc_abort_data(host, data);
 			SDIO_ISR("data timeout, status(0x%x)\n", qstatus);
+		} else {
+			if (host->cmd)
+				printk("[WARN]SDIO%d: data timeout with no host->data, (CMD%d), status(0x%x)\n", host->id, host->cmd->opcode, qstatus);
+			else
+				printk("[WARN]SDIO%d: data timeout with no host->data, status(0x%x)\n", host->id, qstatus);
 		}
 
 		sdiohost_setstatus(host, host->id, MMCST_DATA_TIMEOUT);
@@ -875,11 +937,18 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 
 	if (qstatus & MMCST_DATA_CRC_FAIL) {
 		/* Data CRC error */
-		end_transfer = 1;
-		nvt_mmc_abort_data(host, data);
-		SDIO_ISR("%s data %s error, status(0x%x)\n",
-			(data->flags & MMC_DATA_WRITE) ? "write" : "read",
-			(data->error == -ETIMEDOUT) ? "timeout" : "CRC", qstatus);
+		if (data) {
+			end_transfer = 1;
+			nvt_mmc_abort_data(host, data);
+			SDIO_ISR("%s data %s error, status(0x%x)\n",
+				(data->flags & MMC_DATA_WRITE) ? "write" : "read",
+				(data->error == -ETIMEDOUT) ? "timeout" : "CRC", qstatus);
+		} else {
+			if (host->cmd)
+				printk("[WARN]SDIO%d: data crc error with no host->data, (CMD%d), status(0x%x)\n", host->id, host->cmd->opcode, qstatus);
+			else
+				printk("[WARN]SDIO%d: data crc error with no host->data, status(0x%x)\n", host->id, qstatus);
+		}
 
 		sdiohost_setstatus(host, host->id, MMCST_DATA_CRC_FAIL);
 	}
@@ -889,16 +958,25 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 	}
 
 	if ((qstatus & MMCST_DATA_END) || (qstatus & MMCST_DATA_CRC_OK)) {
-		end_transfer = 1;
-		if (tuning_cmd != MMC_SEND_TUNING_BLOCK) {
-			if (host->do_dma)
-				data->bytes_xfered = data->blocks * data->blksz;
-			else
-				data->bytes_xfered = host->buffer_bytes_left;
-		}
+		if (data) {
+			end_transfer = 1;
+			if (tuning_cmd != MMC_SEND_TUNING_BLOCK) {
+				if (data) {
+					if (host->do_dma)
+						data->bytes_xfered = data->blocks * data->blksz;
+					else
+						data->bytes_xfered = host->buffer_bytes_left;
+				}
+			}
 
-		if (qstatus & MMCST_DATA_CRC_FAIL)
-			data->bytes_xfered = 0;
+			if (qstatus & MMCST_DATA_CRC_FAIL)
+				data->bytes_xfered = 0;
+		} else {
+			if (host->cmd)
+				printk("[WARN]SDIO%d: data transfer done with no host->data, (CMD%d), status(0x%x)\n", host->id, host->cmd->opcode, qstatus);
+			else
+				printk("[WARN]SDIO%d: data transfer done with no host->data, status(0x%x)\n", host->id, qstatus);
+		}
 
 		if (qstatus & MMCST_DATA_END) {
 			sdiohost_setstatus(host, host->id, MMCST_DATA_END);
@@ -925,7 +1003,9 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 	}
 
 	if (end_command) {
-		nvt_mmc_cmd_done(host, host->cmd);
+        if (host->cmd) {
+            nvt_mmc_cmd_done(host, host->cmd);
+        }
 	}
 
 	if (end_transfer) {
@@ -941,19 +1021,6 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 		} else if (data) {
 			if (tuning_cmd != MMC_SEND_TUNING_BLOCK)
 				nvt_mmc_xfer_done(host, data);
-		} else {
-			int i = 0;
-
-			/* Should not be here */
-			WARN_ON(1);
-			printk("[WARN]SDIO%d: data is null, data(%lx) host->data(%lx) sg(%lx) do_dma(%d) data_dir(%d), buffer(0x%lx) buffer_bytes_left(0x%x), bytes_left(0x%x)\n",
-				host->id, (uintptr_t)data, (uintptr_t)host->data, (uintptr_t)host->sg, host->do_dma, host->data_dir, (uintptr_t)host->buffer, host->buffer_bytes_left, host->bytes_left);
-
-			for (i = 0; i < host->sg_len; i++) {
-				printk("[WARN]SDIO%d: segaddr(0x%x) segsize(0x%x)\n", host->id, host->tmpdestable[i].uisegaddr, host->tmpdestable[i].uisegsize);
-			}
-
-			printk("[WARN]SDIO%d: destab(0x%lx) sg_len(%d)\n", host->id, (uintptr_t)host->vuisdio_destab, host->sg_len);
 		}
 	}
 
@@ -1052,6 +1119,30 @@ static int nvt_card_busy(struct mmc_host *mmc)
 
 	/* Check whether DAT[0] is 0 */
 	return !(sdiohost_getrdy(host, host->id));
+}
+
+static void nvt_init_card(struct mmc_host *mmc, struct mmc_card *card)
+{
+	struct mmc_nvt_host *host = mmc_priv(mmc);
+
+	if (host->clk && !(host->fixed_autogating)) {
+		if (card->type == MMC_TYPE_SDIO || card->type == MMC_TYPE_SD_COMBO) {
+			clk_set_phase(host->clk, 0);
+			SDIO_FLOW("cardtype(%u) is SDIO, force disable autogating(%d)\n", card->type, clk_get_phase(host->clk));
+		} else {
+			if (host->en_autogating == 0) {
+				clk_set_phase(host->clk, 0);
+				SDIO_FLOW("cardtype(%u) is SD/MMC, disable autogating(%d)\n", card->type, clk_get_phase(host->clk));
+			} else if (host->en_autogating == 1) {
+				clk_set_phase(host->clk, 1);
+				SDIO_FLOW("cardtype(%u) is SD/MMC, enable autogating(%d)\n", card->type, clk_get_phase(host->clk));
+			} else {
+				SDIO_FLOW("cardtype(%u) is SD/MMC, use default autogating(%d)\n", card->type, clk_get_phase(host->clk));
+			}
+		}
+	} else {
+		SDIO_FLOW("bypass switch autogating, fixed_autogating(%d) clk(0x%p)\n", host->fixed_autogating, host->clk);
+	}
 }
 
 static void nvt_mmc_check_edge(u32 ch, u32 *zeropos, u32 *zerolength)
@@ -1224,6 +1315,7 @@ static struct mmc_host_ops nvt_mmc_ops = {
 	.start_signal_voltage_switch = nvt_start_signal_voltage_switch,
 	.execute_tuning = nvt_mmc_tuning,
 	.card_busy	= nvt_card_busy,
+	.init_card	= nvt_init_card,
 };
 
 static struct mmc_host_ops nvt_fixed_mmc_ops = {
@@ -1233,6 +1325,7 @@ static struct mmc_host_ops nvt_fixed_mmc_ops = {
 	.get_ro		= nvt_mmc_get_ro,
 	.enable_sdio_irq = nvt_mmc_enable_sdio_irq,
 	.card_busy	= nvt_card_busy,
+	.init_card	= nvt_init_card,
 };
 
 /*----------------------------------------------------------------------*/
@@ -1278,7 +1371,7 @@ static int nvt_mmc_get_ro_polled(struct mmc_host *mmc)
 
 	SDIO_ROUTINE("nvt_mmc_get_ro! 0\n");
 	if (host->ro_gpio)
-		return (gpio_get_value(host->ro_gpio) == host->ro_detect_edge ? 1 : 0);
+		return ((gpio_get_value(host->ro_gpio) == host->ro_detect_edge)	 ? 1 : 0);
 	else
 		return 0;
 }
@@ -1373,12 +1466,18 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	u32 force_power_cycle[2] = {0};
 	u32 power_down_delay_ms = 0;
 	u32 power_up_delay_ms = 0;
+	u32 fixed_autogating = 0;
+	int en_autogating = -1;
+	u32 read_timeout_ns_on = 0, read_timeout_ns = 0;
+	u32 write_timeout_ns_on = 0, write_timeout_ns = 0;
 	u32 pad_driving[SDIO_MAX_MODE_DRIVING] = {0};
 	u32 ss_clk[2] = {0};
 	size_t mem_size;
 	u32 voltage_switch = 0, max_voltage = 0, sample_edge = 0;
+    u32 prop_array[12];
+    u32 prop_val;
 	int indly_sel = -1, outdly_sel = -1;
-	int idx = -1;
+	int idx;
 	const char *clk_parent = NULL;
 
 #ifndef CONFIG_OF
@@ -1399,43 +1498,124 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	pdata = (struct nvt_mmc_config *) of_id->data;
 	pdev->dev.platform_data = pdata;
 
-	of_property_read_u32(pdev->dev.of_node, "voltage-switch",
-				&voltage_switch);
+	ret = of_property_read_u32(pdev->dev.of_node, "voltage-switch",
+				&prop_val);
+	if (ret == 0) {
+		voltage_switch = prop_val;
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "max-voltage",
-				&max_voltage);
+	ret = of_property_read_u32(pdev->dev.of_node, "max-voltage",
+				&prop_val);
+	if (ret == 0) {
+		max_voltage = prop_val;
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "neg-sample-edge",
-				&sample_edge);
+	ret = of_property_read_u32(pdev->dev.of_node, "neg-sample-edge",
+				&prop_val);
+	if (ret == 0) {
+		sample_edge = prop_val;
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "indly_sel",
-				&indly_sel);
+	ret = of_property_read_u32(pdev->dev.of_node, "indly_sel",
+				&prop_val);
+	if (ret == 0) {
+		indly_sel = prop_val;
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "outdly_sel",
-				&outdly_sel);
+	ret = of_property_read_u32(pdev->dev.of_node, "outdly_sel",
+				&prop_val);
+	if (ret == 0) {
+		outdly_sel = prop_val;
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "power_down_delay_ms",
-				&power_down_delay_ms);
+	ret = of_property_read_u32(pdev->dev.of_node, "power_down_delay_ms",
+				&prop_val);
+	if (ret == 0) {
+		power_down_delay_ms = prop_val;
+	}
 
-	of_property_read_u32(pdev->dev.of_node, "power_up_delay_ms",
-				&power_up_delay_ms);
+	ret = of_property_read_u32(pdev->dev.of_node, "power_up_delay_ms",
+				&prop_val);
+	if (ret == 0) {
+		power_up_delay_ms = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, "cd_gpio", cd_gpio, 3);
+	ret = of_property_read_u32(pdev->dev.of_node, "fixed_autogating",
+				&prop_val);
+    if (ret == 0) {
+		fixed_autogating = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, "ro_gpio", ro_gpio, 3);
+	ret = of_property_read_u32(pdev->dev.of_node, "en_autogating",
+				&prop_val);
+	if (ret == 0) {
+		en_autogating = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, "power_en", power_en, 2);
+	ret = of_property_read_u32(pdev->dev.of_node, "read_timeout_ns_on",
+				&prop_val);
+	if (ret == 0) {
+		read_timeout_ns_on = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, \
-					"card_power_gpio", card_power_gpio, 2);
+	ret = of_property_read_u32(pdev->dev.of_node, "read_timeout_ns",
+				&prop_val);
+	if (ret == 0) {
+		read_timeout_ns = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, "force_power_cycle", force_power_cycle, 2);
+	ret = of_property_read_u32(pdev->dev.of_node, "write_timeout_ns_on",
+				&prop_val);
+	if (ret == 0) {
+		write_timeout_ns_on = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, "driving", pad_driving, 12);
+	ret = of_property_read_u32(pdev->dev.of_node, "write_timeout_ns",
+				&prop_val);
+	if (ret == 0) {
+		write_timeout_ns = prop_val;
+	}
 
-	of_property_read_u32_array(pdev->dev.of_node, "ss_clk", ss_clk, 2);
+	ret = of_property_read_u32_array(pdev->dev.of_node, "cd_gpio", prop_array, 3);
+	if (ret == 0) {
+		memcpy((void *)cd_gpio, prop_array, sizeof(u32) * 3);
+	}
 
-	of_property_read_string(pdev->dev.of_node, "clk_parent", &clk_parent);
+	ret = of_property_read_u32_array(pdev->dev.of_node, "ro_gpio", prop_array, 3);
+	if (ret == 0) {
+		memcpy((void *)ro_gpio, prop_array, sizeof(u32) * 3);
+	}
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "power_en", prop_array, 2);
+	if (ret == 0) {
+		memcpy((void *)power_en, prop_array, sizeof(u32) * 2);
+	}
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, \
+					"card_power_gpio", prop_array, 2);
+	if (ret == 0) {
+		memcpy((void *)card_power_gpio, prop_array, sizeof(u32) * 2);
+	}
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "force_power_cycle", prop_array, 2);
+	if (ret == 0) {
+		memcpy((void *)force_power_cycle, prop_array, sizeof(u32) * 2);
+	}
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "driving", prop_array, 12);
+	if (ret == 0) {
+		memcpy((void *)pad_driving, prop_array, sizeof(u32) * 12);
+	}
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "ss_clk", prop_array, 2);
+	if (ret == 0) {
+		memcpy((void *)ss_clk, prop_array, sizeof(u32) * 2);
+	}
+
+	ret = of_property_read_string(pdev->dev.of_node, "clk_parent", &clk_parent);
+	if (ret) {
+		dev_dbg(&pdev->dev, "mmc get clk_parent failed\n");
+	}
 
 	idx = of_alias_get_id(pdev->dev.of_node, "mmc");
 #endif
@@ -1477,7 +1657,9 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		nvt_disable_sram_shutdown(SDIO3_SD);
 	}
 
+	// coverity[side_effect_free]: spin_lock_init is kernel API, do not change
 	spin_lock_init(&host->lock);
+	spin_lock_init(&host->int_mask_lock);
 
 	/*printk("host id = %d\r\n", host->id);*/
 
@@ -1512,8 +1694,12 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	} else {
 		pinmux_config.pin_function = PIN_FUNC_SDIO3;
 	}
-	nvt_pinmux_capture(&pinmux_config, 1);
-	host->pinmux_value = pinmux_config.config;
+
+    if (nvt_pinmux_capture(&pinmux_config, 1) == E_OK) {
+        host->pinmux_value = pinmux_config.config;
+    } else {
+        dev_err(mmc_dev(host->mmc), "get pinmux fail\n");
+    }
 
 	host->use_dma = use_dma;
 	host->mmc_irq = irq;
@@ -1534,12 +1720,12 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	host->outdly_sel = outdly_sel;
 	host->power_down_delay_ms = power_down_delay_ms;
 	host->power_up_delay_ms = power_up_delay_ms;
-
-	if (host->force_power_cycle) {
-		/* In general, the power cycle takes 500ms to 1s */
-		dev_info(mmc_dev(host->mmc), "%s: force power cycle, delay %d ms\n", __func__, host->force_power_cycle_period);
-		sdiohost_power_cycle(host, host->force_power_cycle_period);
-	}
+	host->fixed_autogating = fixed_autogating;
+	host->en_autogating = en_autogating;
+	host->read_timeout_ns_on = read_timeout_ns_on;
+	host->read_timeout_ns = read_timeout_ns;
+	host->write_timeout_ns_on = write_timeout_ns_on;
+	host->write_timeout_ns = write_timeout_ns;
 
 	if (max_voltage < VOLTAGE_3300)
 		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_1P8);
@@ -1547,7 +1733,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
 
 	if (host->cd_gpio) {
-		host->cd_state = gpio_get_value(host->cd_gpio) == host->cd_detect_edge ? 1 : 0;
+		host->cd_state = (gpio_get_value(host->cd_gpio) == host->cd_detect_edge) ? 1 : 0;
 
 		if (!host->cd_state) {
 			sdiohost_power_down(host);
@@ -1566,6 +1752,15 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 			gpio_direction_output(host->cp_gpio, host->cp_gpio_value);
 	}
 
+	if (host->cd_state && host->force_power_cycle) {
+		if (host->cp_gpio) {
+			/* In general, the power cycle takes 500ms to 1s */
+			dev_info(mmc_dev(host->mmc), "%s: force power cycle, delay %d ms\n", __func__, host->force_power_cycle_period);
+			sdiohost_power_cycle(host, host->force_power_cycle_period);
+		} else {
+			dev_info(mmc_dev(host->mmc), "%s: force power cycle failed, cp_gpio(%d) is not defined\n", __func__, host->cp_gpio);
+		}
+	}
 	host->clk = clk_get(&pdev->dev, dev_name(&pdev->dev));
 	if (!IS_ERR(host->clk)) {
 		/* Set parent by dts */
@@ -1665,7 +1860,9 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 
 	mmc->caps |= MMC_CAP_SDIO_IRQ;
 
-	host->version = pdata->version;
+    if (pdata) {
+        host->version = pdata->version;
+    }
 
 	ret = nvt_mmc_sysfs_init(&pdev->dev);
 	if (ret < 0) {
@@ -1683,8 +1880,10 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 			host->max_voltage = SDIO_HOST_SETPOWER_VOL_1P8;
 	}
 
-	if (pdata && pdata->caps)
+	if (pdata && pdata->caps) {
 		mmc->caps |= pdata->caps;
+	}
+
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
 	mmc->ocr_avail_sdio = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
 
@@ -1718,9 +1917,10 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		mmc->caps |= MMC_CAP_NONREMOVABLE;
 	}
 #endif
+
 	if (cd_gpio[2]) {
 		if (cd_gpio[0]) {
-			if(gpio_is_valid(cd_gpio[0])) {
+			if (gpio_is_valid(cd_gpio[0])) {
 				ret = request_irq(host->mmc_cd_irq, mmc_irq_cd,
 						IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "mmc_cd", host);
 				if (ret) {
@@ -1728,10 +1928,11 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 					dev_err(mmc_dev(host->mmc), "cd_gpio request irq failed\n");
 				}
 			} else {
+				dev_err(mmc_dev(host->mmc), "cd_gpio is invalid, ret(%d)\n", gpio_is_valid(cd_gpio[0]));
 				mmc->caps |= MMC_CAP_NEEDS_POLL;
 			}
 
-			if (mmc->caps && MMC_CAP_NEEDS_POLL) {
+			if (mmc->caps & MMC_CAP_NEEDS_POLL) {
 				dev_err(mmc_dev(host->mmc), "cd_gpio still in polling mode\n");
 			} else {
 				dev_err(mmc_dev(host->mmc), "cd_gpio in interrupt mode\n");
@@ -1770,12 +1971,12 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto out;
 
-	dev_info(mmc_dev(host->mmc), "Using %s, %d-bit mode sampling %s edge, mmc%d, pinmux(0x%x)\n",
+	dev_info(mmc_dev(host->mmc), "Using %s, %d-bit mode sampling %s edge, mmc%d, pinmux(0x%x), caps(0x%x)\n",
 		host->use_dma ? "DMA" : "PIO",
 		(mmc->caps & MMC_CAP_8_BIT_DATA) ? 8 :
 		(mmc->caps & MMC_CAP_4_BIT_DATA) ? 4 : 1,
 		host->neg_sample_edge ? "Negtive" : "Positive",
-		host->id, host->pinmux_value);
+		host->id, host->pinmux_value, mmc->caps);
 
 	return 0;
 
@@ -1788,11 +1989,11 @@ out:
 
 		if (host->base)
 			iounmap(host->base);
-	}
 
-	#if 1 // for Brcm drv
-	nvt_host[host->id] = NULL;
-	#endif
+#if 1 // for Brcm drv
+        nvt_host[host->id] = NULL;
+#endif
+	}
 
 	if (mmc)
 		mmc_free_host(mmc);
@@ -1800,7 +2001,7 @@ out:
 	if (mem)
 		release_mem_region(mem->start, mem_size);
 
-	dev_err(mmc_dev(host->mmc), "probe err %d\n", ret);
+	pr_err("probe err %d\n", ret);
 
 	return ret;
 }
@@ -1814,8 +2015,9 @@ static int __exit nvt_mmcsd_remove(struct platform_device *pdev)
 		mmc_remove_host(host->mmc);
 		free_irq(host->mmc_irq, host);
 
-		if (gpio_is_valid(host->mmc_cd_irq))
-			free_irq(gpio_to_irq(host->mmc_cd_irq), host);
+		if ((host->cd_gpio) && !(host->mmc->caps & MMC_CAP_NEEDS_POLL)) {
+			free_irq(host->mmc_cd_irq, host);
+		}
 
 		clk_disable(host->clk);
 		clk_put(host->clk);
@@ -1906,5 +2108,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.125");
+MODULE_VERSION("1.07.138");
 

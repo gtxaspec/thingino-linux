@@ -85,7 +85,7 @@ int nvt_mmc_check_preload_finish(void)
 {
 	void __iomem *mmc_address;
 	static int mmc_ret = 0;
-	u32 status = 0x0, io_reg = 0x0;
+	u32 status = 0x0;
 
 	mutex_lock(&mmc_lock);
 	if (mmc_ret) {

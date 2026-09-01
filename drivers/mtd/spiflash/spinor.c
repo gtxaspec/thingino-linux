@@ -31,13 +31,14 @@
 #include <linux/wait.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <plat/top.h>
 #include <plat/nvt_flash.h>
 #include <plat/nvt-sramctl.h>
 #include "../nvt_flash_spi/nvt_flash_spi_reg.h"
 #include "../nvt_flash_spi/nvt_flash_spi_int.h"
 #include "ext_flash_table.h"
 
-#define NOR_VERSION "1.07.122"
+#define NOR_VERSION "1.07.124"
 
 /* SMI clock rate */
 #define NVT_FLASH_MAX_CLOCK_FREQ	50000000 /* 50 MHz */
@@ -119,11 +120,197 @@ static struct flash_device flash_std_devices[] = {
 };
 
 
+static int mx25l25645g_protect(struct drv_nand_dev_info *info, uint64_t len)
+{
+	int ret;
+	unsigned char status_reg;
+	unsigned char config_reg;
+	unsigned char bp3_0 = 0;
+	unsigned char tb = 1;
+
+	switch (len) {
+	case 0x00000:
+		bp3_0 = 0; 
+		break;
+	case 0x10000:
+		bp3_0 = 1; 
+		break;
+	case 0x20000:
+		bp3_0 = 2; 
+		break;
+	case 0x40000:
+		bp3_0 = 3; 
+		break;
+	case 0x80000:
+		bp3_0 = 4; 
+		break;
+	case 0x100000:
+		bp3_0 = 5; 
+		break;
+	case 0x200000:
+		bp3_0 = 6; 
+		break;
+	case 0x400000:
+		bp3_0 = 7; 
+		break;
+	case 0x800000:
+		bp3_0 = 8; 
+		break;
+	case 0x1000000:
+		bp3_0 = 9; 
+		break;
+	case 0x2000000:
+		bp3_0 = 10; 
+		break;
+	default:
+		return -EINVAL;
+	}
+	printk("bp = %d\n",bp3_0);
+	ret = spinor_read_status(info, NAND_SPI_NOR_STS_RDSR_1, &status_reg); 
+	if (ret)
+		return ret;
+	ret = spinor_read_status(info, NAND_SPI_NOR_STS_RDCR, &config_reg); 
+	if (ret)
+		return ret;
+
+		
+	status_reg &= ~(0xf<<2);
+	status_reg |= (bp3_0)<<2;
+
+	config_reg &= ~(1<<3);
+	config_reg |= (tb)<<3;
+
+	ret = spi_nor_set_status_half_word(info, status_reg<<8|config_reg);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static int en25qx256a_protect(struct drv_nand_dev_info *info, uint64_t len)
+{
+	unsigned char status_reg;
+	unsigned char bp3_0 = 0;
+	unsigned char tb = 1;
+	int ret;
+	switch (len) {
+	case 0x00000:
+		bp3_0 = 0; 
+		break;
+	case 0x10000:
+		bp3_0 = 1; 
+		break;
+	case 0x20000:
+		bp3_0 = 2; 
+		break;
+	case 0x40000:
+		bp3_0 = 3; 
+		break;
+	case 0x80000:
+		bp3_0 = 4; 
+		break;
+	case 0x100000:
+		bp3_0 = 5; 
+		break;
+	case 0x200000:
+		bp3_0 = 6; 
+		break;
+	case 0x400000:
+		bp3_0 = 7; 
+		break;
+	case 0x800000:
+		bp3_0 = 8; 
+		break;
+	case 0x1000000:
+		bp3_0 = 9; 
+		break;
+	case 0x2000000:
+		bp3_0 = 10; 
+		break;
+	default:
+		return -EINVAL;
+	}
+	ret = spinor_read_status(info, NAND_SPI_NOR_STS_RDSR_1, &status_reg); 
+	if (ret)
+		return ret;
+
+	status_reg &= ~(1<<6 | 0xf<<2);
+	status_reg |= (tb<<6 | bp3_0<<2);
+	ret = spinor_write_status(info,  NAND_SPI_NOR_STS_WRSR_1, status_reg);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static int  p25q40uj_c8h_protect(struct drv_nand_dev_info *info, uint64_t len)
+{
+	unsigned char status_reg;
+	unsigned char status2_reg;
+	unsigned char bp4_0 = 0;
+	unsigned char cmp = 0;
+	int ret;
+	switch (len) {
+	case 0x00000:
+		bp4_0 = 0; 
+		break;
+	case 0x10000:
+		bp4_0 = 9; 
+		break;
+	case 0x20000:
+		bp4_0 = 10; 
+		break;
+	case 0x40000:
+		bp4_0 = 11; 
+		break;
+	case 0x80000:
+		bp4_0 = 15; 
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	ret = spinor_read_status(info, NAND_SPI_NOR_STS_RDSR_1, &status_reg); 
+	if (ret)
+		return ret;
+
+	ret = spinor_read_status(info, NAND_SPI_NOR_STS_RDSR_2, &status2_reg); 
+	if (ret)
+		return ret;
+
+	status_reg &= ~(0x1f<<2);
+	status_reg |= (bp4_0<<2);
+	status2_reg &= ~(0x1<<6);
+	status2_reg |= (cmp<<6);
+
+	ret = spi_nor_set_status_half_word(info, status_reg<<8|status2_reg);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+typedef struct nor_protect_id {
+	char        *name;
+	uint32_t    rdid;
+	int 	    (*_nor_protect) (struct drv_nand_dev_info *info, uint64_t len);
+} NOR_PROTECT_ID;
+
+static NOR_PROTECT_ID nor_protect_id_list[] = {
+	// flash name / RDID  /protect_func
+	{ "mx25l25645g", 0x1920c2, mx25l25645g_protect},
+	{ "en25qx256a", 0x19711c, en25qx256a_protect},
+	{ "p25q40uj_c8h", 0x136085, p25q40uj_c8h_protect},
+	//{ "mx25l25635e", 0x1920c2, mx25l25635e_protect}, 
+};
+
+#define NUM_OF_NOR_PROTECT_ID (sizeof(nor_protect_id_list) / sizeof(NOR_PROTECT_ID))
 /* Define spear specific structures */
 
-struct nvt_spinor_flash;
+//struct nvt_spinor_flash;
 u8 std_path = 0;
 
+#if (0)
 /**
  * struct nvt_flash - Structure for NVT Flash Device
  *
@@ -138,7 +325,7 @@ u8 std_path = 0;
 struct nvt_flash {
 	struct clk *clk;
 	unsigned long clk_rate;
-	struct mutex lock;
+	struct mutex *lock;
 	struct drv_nand_dev_info *info;
 	struct platform_device *pdev;
 	struct nvt_spinor_flash *flash;
@@ -162,6 +349,7 @@ struct nvt_spinor_flash {
 	u8 erase_cmd;
 	void __iomem *base_addr;
 };
+#endif
 
 static void nvt_spinor_check_fastboot(void)
 {
@@ -221,7 +409,7 @@ static irqreturn_t nvt_flash_int_handler(int irq, void *dev_id)
  */
 static void nvt_flash_hw_init(struct nvt_flash *dev)
 {
-	mutex_lock(&dev->lock);
+	mutex_lock(dev->lock);
 
 	NAND_SETREG(dev->info, NAND_TIME0_REG_OFS, 0x06002222);
 	NAND_SETREG(dev->info, NAND_TIME1_REG_OFS, 0x7f0f);
@@ -239,7 +427,7 @@ static void nvt_flash_hw_init(struct nvt_flash *dev)
 
 	nand_dll_reset(dev->info);
 
-	mutex_unlock(&dev->lock);
+	mutex_unlock(dev->lock);
 }
 
 /**
@@ -316,7 +504,7 @@ static int nvt_flash_mtd_erase(struct mtd_info *mtd, struct erase_info *e_info)
 	else
 		blk_erase = 1;
 
-	mutex_lock(&dev->lock);
+	mutex_lock(dev->lock);
 
 	/* now erase sectors in loop */
 	while (len) {
@@ -334,7 +522,7 @@ static int nvt_flash_mtd_erase(struct mtd_info *mtd, struct erase_info *e_info)
 		}
 
 		if (ret) {
-			mutex_unlock(&dev->lock);
+			mutex_unlock(dev->lock);
 			return ret;
 		}
 		if (blk_erase) {
@@ -346,7 +534,7 @@ static int nvt_flash_mtd_erase(struct mtd_info *mtd, struct erase_info *e_info)
 		}
 	}
 
-	mutex_unlock(&dev->lock);
+	mutex_unlock(dev->lock);
 
 	return 0;
 }
@@ -376,7 +564,7 @@ static int nvt_flash_mtd_read(struct mtd_info *mtd, loff_t from, size_t len,
 
 	src = flash->base_addr;
 
-	mutex_lock(&dev->lock);
+	mutex_lock(dev->lock);
 
 	/*Read operation*/
 
@@ -387,7 +575,7 @@ static int nvt_flash_mtd_read(struct mtd_info *mtd, loff_t from, size_t len,
 			ret = spinor_read_operation(dev->info, from, len, (u8 *)src);
 
 	if (ret) {
-		mutex_unlock(&dev->lock);
+		mutex_unlock(dev->lock);
 		return ret;
 	}
 
@@ -404,7 +592,7 @@ static int nvt_flash_mtd_read(struct mtd_info *mtd, loff_t from, size_t len,
 		}
 	} while (len > 0);
 
-	mutex_unlock(&dev->lock);
+	mutex_unlock(dev->lock);
 
 	return 0;
 }
@@ -442,7 +630,7 @@ static int nvt_flash_mtd_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	buf = flash->base_addr;
 
-	mutex_lock(&dev->lock);
+	mutex_lock(dev->lock);
 
 	page_offset = (u32)to % flash->page_size;
 
@@ -485,11 +673,10 @@ static int nvt_flash_mtd_write(struct mtd_info *mtd, loff_t to, size_t len,
 	}
 
 err_write:
-	mutex_unlock(&dev->lock);
+	mutex_unlock(dev->lock);
 
 	return ret;
 }
-
 static int nvt_spinor_read_id(struct drv_nand_dev_info *info, uint32_t *id)
 {
 	uint8_t  card_id[8] = {0};
@@ -524,7 +711,7 @@ static int nvt_flash_detect(struct nvt_flash *dev)
 	int ret;
 	u32 val = 0;
 
-	mutex_lock(&dev->lock);
+	mutex_lock(dev->lock);
 
 	/* send readid command in sw mode */
 	ret = nvt_spinor_read_id(dev->info, (uint32_t *)&val);
@@ -536,7 +723,7 @@ static int nvt_flash_detect(struct nvt_flash *dev)
 	ret = get_flash_index(dev, val);
 
 err_probe:
-	mutex_unlock(&dev->lock);
+	mutex_unlock(dev->lock);
 
 	return ret;
 }
@@ -601,6 +788,36 @@ static int nvt_read_sfdp(struct drv_nand_dev_info *info)
 		info->hspeed_dummy_cycle = 10;
 
 	return E_OK;
+}
+
+static int nvt_flash_mtd_lock(struct mtd_info *mtd, loff_t ofs, uint64_t len)
+{
+	struct nvt_flash *dev = mtd->priv;
+	u32 val = 0, i;
+	int ret;
+
+	mutex_lock(dev->lock);
+
+	/* send readid command in sw mode */
+	ret = nvt_spinor_read_id(dev->info, (uint32_t *)&val);
+
+	for (i = 0; i < NUM_OF_NOR_PROTECT_ID; i++) {
+		if (nor_protect_id_list[i].rdid == val) {
+			ret = nor_protect_id_list->_nor_protect(dev->info, len);
+			break;
+		}
+	}
+
+	mutex_unlock(dev->lock);
+
+	if (i == NUM_OF_NOR_PROTECT_ID)
+		return -EINVAL;
+	return ret;
+}
+
+static int nvt_flash_mtd_unlock(struct mtd_info *mtd, loff_t ofs, uint64_t len)
+{
+	return nvt_flash_mtd_lock(mtd, ofs, 0);
 }
 
 static int nvt_flash_setup(struct platform_device *pdev,
@@ -679,12 +896,14 @@ static int nvt_flash_setup(struct platform_device *pdev,
 	flash->mtd._erase = nvt_flash_mtd_erase;
 	flash->mtd._read = nvt_flash_mtd_read;
 	flash->mtd._write = nvt_flash_mtd_write;
+	flash->mtd._lock = nvt_flash_mtd_lock;
+	flash->mtd._unlock = nvt_flash_mtd_unlock;
 	flash->dev_id = trace_flash_devices[flash_index].device_id;
 	/*Copy flash info*/
 	dev->info->flash_info->page_size = flash->page_size;
 	dev->info->flash_info->device_size = flash->mtd.size;
 	dev->info->flash_info->block_size = flash->mtd.erasesize;
-	dev->info->flash_info->chip_sel = 0;
+	//dev->info->flash_info->chip_sel = 0;
 #ifndef CONFIG_FLASH_ONLY_DUAL
 	dev->info->flash_info->nor_quad_support = trace_flash_devices[flash_index].quad_mode;
 	dev->info->flash_info->nor_read_mode = trace_flash_devices[flash_index].read_mode;
@@ -804,7 +1023,8 @@ static int nvt_flash_probe(struct platform_device *pdev)
 
 	nvt_flash_base = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
-	dev->info->mmio_base = devm_ioremap_resource(&pdev->dev, nvt_flash_base);
+	//dev->info->mmio_base = devm_ioremap_resource(&pdev->dev, nvt_flash_base);
+	dev->info->mmio_base = ioremap_nocache(nvt_flash_base->start, (nvt_flash_base->end - nvt_flash_base->start + 1));
 	if (IS_ERR(dev->info->mmio_base)) {
 		ret = PTR_ERR(dev->info->mmio_base);
 		goto err;
@@ -827,12 +1047,52 @@ static int nvt_flash_probe(struct platform_device *pdev)
 	of_property_read_u32(pdev->dev.of_node, "trace-stdtable",
 				&dev->info->trace_stdtable);
 
-	mutex_init(&dev->lock);
+	dev->info->flash_info->chip_sel = 0;
 
+	of_property_read_u32(pdev->dev.of_node, "chip-select",
+		&dev->info->flash_info->chip_sel);
+
+	dev_info(&pdev->dev, "chip_select %d \n", dev->info->flash_info->chip_sel);
+
+	dev->info->flash_info->cs_switch_io = -1;
+
+	of_property_read_u32(pdev->dev.of_node, "cs_switch_io",
+		&dev->info->flash_info->cs_switch_io);
+
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR) && defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+	if(dev->info->flash_info->cs_switch_io < 0) {
+		dev_err(&pdev->dev, "nor nand model but not define cs switch GPIO @ 56x SoC\n");
+		goto err;
+	} else {
+		dev_err(&pdev->dev, "nor force set GPIO  0x%08x as gpio output cs = %d\n", dev->info->flash_info->cs_switch_io, dev->info->flash_info->chip_sel);
+
+		if(nvt_pinmux_check_pin_function(dev->info->flash_info->cs_switch_io) != 1) {
+			dev_err(&pdev->dev, "nor nand model @ 56x and cs switch = 0x%08x, but not config as GPIO!!!\n", dev->info->flash_info->cs_switch_io);
+			goto err;
+		}
+
+		dev->info->flash_info->common_req_gpio = common_request_gpio(dev->info->flash_info->cs_switch_io, "cs_switch");
+
+		if(dev->info->flash_info->common_req_gpio) {
+			dev_err(&pdev->dev, "nor failed to request GPIO 0x%08x\n", dev->info->flash_info->cs_switch_io);
+		} else {
+			gpio_direction_output(dev->info->flash_info->cs_switch_io, 1);
+		}
+	}
+#endif
+
+	dev->lock = mutex_common_init();
 	init_completion(&dev->info->cmd_complete);
 
-	ret = devm_request_irq(&pdev->dev, dev->info->irq, nvt_flash_int_handler,
-				0, pdev->name, dev);
+	dev->info->flash_info->config_nand_type = NANDCTRL_SPI_NOR_TYPE;
+
+	#if (0)
+	ret = devm_request_irq(&pdev->dev, dev->info->irq, nvt_flash_int_handler, 0, pdev->name, dev);
+	#else
+	ret = request_common_irq(dev->info->irq, nvt_flash_int_handler, \
+		IRQF_SHARED, pdev->name, dev, dev->info->flash_info->chip_sel);
+	#endif
+
 	if (ret) {
 		dev_err(&pdev->dev, "NVT SPIFLASH IRQ allocation failed\n");
 		goto err_irq;

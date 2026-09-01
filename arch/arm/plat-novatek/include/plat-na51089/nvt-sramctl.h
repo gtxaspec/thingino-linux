@@ -71,5 +71,27 @@ typedef enum {
 extern void nvt_disable_sram_shutdown(SRAM_SD id);
 extern void nvt_enable_sram_shutdown(SRAM_SD id);
 
+#define SRAM_LOCK  (1)
+/**
+    trylock sram
+    DCE/CNN would share sarm,should tyrlock first
+
+    @param none.
+
+    @return HD_OK for success, < 0 when some error happened.
+*/
+extern int sram_trylock(void);
+
+/**
+    unlock sram
+    DCE/CNN would share sarm,when relase sram shoudl unlock
+
+    @param none.
+
+    @return HD_OK for success, < 0 when some error happened.
+*/
+extern int sram_unlock(void);
+
+
 
 #endif /* _NT96680_NVT_SRAMCTL_H */

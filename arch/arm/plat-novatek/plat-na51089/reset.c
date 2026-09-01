@@ -24,6 +24,9 @@
 #define WDT_CG_RESET_OFS  0x84
 #define WDT_CG_BIT        17
 #define WDT_MAN_OFS       0xC
+
+#if defined(CONFIG_RTC_DRV_NA51055) && !defined(CONFIG_NVT_IM_LVD_RESET)
+#else
 static void nvt_trigger_wdt_external(void)
 {
 	uint32_t reg;
@@ -50,7 +53,8 @@ static void nvt_trigger_wdt_external(void)
 
 	nvt_writel(0x1, NVT_WDT_BASE_VIRT + WDT_MAN_OFS);
 }
-
+#endif
+/* Do reset at machine_restart() stage
 static int nvt_notify_reboot(struct notifier_block *nb, unsigned long action, void *data)
 {
 	if (action == SYS_RESTART) {
@@ -64,19 +68,22 @@ static int nvt_notify_reboot(struct notifier_block *nb, unsigned long action, vo
 
 	return NOTIFY_DONE;
 }
-
+*/
+/*
 static void nvt_power_off_prepare(void)
 {
 #ifdef CONFIG_RTC_DRV_NA51055
 	nvt_rtc_power_control(0);
 #endif
 }
-
+*/
+/*
 static struct notifier_block nvt_reboot_notifier = {
 	.notifier_call  = nvt_notify_reboot,
 	.next       = NULL,
 	.priority   = INT_MAX,
 };
+*/
 
 static void nvt_power_off_done(void)
 {
@@ -88,8 +95,8 @@ static int __init nvt_poweroff_setup(void)
 	pr_info("*** %s \n", __func__);
 
 	pm_power_off = nvt_power_off_done;
-        pm_power_off_prepare = nvt_power_off_prepare;
-	register_reboot_notifier(&nvt_reboot_notifier);
+    //pm_power_off_prepare = nvt_power_off_prepare;
+	//register_reboot_notifier(&nvt_reboot_notifier);
 
 	return 0;
 }
@@ -100,8 +107,13 @@ void nvt_ivot_restart(enum reboot_mode mode, const char *cmd)
 	pr_info("done\n");
 	/* Waiting for core0 rtc flow ready */
 	mdelay(5000);
+	
+#if defined(CONFIG_RTC_DRV_NA51055) && !defined(CONFIG_NVT_IM_LVD_RESET)
+		nvt_rtc_power_control(3);
+#else
+		nvt_trigger_wdt_external();
+#endif
 
-	nvt_trigger_wdt_external();
 }
 
 arch_initcall(nvt_poweroff_setup);

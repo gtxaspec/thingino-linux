@@ -355,6 +355,7 @@ struct mmc_nvt_host {
 	unsigned char voltage_switch;
 	u32 status;
 	spinlock_t lock;
+	spinlock_t int_mask_lock;
 
 	/* buffer is used during PIO of one scatterlist segment, and
 	 * is updated along with buffer_bytes_left.  bytes_left applies
@@ -391,6 +392,14 @@ struct mmc_nvt_host {
 	int force_power_cycle_period;
 	int power_down_delay_ms;  /* delay after card power OFF */
 	int power_up_delay_ms;    /* delay after card power ON */
+	bool fixed_autogating;
+	int en_autogating;
+
+	/* Some cards require more response time */
+	unsigned int read_timeout_ns_on;
+	unsigned int read_timeout_ns;
+	unsigned int write_timeout_ns_on;
+	unsigned int write_timeout_ns;
 
 	/* Defines pad_driving of each mode, as:
 	 * DS_MODE_CLK

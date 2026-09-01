@@ -1817,6 +1817,9 @@ int usb_set_configuration(struct usb_device *dev, int configuration)
 	struct usb_hcd *hcd = bus_to_hcd(dev->bus);
 	int n, nintf;
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	int set_config_retry = 4;
+#endif
 	if (dev->authorized == 0 || configuration == -1)
 		configuration = 0;
 	else {
@@ -1968,10 +1971,20 @@ free_interfaces:
 	}
 	kfree(new_interfaces);
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+set_config_again:
+#endif
 	ret = usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
 			      USB_REQ_SET_CONFIGURATION, 0, configuration, 0,
 			      NULL, 0, USB_CTRL_SET_TIMEOUT);
 	if (ret < 0 && cp) {
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+		if (set_config_retry > 0) {
+			set_config_retry--;
+			printk("retry set config times %d\n", set_config_retry);
+			goto set_config_again;
+		}
+#endif
 		/*
 		 * All the old state is gone, so what else can we do?
 		 * The device is probably useless now anyway.

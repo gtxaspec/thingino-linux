@@ -879,7 +879,7 @@ static const char *tge2_clk_parent[] __initconst = {
 };
 
 static const char *special_clk_parent[] __initconst = {
-	"fix480m", "pll4", "pll10", "pll14"
+	"fix480m", "pll4", "pll5", "pll6"
 };
 
 static const char *remote_clk_parent[] __initconst = {
@@ -1237,6 +1237,12 @@ static struct nvt_composite_mux_clk novatek_cmux_clk[] __initdata = {
 		      CG_CLK_EN_REG0_OFFSET, BIT12, NOT_ENABLE,
 		      0, 0, 0,
 		      0, 0, 0),
+	COMP_MUX_CONF("sp2_clk", special_clk_parent, 25000000, 1,
+		      CG_PERI_CLK_RATE_REG1_OFFSET, BIT10, WID2,
+		      CG_PERI_CLK_DIV_REG1_OFFSET, BIT24, WID8,
+		      CG_CLK_EN_REG1_OFFSET, BIT30, NOT_ENABLE,
+		      0, 0, 0,
+		      0, 0, 0),	
 	COMP_MUX_CONF("remote_clk_sel0", remote_clk_parent, 32768, 0,
 		      0, 0, 0,
 		      0, 0, 0,

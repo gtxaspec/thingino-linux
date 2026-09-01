@@ -20,7 +20,7 @@
 #define D_GPIO(pin)			(pin + 0x80)
 #define H_GPIO(pin)			(pin + 0xA0)
 #define A_GPIO(pin)			(pin + 0xC0)
-#define DSI_GPIO(pin)			(pin + 0xE0)
+#define DSI_GPIO(pin)		(pin + 0xE0)
 
 /* na51068 platform */
 #define GPIO_0(pin)			(pin)

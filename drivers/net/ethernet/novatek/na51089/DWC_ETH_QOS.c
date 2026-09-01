@@ -39,7 +39,7 @@
 #include <linux/of_device.h>
 #endif
 
-#define DRV_VERSION		"1.00.055"
+#define DRV_VERSION		"1.00.059"
 static UCHAR dev_addr[6] = {0, 0x55, 0x7b, 0xb5, 0x7d, 0xf7};
 
 void __iomem *ETH_QOS_REG_BASE;
@@ -90,7 +90,7 @@ static void nvt_eth_env_probe(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (unlikely(res == NULL)) {
 		dev_err(&pdev->dev, "No memory resources\n");
-		return -1;
+		return;
 	}
 	base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(base)) {
@@ -423,6 +423,12 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	pdata->dev_state |= dev->features;
 
 	DWC_ETH_QOS_init_rx_coalesce(pdata);
+#ifdef TIMER_CONTROL
+	pdata->rx_mcast_pkg_th = DWC_ETH_QOS_PKG_TH / 10;
+	pdata->rx_timer_blk_duration = DWC_ETH_QOS_TIMER_DURATION;
+	pdata->rx_timer_blk_enable = 1;
+	pdata->rx_timer_log_enable = 0;
+#endif
 
 #ifdef DWC_ETH_QOS_CONFIG_PTP
 	DWC_ETH_QOS_ptp_init(pdata);

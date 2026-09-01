@@ -24,7 +24,7 @@ config FLASH_ONLY_DUAL
 
 config MTD_SPINOR
 	tristate "SPINOR Device Support"
-	depends on (MTD) && (!MTD_SPINAND)
+	depends on (MTD) 
 	help
 	  This enables support for accessing SPI NOR flash
 	  devices.

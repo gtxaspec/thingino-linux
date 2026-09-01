@@ -135,12 +135,19 @@ EXPORT_SYMBOL(nvt_get_chip_id);
 static int logo_determination(u32 *lcd_type)
 {
 	u32 m_logo = 0x0;
+	u32 de_en = 0x0;
 	struct device_node* of_node = of_find_node_by_path("/logo");
 
 	if (of_node) {
         of_property_read_u32(of_node, "enable", &m_logo);
 
         of_property_read_u32(of_node, "lcd_type", lcd_type);
+		
+		of_property_read_u32(of_node, "de_en", &de_en);
+		
+		if (de_en) {
+			*lcd_type = *lcd_type|PINMUX_LCD_SEL_DE_ENABLE;
+		}
 	}
 
 	return m_logo;

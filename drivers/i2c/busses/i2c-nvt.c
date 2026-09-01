@@ -43,7 +43,7 @@
 #include <linux/dma-mapping.h>
 
 #include "plat/i2c_reg.h"
-#define DRV_VERSION             "1.00.016"
+#define DRV_VERSION             "1.00.018"
 #define NVTIM_I2C_TIMEOUT       (msecs_to_jiffies(1000))
 #define NVTIM_I2C_WDT_TIME_MS   10          ///< 10ms
 
@@ -72,10 +72,14 @@ struct nvtim_i2c_dev {
 	int                 berr;
 	int                 bal;
 	int                 bscltimeout;
+	int                 boundary_err;
 	u8                  vd_src;
 	u32                 busfree_interval;
 	u32                 slave_mode;         ///< 0:master 1:slave
 	u32                 wdt_time;           ///< watchdog time period, ms
+	u32                 w2r_err;			///< unexpected write to read
+	u32                 rw_boundary;        ///< r/w data boundary
+	u8                  rw;                 ///< r=0,w=1
 	struct i2c_adapter  adapter;
 	struct i2c_client   *slave;
 	struct task_struct  *slave_watchdog;
@@ -107,7 +111,7 @@ static inline u32 nvtim_i2c_read_reg(struct nvtim_i2c_dev *i2c_dev, int reg)
 	return readl(i2c_dev->base + reg);
 }
 
-static u32 nvtim_i2c_get_busclock(u32 *gsr, u32 *clkh, u32 *clkl)
+static u32 nvtim_i2c_get_busclock(u32 *gsr, u32 *clkl, u32 *clkh)
 {
 	return (I2C_SOURCE_CLOCK / (*clkl + *clkh + *gsr + 4));
 }
@@ -125,6 +129,7 @@ static void i2c_get_clk_info(struct nvtim_i2c_dev *dev, struct nvtim_i2c_clk_inf
 {
 	if (clk_info == NULL) {
 		dev_err(dev->dev, "clk_info NULL\n");
+		return;
 	}
 
 	clk_info->gsr   = (u16)dev->pdata->gsr;
@@ -217,14 +222,7 @@ static void nvtim_calc_clk_dividers(struct nvtim_i2c_dev *dev, u32 input_clock, 
 
 	/*Adjust to real register settings*/
 	clkl -= 1;
-	if (clkl < I2C_CLKLOW_MIN) {
-		clkl = I2C_CLKLOW_MIN;
-	}
-
 	clkh -= 3;
-	if (clkh < I2C_CLKHIGH_MIN) {
-		clkh = I2C_CLKHIGH_MIN;
-	}
 
 	while (nvtim_i2c_get_busclock(&gsr, &clkl, &clkh) > input_clock) {
 		clkl++;
@@ -434,10 +432,11 @@ static void i2c_nvtim_handle_nack(struct nvtim_i2c_dev *dev)
 static void nvtim_set_data(struct nvtim_i2c_dev *dev)
 {
 	u32 byte_shift, reg, config_reg;
-
+	unsigned long flags;
 	config_reg = ~I2C_ALL_BIT;
 	reg = I2C_DATA_REG_DEFAULT;
 
+	spin_lock_irqsave(&dev->lock, flags);
 	if (dev->buf_len != 0) {
 		config_reg |= (dev->current_bytes << I2C_CONFIG_PIO_DATASIZE);
 		byte_shift = 0;
@@ -464,7 +463,7 @@ static void nvtim_set_data(struct nvtim_i2c_dev *dev)
 		reg |= ((0 & I2C_DATA_MASK) << I2C_DATA_SHIFT);
 		config_reg |= BIT(I2C_STOP_GEN_SHIFT + 1);
 	}
-
+	spin_unlock_irqrestore(&dev->lock, flags);
 	/*Config controller*/
 	nvtim_i2c_write_reg(dev, I2C_CONFIG_REG, config_reg);
 
@@ -510,16 +509,27 @@ static void nvtim_set_rxconfig(struct nvtim_i2c_dev *dev)
 static void nvtim_get_rxdata(struct nvtim_i2c_dev *dev)
 {
 	u32 byte_shift, reg;
+	unsigned long flags;
 
 	byte_shift = 0;
+	spin_lock_irqsave(&dev->lock, flags);
+	if ((dev->buf == NULL)||((u32)dev->buf + dev->current_bytes > dev->rw_boundary)){
+		dev->boundary_err = 1;
+		dev_err(dev->dev, "%s: Error! buf(0x%x) + current_bytes(0x%x) > dev->rw_boundary(0x%x), \n", __func__, (u32)dev->buf, dev->current_bytes, dev->rw_boundary);
+		return;
+	}
+
 	if ((dev->remain_bytes + dev->current_bytes) == (dev->buf_len + 1)) {
 		byte_shift++;
 	}
+
 	for (; byte_shift < dev->current_bytes; byte_shift++) {
 		reg = nvtim_i2c_read_reg(dev, I2C_DATA_REG);
 		*dev->buf = (reg >> (I2C_DATA_SHIFT * byte_shift)) & I2C_DATA_MASK;
 		dev->buf++;
 	}
+	spin_unlock_irqrestore(&dev->lock, flags);
+
 }
 
 static void
@@ -592,6 +602,10 @@ i2c_nvtim_xfer_msg_vd(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	}
 
 	phead = pbuf = kmalloc(length + num, GFP_KERNEL | __GFP_ZERO);
+	if (pbuf == NULL) {
+		dev_err(dev->dev, "%s: pbuf malloc fail\r\n", __func__);
+		return - ENOMEM;
+	}
 
 	length = 0;
 	for (i = 0; i < num; i++) {
@@ -681,12 +695,12 @@ static int i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int
 	struct nvtim_i2c_dev *dev = i2c_get_adapdata(adap);
 	struct nvtim_i2c_platform_data *pdata = dev->pdata;
 	int ret;
-
+	unsigned long flags;
 	/* Introduce a delay, required for some boards (e.g nvtim EVM) */
 	if (pdata->bus_delay) {
 		udelay(pdata->bus_delay);
 	}
-
+	spin_lock_irqsave(&dev->lock, flags);
 	dev->addr    = msg->addr;
 	dev->buf     = msg->buf;
 	dev->buf_len = msg->len;
@@ -695,10 +709,13 @@ static int i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int
 	dev->bal     = 0;
 	dev->bscltimeout = 0;
 	dev->stop    = stop;
-
+	dev->w2r_err = 0;
+	dev->rw = (msg->flags & I2C_M_RD)?0:1;
 	reinit_completion(&dev->cmd_complete);
 
 	dev->remain_bytes = dev->buf_len + 1;
+	dev->rw_boundary    = (u32)dev->buf + (u32)dev->remain_bytes;
+	spin_unlock_irqrestore(&dev->lock, flags);
 	do {
 		nvtim_transceive_bytes(dev);
 
@@ -713,22 +730,36 @@ static int i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int
 		if (dev->berr) {
 			dev_err(dev->dev, "%s(%d) NACK!\n",__func__,__LINE__);
 			i2c_nvtim_handle_nack(dev);
-			i2c_nvtim_init(dev);
-			return -EREMOTEIO;
+			ret = -EREMOTEIO;
+			goto exit;
 		}
 
 		if (dev->bal) {
 			dev_err(dev->dev, "%s(%d) arbitration lost!\n", __func__, __LINE__);
-			i2c_nvtim_init(dev);
-			return -EREMOTEIO;
+			ret = -EREMOTEIO;
+			goto exit;
 		}
 
 		if (dev->bscltimeout) {
 			dev_err(dev->dev, "%s(%d) scl low timeout !\n", __func__, __LINE__);
-			i2c_nvtim_init(dev);
-			return -EREMOTEIO;
+			ret = -EREMOTEIO;
+			goto exit;
+		}
+
+		if (dev->boundary_err) {
+			dev_err(dev->dev, "%s(%d) boundary overflow !\n", __func__, __LINE__);
+			ret = -EREMOTEIO;
+			goto exit;
+		}
+
+		if (dev->w2r_err) {
+			dev_err(dev->dev, "%s(%d) unexpected write to read!\n", __func__, __LINE__);
+			dev->pdata->err_hdl |= NVT_I2C_AUTO_BUCLEAR_BIT; // To do bus clear in i2c_nvtim_init(dev);
+			ret = -EREMOTEIO;
+			goto exit;
 		}
 	} while (dev->remain_bytes > 0);
+
 
 	/*Disable Controller*/
 	nvtim_i2c_write_reg(dev, I2C_CTRL_REG, \
@@ -736,20 +767,31 @@ static int i2c_nvtim_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, int
 
 	if (!ret) {
 		dev_err(dev->dev, "i2c transfer timed out(%d) jiffies(%d)\n", __LINE__, dev->adapter.timeout);
-		i2c_nvtim_init(dev);
 		dev->buf_len = 0;
-		return -ETIMEDOUT;
+		ret = -EREMOTEIO;
+		goto exit;
 	}
 
 	if (ret < 0) {
-		return ret;
+		goto exit;
 	} else {
-		return msg->len;
+		ret = msg->len;
+		goto exit;
 	}
 
 	dev_err(dev->dev, "i2c transfer failed\n");
 
 	return -EIO;
+
+exit:
+	spin_lock_irqsave(&dev->lock, flags);
+	dev->buf = NULL;
+	spin_unlock_irqrestore(&dev->lock, flags);
+	if (ret == -EREMOTEIO){
+		i2c_nvtim_init(dev);
+	}
+	return ret;
+
 }
 
 static int i2c_upd_freq_dtsi(struct nvtim_i2c_dev *dev, __u16 slv_addr)
@@ -954,6 +996,8 @@ static irqreturn_t i2c_nvtim_isr(int this_irq, void *dev_id)
 {
 	struct nvtim_i2c_dev *dev = dev_id;
 	u32 sts_reg;
+
+
 	sts_reg = nvtim_i2c_read_reg(dev, I2C_STS_REG);
 
 	/*Handle enabled interrupt status*/
@@ -963,11 +1007,15 @@ static irqreturn_t i2c_nvtim_isr(int this_irq, void *dev_id)
 		/*Clear interrupt status*/
 		nvtim_i2c_write_reg(dev, I2C_STS_REG, sts_reg);
 
-		if (sts_reg & BIT(I2C_STS_DR)) {
+		if ((sts_reg & BIT(I2C_STS_DR)) && (dev->rw)) {
+			dev->w2r_err = 1;
+		}
+
+		if ((sts_reg & BIT(I2C_STS_DR)) && (!dev->rw)) {
 			nvtim_get_rxdata(dev);
 		}
 
-		if (sts_reg & (BIT(I2C_STS_DT) | BIT(I2C_STS_DR))) {
+		if (((sts_reg & BIT(I2C_STS_DT))&& dev->rw)||((sts_reg &BIT(I2C_STS_DR)) && (!dev->rw))) {
 			complete(&dev->cmd_complete);
 		}
 
@@ -1226,7 +1274,7 @@ static int nvtim_i2c_of_probe(struct platform_device *pdev, struct nvtim_i2c_dev
 	cnt = of_property_count_u32_elems(np, "upd-clock-frequency");
 	if (cnt > 0) {
 		user_data = kzalloc(sizeof(unsigned int) * cnt, GFP_KERNEL);
-		if ((rt = of_property_read_u32_array(np, "upd-clock-frequency", user_data, cnt)) == 0) {
+		if (user_data && (rt = of_property_read_u32_array(np, "upd-clock-frequency", user_data, cnt)) == 0) {
 			i2c->pdata->upd_bus_freq_num = cnt / 2;
 			i2c->pdata->upd_bus_freq_slvaddr    = kzalloc(sizeof(unsigned int) * i2c->pdata->upd_bus_freq_num, GFP_KERNEL);
 			i2c->pdata->upd_freq_hz             = kzalloc(sizeof(unsigned int) * i2c->pdata->upd_bus_freq_num, GFP_KERNEL);
@@ -1273,7 +1321,7 @@ static int nvtim_i2c_of_probe(struct platform_device *pdev, struct nvtim_i2c_dev
 	cnt = of_property_count_u32_elems(np, "upd-timeout-ms");
 	if (cnt > 0) {
 		user_data = kzalloc(sizeof(unsigned int) * cnt, GFP_KERNEL);
-		if ((rt = of_property_read_u32_array(np, "upd-timeout-ms", user_data, cnt)) == 0) {
+		if (user_data && (rt = of_property_read_u32_array(np, "upd-timeout-ms", user_data, cnt)) == 0) {
 			i2c->pdata->upd_timeout_ms_num = cnt / 2;
 			i2c->pdata->upd_timeout_slvaddr     = kzalloc(sizeof(unsigned int) * i2c->pdata->upd_timeout_ms_num, GFP_KERNEL);
 			i2c->pdata->upd_timeout_ms          = kzalloc(sizeof(unsigned int) * i2c->pdata->upd_timeout_ms_num, GFP_KERNEL);
@@ -1305,7 +1353,7 @@ static int nvtim_i2c_of_probe(struct platform_device *pdev, struct nvtim_i2c_dev
 	cnt = of_property_count_u32_elems(np, "upd-retry-times");
 	if (cnt > 0) {
 		user_data = kzalloc(sizeof(unsigned int) * cnt, GFP_KERNEL);
-		if ((rt = of_property_read_u32_array(np, "upd-retry-times", user_data, cnt)) == 0) {
+		if (user_data && (rt = of_property_read_u32_array(np, "upd-retry-times", user_data, cnt)) == 0) {
 			i2c->pdata->upd_rtytimes_num = cnt / 2;
 			i2c->pdata->upd_rtytimes_slvaddr    = kzalloc(sizeof(unsigned int) * i2c->pdata->upd_rtytimes_num, GFP_KERNEL);
 			i2c->pdata->upd_rtytimes            = kzalloc(sizeof(unsigned int) * i2c->pdata->upd_rtytimes_num, GFP_KERNEL);

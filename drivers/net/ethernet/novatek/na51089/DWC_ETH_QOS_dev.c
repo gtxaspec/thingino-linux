@@ -3643,6 +3643,7 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 #ifdef DWC_ETH_QOS_ENABLE_TX_DESC_DUMP
 	INT original_start_index = tx_desc_data->cur_tx;
 #endif
+	INT real_start_index = tx_desc_data->cur_tx;
 	struct s_tx_pkt_features *tx_pkt_features = GET_TX_PKT_FEATURES_PTR;
 #ifdef DWC_ETH_QOS_CERTIFICATION_PKTBURSTCNT
 	INT update_tail = 0;
@@ -3830,6 +3831,17 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 	buffer = GET_TX_BUF_PTR(qInx, tx_desc_data->cur_tx);
 
 	for (i = 1; i < GET_CURRENT_XFER_DESC_CNT(qInx); i++) {
+#ifdef DWC_ETH_QOS_ENABLE_VLAN_TAG
+        /* Insert a VLAN tag with a tag value programmed in MAC Reg 24 or
+         * CONTEXT descriptor
+         * */
+        if (tx_desc_data->vlan_tag_present && Y_FALSE == tx_desc_data->tx_vlan_tag_via_reg) {
+                //printk(KERN_ALERT "VLAN control info update via descriptor\n\n");
+                TX_NORMAL_DESC_TDES2_VTIR_Mlf_Wr(TX_NORMAL_DESC->TDES2,
+                                                 tx_desc_data->tx_vlan_tag_ctrl);
+        }
+#endif  /* DWC_ETH_QOS_ENABLE_VLAN_TAG */
+
 		/* update the first buffer pointer and length */
 		TX_NORMAL_DESC_TDES0_Ml_Wr(TX_NORMAL_DESC->TDES0, buffer->dma);
 		TX_NORMAL_DESC_TDES2_HL_B1L_Mlf_Wr(TX_NORMAL_DESC->TDES2, buffer->len);
@@ -3853,13 +3865,44 @@ static void pre_transmit(struct DWC_ETH_QOS_prv_data *pdata,
 		GET_CURRENT_XFER_LAST_DESC_INDEX(qInx, start_index, 0);
 	TX_NORMAL_DESC = GET_TX_DESC_PTR(qInx, last_index);
 	TX_NORMAL_DESC_TDES3_LD_Mlf_Wr(TX_NORMAL_DESC->TDES3, 0x1);
+#ifdef DWC_ETH_QOS_ENABLE_VLAN_TAG
+        /* Insert a VLAN tag with a tag value programmed in MAC Reg 24 or
+         * CONTEXT descriptor
+         * */
+        if (tx_desc_data->vlan_tag_present && Y_FALSE == tx_desc_data->tx_vlan_tag_via_reg) {
+                //printk(KERN_ALERT "VLAN control info update via descriptor\n\n");
+                TX_NORMAL_DESC_TDES2_VTIR_Mlf_Wr(TX_NORMAL_DESC->TDES2,
+                                                 tx_desc_data->tx_vlan_tag_ctrl);
+        }
+#endif  /* DWC_ETH_QOS_ENABLE_VLAN_TAG */
+
 	/* set Interrupt on Completion for last descriptor */
 #ifdef DWC_ETH_QOS_CERTIFICATION_PKTBURSTCNT
 	pdata->mac_enable_count += 1;
 	if ((pdata->mac_enable_count % pdata->drop_tx_pktburstcnt) == 0)
 		TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
 #else
-	TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
+	// Set Interrupt On Competion when descriptor cross DWC_ETH_QOS_TX_MAX_FRAMES boundary
+	{
+		INT align_start_idx = real_start_index;
+
+		align_start_idx = INCR_TX_LOCAL_INDEX(align_start_idx, DWC_ETH_QOS_TX_MAX_FRAMES - 1);
+		align_start_idx = (align_start_idx/DWC_ETH_QOS_TX_MAX_FRAMES) * DWC_ETH_QOS_TX_MAX_FRAMES;
+
+		if (real_start_index % DWC_ETH_QOS_TX_MAX_FRAMES == 0) {
+			TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
+		} else if ((align_start_idx > real_start_index) && (last_index > real_start_index)) {
+			if (last_index >= align_start_idx) {
+				TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
+			}
+		} else if ((align_start_idx > real_start_index) && (last_index < real_start_index)) {
+			TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
+		} else if ((align_start_idx < real_start_index) && (last_index < real_start_index)) {
+			if (last_index >= align_start_idx) {
+				TX_NORMAL_DESC_TDES2_IC_Mlf_Wr(TX_NORMAL_DESC->TDES2, 0x1);
+			}
+		}
+	}
 #endif
 
 	// For convarity overrun local check

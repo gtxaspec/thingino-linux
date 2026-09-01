@@ -274,6 +274,19 @@ static struct nvt_composite_gate_clk novatek_cgate_clk[] __initdata = {
 		       CG_CLK_AUTO_GATING_REG0_OFFSET, BIT19, NOT_AUTOGATING),
 #endif
 #else
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR)
+	COMP_GATE_CONF("f0400000.nand", "fix480m", 48000000,
+		       CG_PERI_CLK_DIV_REG1_OFFSET, BIT12, WID6,
+		       CG_CLK_EN_REG1_OFFSET, BIT0, NOT_ENABLE,
+		       CG_SYS_RESET_REG1_OFFSET, BIT0, NOT_RESET,
+		       CG_CLK_AUTO_GATING_REG0_OFFSET, BIT19, NOT_AUTOGATING),
+
+	COMP_GATE_CONF("f0400000.nor", "fix480m", 48000000,
+		       CG_PERI_CLK_DIV_REG1_OFFSET, BIT12, WID6,
+		       CG_CLK_EN_REG1_OFFSET, BIT0, NOT_ENABLE,
+		       CG_SYS_RESET_REG1_OFFSET, BIT0, NOT_RESET,
+		       CG_CLK_AUTO_GATING_REG0_OFFSET, BIT19, NOT_AUTOGATING),
+#else
 #ifdef CONFIG_MTD_SPINAND
 	COMP_GATE_CONF("f0400000.nand", "fix480m", 48000000,
 		       CG_PERI_CLK_DIV_REG1_OFFSET, BIT12, WID6,
@@ -286,6 +299,7 @@ static struct nvt_composite_gate_clk novatek_cgate_clk[] __initdata = {
 		       CG_CLK_EN_REG1_OFFSET, BIT0, NOT_ENABLE,
 		       CG_SYS_RESET_REG1_OFFSET, BIT0, NOT_RESET,
 		       CG_CLK_AUTO_GATING_REG0_OFFSET, BIT19, NOT_AUTOGATING),
+#endif
 #endif
 #endif
 	COMP_GATE_CONF("f0240000.sif", "fix96m", 96000000, 0, 0, 0,
@@ -1314,7 +1328,7 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 				else
 					composite_mux_clks[i].keep_rate = 1;
 
-				printk("[%s] do_reset=%d, keep_rate=%d, idx=%d, rate=%d\r\n",composite_mux_clks[i].name,composite_mux_clks[i].do_reset,composite_mux_clks[i].keep_rate,composite_mux_clks[i].parent_idx,composite_mux_clks[i].current_rate);
+				printk("[%s] do_reset=%d, keep_rate=%d, idx=%d, rate=%ld\r\n",composite_mux_clks[i].name,composite_mux_clks[i].do_reset,composite_mux_clks[i].keep_rate,composite_mux_clks[i].parent_idx,composite_mux_clks[i].current_rate);
 			}
 		}
 	}

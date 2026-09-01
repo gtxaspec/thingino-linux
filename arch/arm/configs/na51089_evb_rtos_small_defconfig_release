@@ -4,7 +4,7 @@
 #
 
 #
-# Compiler: arm-linux-gcc.br_real (Buildroot 2020.02.9-10-g744f210) 8.4.0
+# Compiler: arm-ca9-linux-gnueabihf-gcc.br_real (Buildroot 2020.02.9-3-g58c1c2e-dirty) 8.4.0
 #
 CONFIG_CC_IS_GCC=y
 CONFIG_GCC_VERSION=80400
@@ -764,6 +764,7 @@ CONFIG_MTD_NAND=y
 CONFIG_MTD_SPINAND=y
 CONFIG_MTD_SPINAND_HWECC=y
 # CONFIG_FLASH_ONLY_DUAL is not set
+# CONFIG_MTD_SPINOR is not set
 
 #
 # LPDDR & LPDDR2 PCM memory drivers
@@ -1547,6 +1548,7 @@ CONFIG_CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK=y
 #
 CONFIG_NVT_OTP_SUPPORT=y
 CONFIG_NVT_HDAL_BUILD_IN=y
+# CONFIG_NVT_HDAL_BUILD_IN_ADV is not set
 # CONFIG_NVT_STACK_CHECK is not set
 # CONFIG_NVT_PERF_MEASURE is not set
 

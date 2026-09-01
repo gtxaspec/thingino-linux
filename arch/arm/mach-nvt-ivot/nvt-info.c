@@ -287,6 +287,7 @@ static const struct file_operations nvt_bootts_fops = {
 	.open = nvt_bootts_open,
 	.read = seq_read,
 	.write = nvt_bootts_write,
+	.release = single_release,
 };
 
 static int nvt_timer_tm0_proc_show(struct seq_file *m, void *v)
@@ -305,6 +306,7 @@ static const struct file_operations nvt_timer_tm0_fops = {
 	.open = nvt_timer_tm0_open,
 	.read = seq_read,
 	.llseek = seq_lseek,
+	.release = single_release,
 };
 
 static unsigned long nvt_test_memcpy_perf(struct seq_file *m, size_t bufsize, unsigned long iters)
@@ -464,6 +466,7 @@ static const struct file_operations nvt_memperf_fops = {
 	.open = nvt_memperf_open,
 	.read = seq_read,
 	.llseek = seq_lseek,
+	.release = single_release,
 };
 
 static ssize_t nvt_memhotplug_write(struct file *file, const char __user *buffer,
@@ -529,6 +532,7 @@ static const struct file_operations nvt_memhotplug_fops = {
 	.open = nvt_memhotplug_open,
 	.read = seq_read,
 	.write = nvt_memhotplug_write,
+	.release = single_release,
 };
 
 static int nvt_version_show(struct seq_file *m, void *v)
@@ -545,6 +549,7 @@ static int nvt_version_open(struct inode *inode, struct file *file)
 static const struct file_operations nvt_version_fops = {
 	.open = nvt_version_open,
 	.read = seq_read,
+	.release = single_release,
 };
 
 
@@ -575,6 +580,7 @@ static int nvt_boot_source_open(struct inode *inode, struct file *file){
 static const struct file_operations nvt_boot_source_fops = {
 	.open = nvt_boot_source_open,
 	.read = seq_read,
+	.release = single_release,
 };
 
 static int nvt_hdal_mtd_num_show(struct seq_file *m, void *v){
@@ -640,9 +646,9 @@ static int nvt_hdal_mtd_num_open(struct inode *inode, struct file *file){
 }
 
 static const struct file_operations nvt_hdal_mtd_num_fops = {
-
 	.open = nvt_hdal_mtd_num_open,
 	.read = seq_read,
+	.release = single_release,
 };
 #endif
 
@@ -712,6 +718,7 @@ static const struct file_operations nvt_stack_fops = {
 	.open = nvt_stack_open,
 	.read = seq_read,
 	.write = nvt_stack_write,
+	.release = single_release,
 };
 #endif
 

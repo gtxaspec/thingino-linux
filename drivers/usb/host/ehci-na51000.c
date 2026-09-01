@@ -13,6 +13,14 @@
 #include <plat/efuse_protected.h>
 #include <scsi/scsi_host.h>
 #include <linux/proc_fs.h>
+#include "../core/hub.h"
+#include <linux/kthread.h>
+#include <linux/sched.h>
+#include <uapi/linux/sched/types.h>
+#include <linux/gpio.h>
+
+#define loc_cpu(lock, flags) spin_lock_irqsave(lock, flags)
+#define unl_cpu(lock, flags) spin_unlock_irqrestore(lock, flags)
 
 extern int ehci_mask_connect;
 
@@ -32,6 +40,55 @@ extern int ehci_mask_connect;
 			| USB_MCFG_SSDEN \
 			| USB_MCFG_EBMEN | USB_MCFG_EMEMEN)
 #endif
+
+static int monitor_daemon_se(void *data)
+{
+
+	struct sched_param param = { .sched_priority = 99 };
+	struct ehci_hcd *ehci = data;
+	//unsigned long usbbase = (unsigned long)ehci->caps;
+	static int err_cnt = 0;
+
+
+	sched_setscheduler(current, SCHED_FIFO, &param);
+	current->flags |= PF_NOFREEZE;
+
+	set_current_state(TASK_INTERRUPTIBLE);
+
+	printk("monitor_daemon_se thread start\n");
+	while(1) {
+		struct usb_device *udev;
+		struct usb_hub *hub;
+		int ret = 0;
+
+		schedule_timeout_interruptible(msecs_to_jiffies(5000));
+		if (test_bit(1, &ehci_to_hcd(ehci)->se1_mon)) {
+			udev = usb_hub_find_child(ehci_to_hcd(ehci)->self.root_hub, 1);
+
+			if (!udev) {
+				printk("udev not ready\n");
+			} else {
+				hub = nvt_get_hub(udev);
+
+				/* sent dummy cx */
+				ret = get_dummy_cx_status(hub, udev);
+				if (ret) {
+					err_cnt++;
+
+					if (err_cnt >= 3) {
+						err_cnt = 0;
+						set_bit(1, &ehci_to_hcd(ehci)->se1_err_flag);
+						printk("found SE1 issue!!!\n");
+						nvt_set_port_reset(hub, udev, 1);
+					}
+				}
+			}
+		} else {
+			//printk("enumeration not ok\n");
+		}
+	}
+	return 0;
+}
 
 /*
 #ifdef CONFIG_PM
@@ -286,6 +343,8 @@ static void nvtim_stop_usbhc(struct platform_device *dev)
 		}
 	}
 
+	if (ehci->power_gpio[0] > 0)
+		gpio_direction_output(ehci->power_gpio[0], !ehci->power_gpio[1]);
 }
 
 static void nvtim_fuse_log(struct ehci_hcd *ehci)
@@ -322,7 +381,10 @@ static int nvtim_usb_ehci_probe(const struct hc_driver *driver,
 	struct resource res_mem;
 	int retval;
 	int irq;
-
+	u32 se_patch_thread, mdm_comp = 0x0;
+	struct task_struct *s_mon;
+	u32 get_power_gpio[2];
+	int  power_gpio[2], gain_mdm_comp, get_se_patch_thread;
 
 #ifdef CONFIG_USE_OF
 	irq = platform_get_irq(dev, 0);
@@ -338,6 +400,30 @@ static int nvtim_usb_ehci_probe(const struct hc_driver *driver,
 	}
 	irq = dev->resource[1].start;
 #endif
+	if (of_property_read_u32_array(dev->dev.of_node, "power_gpio", get_power_gpio, 2)) {
+		power_gpio[0] = -1;
+		power_gpio[1] = -1;
+	} else {
+		power_gpio[0] = get_power_gpio[0];
+		power_gpio[1] = get_power_gpio[1];
+
+		gpio_direction_output(power_gpio[0], !power_gpio[1]);
+		mdelay(200);
+	}
+
+	if (!of_property_read_u32(dev->dev.of_node, "patch_se1", &se_patch_thread)) {
+		printk("open patch_se1!");
+		get_se_patch_thread = se_patch_thread;
+	} else {
+		get_se_patch_thread = -1;
+	}
+
+	if (of_property_read_u32(dev->dev.of_node, "modem_comp", &mdm_comp)) {
+		gain_mdm_comp = -1;
+	} else {
+		printk("mdm patch\n");
+		gain_mdm_comp = mdm_comp;
+	}
 
 	retval = of_address_to_resource(dn, 0, &res_mem);
 	if (retval) {
@@ -397,14 +483,42 @@ static int nvtim_usb_ehci_probe(const struct hc_driver *driver,
 
 	ehci->sbrn = HCD_USB2;
 
+	spin_lock_init(&ehci->host_lock);
+
 	/* cache this readonly data; minimize chip reads */
 	ehci->hcs_params = ehci_readl(ehci, &ehci->caps->hcs_params);
+
+	ehci->se_patch_thread = get_se_patch_thread;
+
+	ehci->power_gpio[0] = power_gpio[0];
+
+	ehci->power_gpio[1] = power_gpio[1];
 
 	nvtim_fuse_log(ehci);
 	nvtim_init_usbhc(dev);
 
+	if (get_se_patch_thread > 0) {
+		s_mon = kthread_run(monitor_daemon_se, ehci, "se1_monitor");
+		if (IS_ERR(s_mon)) {
+			pr_err("create monitor_daemon_se1 failed!\n");
+			ehci->task_se_daemon = NULL;
+		} else {
+			ehci->task_se_daemon = s_mon;
+		}
+
+	}
+
+	if (power_gpio[0] > 0) {
+		gpio_direction_output(power_gpio[0], power_gpio[1]);
+		mdelay(200);
+	}
+
 	retval = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (retval == 0) {
+		if (gain_mdm_comp > 0) {
+			set_bit(1, &ehci_to_hcd(ehci)->gain_mdm_comp);
+		}
+
 		platform_set_drvdata(dev, hcd);
 		return retval;
 	}
@@ -418,11 +532,27 @@ err_register:
 	return retval;
 }
 
+static void nvt_remove_thread(struct usb_hcd *hcd)
+{
+	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
+	struct task_struct *s_mon;
+
+	s_mon = ehci->task_se_daemon;
+	if (s_mon) {
+		kthread_stop(s_mon);
+		ehci->task_se_daemon = NULL;
+	}
+}
+
 /* may be called without controller electrically present */
 /* may be called with controller, bus, and devices active */
 static void nvtim_usb_ehci_remove(struct usb_hcd *hcd,
 				struct platform_device *dev)
 {
+	//unsigned long flags = 0x0;
+
+	nvt_remove_thread(hcd);
+
 	usb_remove_hcd(hcd);
 	//release_mem_region(hcd->rsrc_start, hcd->rsrc_len);
 	pr_debug("calling usb_put_hcd\n");
@@ -620,10 +750,25 @@ static void nvtim_patch_usbhc(struct usb_hcd *hcd)
 	int retval, retry = 0;
 	u32 usbbase;
 	u32 tmpval = 0;
+	unsigned long flags = 0x0;
 
+	pr_info("%s enter\n", __FUNCTION__);
+
+	if ((readl(&ehci->regs->port_status[0])) | PORT_CSC) {
+		set_bit(1, &hcd->porcd_conn_chg);
+	}
+
+	if (ehci->power_gpio[0] > 0)
+		gpio_direction_output(ehci->power_gpio[0], !ehci->power_gpio[1]);
+
+	loc_cpu(&ehci->host_lock, flags);
 	usbbase = (u32)ehci->caps;
-	pr_info("%s channel\n", __FUNCTION__);
+	retval = readl((volatile unsigned long *)(usbbase + 0x400));
+	retval |= (0x1 << 17);
+	writel(retval, (volatile unsigned long *)(usbbase + 0x400));
 
+	retval &= ~(0x1 << 17);
+	writel(retval, (volatile unsigned long *)(usbbase + 0x400));
 
 	command |= CMD_RESET;
 	ehci_writel(ehci, command, &ehci->regs->command);
@@ -665,6 +810,10 @@ static void nvtim_patch_usbhc(struct usb_hcd *hcd)
 	writel(tmpval, (volatile unsigned long *)(usbbase+0x40));
 
 	set_bit(1, &hcd->porcd);
+	unl_cpu(&ehci->host_lock, flags);
+
+	if (ehci->power_gpio[0] > 0)
+		gpio_direction_output(ehci->power_gpio[0], ehci->power_gpio[1]);
 }
 
 static const struct hc_driver nvtivot_ehci_hc_driver = {
@@ -878,4 +1027,4 @@ static struct platform_driver ehci_hcd_na51000_driver = {
 	}
 };
 
-MODULE_VERSION("1.00.006");
+MODULE_VERSION("1.00.012");

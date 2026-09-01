@@ -21,6 +21,9 @@
 #include <linux/clk.h>
 #include <linux/mutex.h>
 #include <plat/top.h>
+#include <linux/interrupt.h>
+#include <linux/gpio.h>
+#include <plat/nvt-gpio.h>
 #define NAND_SETREG(info, ofs,value)	   OUTW(info->mmio_base +(ofs),(value))
 #define NAND_GETREG(info, ofs)		   INW(info->mmio_base+(ofs))
 
@@ -181,6 +184,20 @@ typedef enum
 	ENUM_DUMMY4WORD(NAND_SPI_NOR_READ_MODE)
 } NAND_SPI_NOR_READ_MODE;
 
+typedef enum
+{
+        NAND_SPI_NOR_STS_RDSR_1= 0,
+        NAND_SPI_NOR_STS_RDSR_2,
+
+        NAND_SPI_NOR_STS_WRSR_1,
+        NAND_SPI_NOR_STS_WRSR_2,
+
+        NAND_SPI_NOR_STS_RDCR,
+        NAND_SPI_NOR_STS_WRSRCR,
+
+        ENUM_DUMMY4WORD(NAND_SPI_NOR_STATUS_SET)
+} NAND_SPI_NOR_STATUS_SET;
+
 struct spi_nand_sts {
 	int32_t quad_en;
 	int32_t quad_program;
@@ -208,6 +225,9 @@ struct nvt_nand_flash {
 	NAND_SPI_NOR_READ_MODE nor_read_mode; /*normal/dual/quad read*/
 	int plane_flags;        /*Flags to distinguish dual planes flash*/
 	struct spi_nand_sts spi_nand_status;
+	UINT32 config_nand_type;/* SPI NAND or SPI Nor */
+	int	common_req_gpio;
+	int32_t cs_switch_io;	/* cs switch io GPIO number*/
 };
 
 struct drv_nand_dev_info {
@@ -250,7 +270,7 @@ struct drv_nand_dev_info {
 	unsigned int            row_addr_cycles;
 	uint32_t                nand_int_status;
 	int                     irq;
-	struct mutex            lock;
+	struct mutex            *lock;
 	u32                     flash_freq;
 	u32                     trace_stdtable;
 	u8                      hspeed_dummy_cycle;
@@ -260,6 +280,46 @@ struct drv_nand_dev_info {
 
 	/* set flash ecc status type, 0x1 for XT26G01C ecc_bit[7..4] */
 	int                     ecc_status_type;
+};
+
+
+/**
+ * struct nvt_spinor_flash - Structure for Serial NOR Flash
+ *
+ * @dev_id: Device ID of NOR-flash.
+ * @mtd: MTD info for each NOR-flash.
+ * @parts: Partition info of NOR-flash.
+ * @page_size: Page size of NOR-flash.
+ * @base_addr: Base address of NOR-flash.
+ * @erase_cmd: erase command may vary on different flash types
+ */
+struct nvt_spinor_flash {
+	u32 dev_id;
+	struct mtd_info mtd;
+	struct mtd_partition *parts;
+	u32 page_size;
+	u8 erase_cmd;
+	void __iomem *base_addr;
+};
+
+/**
+ * struct nvt_flash - Structure for NVT Flash Device
+ *
+ * @clk: functional clock
+ * @status: current status register of NVT Flash.
+ * @clk_rate: functional clock rate of NVT Flash (default: NVT_FLASH_MAX_CLOCK_FREQ)
+ * @lock: lock to prevent parallel access of NVT Flash.
+ * @info: drv_nand_dev_info of NVT Flash.
+ * @pdev: platform device
+ * @flash: separate structure for each Serial NOR-flash attached to NVT Flash.
+ */
+struct nvt_flash {
+	struct clk *clk;
+	unsigned long clk_rate;
+	struct mutex *lock;
+	struct drv_nand_dev_info *info;
+	struct platform_device *pdev;
+	struct nvt_spinor_flash *flash;
 };
 
 #define SRAMRDY_DELAY           5
@@ -396,6 +456,7 @@ struct drv_nand_dev_info {
 #define FLASH_CMD_WREN                   0x06            //FLASH CMD WREN
 #define FLASH_CMD_WRDI                   0x04            //FLASH CMD WRDI
 #define FLASH_CMD_RDSR                   0x05            //FLASH CMD RDSR
+#define FLASH_CMD_RDCR                   0x15            //FLASH CMD RDCR
 #define FLASH_CMD_WRSR                   0x01            //FLASH CMD WRSR
 #define FLASH_CMD_WRSR2                  0x31            //FLASH CMD WRSR2
 #define FLASH_CMD_RDSR2                  0x35            //FLASH CMD RDSR2
@@ -1091,6 +1152,9 @@ int spinor_read_operation(struct drv_nand_dev_info *info, u32 byte_addr, \
 int spinor_erase_sector(struct drv_nand_dev_info *info, u8 cmd, u32 addr);
 
 int spinor_read_sfdp(struct drv_nand_dev_info *info, u32 addr, u32 byte_size, u8 *pbuf);
+int spinor_read_status(struct drv_nand_dev_info *info, u8 status_set, u8 *status);
+int spinor_write_status(struct drv_nand_dev_info *info, u8 status_set, u8 status);
+int spi_nor_set_status_half_word(struct drv_nand_dev_info *info, u16 hstatus);
 
 void nand_phy_config(struct drv_nand_dev_info *info);
 
@@ -1099,4 +1163,8 @@ void flash_copy_info(struct drv_nand_dev_info *info);
 int enter_4byte_address(struct drv_nand_dev_info *info);
 int leave_4byte_address(struct drv_nand_dev_info *info);
 
+int request_common_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
+    const char *name, void *dev, u32 cs);
+struct mutex * mutex_common_init(void);
+int common_request_gpio(unsigned gpio, const char *label);
 #endif

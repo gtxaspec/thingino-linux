@@ -63,7 +63,11 @@ MODULE_PARM_DESC(blinkenlights, "true to cycle leds on hubs");
  * 10 seconds to send reply for the initial 64-byte descriptor request.
  */
 /* define initial 64-byte descriptor request timeout in milliseconds */
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+static int initial_descriptor_timeout = 1000;
+#else
 static int initial_descriptor_timeout = USB_CTRL_GET_TIMEOUT;
+#endif
 module_param(initial_descriptor_timeout, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(initial_descriptor_timeout,
 		"initial 64-byte descriptor request timeout in milliseconds "
@@ -2155,11 +2159,20 @@ void usb_disconnect(struct usb_device **pdev)
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
 
+#ifdef CONFIG_USB_EHCI_HCD_NVTIVOT
+	/* clear se1_mon flag after disconnect */
+	if (test_bit(1, &hcd->se1_mon)) {
+		clear_bit(1, &hcd->se1_mon);
+	}
+#endif
+
 #if defined(CONFIG_USB_NVTIVOT_HCD)
-	if (test_bit(1, &hcd->adjust_async_ladr)) {
-		if (hdev->devpath[0] == '0') {
-			clear_bit(1, &hcd->adjust_async_ladr);
-			//printk("%s remove adjust_async_ladr flag\n", __FUNCTION__);
+	if(hcd->driver->flags&HCD_USB2) {
+		if (test_bit(1, &hcd->adjust_async_ladr)) {
+			if (hdev->devpath[0] == '0') {
+				clear_bit(1, &hcd->adjust_async_ladr);
+				//printk("%s remove adjust_async_ladr flag\n", __FUNCTION__);
+			}
 		}
 	}
 #endif
@@ -2922,7 +2935,11 @@ done:
 			usleep_range(10000, 12000);
 		else {
 			/* TRSTRCY = 10 ms; plus some extra */
-			reset_recovery_time = 10 + 40;
+			/****
+			charlie
+			modify delay, issue: IVOT_N12076_CO-174
+			****/
+			reset_recovery_time = 10 + 60;
 
 			/* Hub needs extra delay after resetting its port. */
 			if (hub->hdev->quirks & USB_QUIRK_HUB_SLOW_RESET)
@@ -4697,7 +4714,11 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 					dev_err(&udev->dev, "device descriptor read/64, error %d\n",
 							r);
 					#if defined(CONFIG_USB_NVTIVOT_HCD)
+					dev_err(&udev->dev, "reinit port\n");
 					set_bit(1, &hcd->modem_dongle);
+					retval = -EMSGSIZE;
+					goto fail;
+
 					#endif
 				}
 				retval = -EMSGSIZE;
@@ -4722,6 +4743,11 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 				if (retval != -ENODEV)
 					dev_err(&udev->dev, "device not accepting address %d, error %d\n",
 							devnum, retval);
+
+				#if defined(CONFIG_USB_NVTIVOT_HCD)
+				dev_err(&udev->dev, "reinit port\n");
+				set_bit(1, &hcd->modem_dongle);
+				#endif
 				goto fail;
 			}
 			if (udev->speed >= USB_SPEED_SUPER) {
@@ -4832,6 +4858,44 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 		goto fail;
 	}
 
+#if defined(CONFIG_USB_NVT_COMPAT) && defined(CONFIG_USB_NVT_EHCI_HCD) && !defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+        if ((hcd->driver->flags & HCD_USB2)
+        && (udev->speed < USB_SPEED_HIGH)
+        && (hdev->devpath[0] == '0')
+        && (le16_to_cpu(udev->descriptor.idVendor) == 0x04e8)
+        && (le16_to_cpu(udev->descriptor.idProduct) == 0x5014)) {
+                writel(0x0d, (hcd->regs + 0x40));
+        }
+        if ((hcd->driver->flags & HCD_USB2) && (udev->speed < USB_SPEED_HIGH)
+        && (hdev->devpath[0] == '0')
+        && (le16_to_cpu(udev->descriptor.idVendor) == 0x054c)
+        && (le16_to_cpu(udev->descriptor.idProduct) == 0x01fb)) {
+                writel(0x0d, (hcd->regs + 0x40));
+        }
+        if ((hcd->driver->flags & HCD_USB2)
+        && (udev->speed == USB_SPEED_HIGH)
+        && (hdev->devpath[0] == '0')
+        && (le16_to_cpu(udev->descriptor.idVendor) == 0x12d1)) {
+                set_bit(1, &hcd->modem_dongle);
+        }
+#endif
+#if defined(CONFIG_USB_NVT_COMPAT) && defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+        if ((hcd->driver->flags & HCD_USB2)
+        && (udev->speed == USB_SPEED_HIGH)
+        && (hdev->devpath[0] == '0')
+        && (le16_to_cpu(udev->descriptor.idVendor) == 0x148f)) {
+                set_bit(1, &hcd->modem_dongle);
+        }
+#endif
+#if defined(CONFIG_USB_NVT_COMPAT) && IS_ENABLED(CONFIG_USB_NVT_XHCI_HCD)
+        if ((hcd->driver->flags & HCD_USB3) &&
+                        (udev->speed < USB_SPEED_SUPER) &&
+                        (hdev->devpath[0] == '0')) {
+                hcd->usb2_device_vid = udev->descriptor.idVendor;
+                hcd->usb2_device_pid = udev->descriptor.idProduct;
+        }
+#endif
+
 	usb_detect_quirks(udev);
 
 	if (udev->wusb == 0 && le16_to_cpu(udev->descriptor.bcdUSB) >= 0x0201) {
@@ -4851,10 +4915,68 @@ fail:
 	if (retval) {
 		hub_port_disable(hub, port1, 0);
 		update_devnum(udev, devnum);	/* for disconnect processing */
+		#ifdef CONFIG_USB_EHCI_HCD_NVTIVOT
+		if (oldspeed == udev->speed) {
+			if (hdev->devpath[0] == '0') {
+				bus_to_hcd(hdev->bus)->driver->port_nc(bus_to_hcd(hdev->bus));
+				retval = -ENOTCONN;
+			} else {
+				set_bit(1, &hcd->modem_dongle);
+			}
+		}
+		#endif
 	}
 	mutex_unlock(hcd->address0_mutex);
 	return retval;
 }
+
+#ifdef CONFIG_USB_EHCI_HCD_NVTIVOT
+int nvt_set_port_reset(struct usb_hub *hub, struct usb_device *udev, int port1)
+{
+	int retval = 0;
+
+	//printk("port-%d reset do\n", port1);
+	retval =  hub_port_reset(hub, port1, udev, HUB_BH_RESET_TIME, false);
+
+	if (retval < 0) {
+		printk("nvt_set_port_reset fail\n");
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(nvt_set_port_reset);
+
+int get_dummy_cx_status(struct usb_hub *hub, struct usb_device *udev)
+{
+	int retval = 0;
+	retval = usb_get_device_descriptor(udev, 8);
+
+	if (retval < 8) {
+		printk("cx receive fail\n");
+		if (retval != -ENODEV) {
+			dev_err(&udev->dev,
+					"device descriptor read/8, error %d\n",
+					retval);
+		}
+		if (retval >= 0)
+			retval = -EMSGSIZE;
+	} else {
+		//cx receive pass
+		retval = 0;
+	}
+
+	return retval;
+}
+EXPORT_SYMBOL_GPL(get_dummy_cx_status);
+
+struct usb_hub *nvt_get_hub(struct usb_device *udev)
+{
+	struct usb_hub *hub = usb_hub_to_struct_hub(udev->parent);
+
+	return hub;
+}
+EXPORT_SYMBOL_GPL(nvt_get_hub);
+#endif
 
 static void
 check_highspeed(struct usb_hub *hub, struct usb_device *udev, int port1)
@@ -5110,6 +5232,13 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 		spin_unlock_irq(&device_state_lock);
 		mutex_unlock(&usb_port_peer_mutex);
 
+#if CONFIG_USB_EHCI_HCD_NVTIVOT
+		if (!test_bit(1, &hcd->se1_mon)) {
+			// enumeration done, se1_mon can start
+			set_bit(1, &hcd->se1_mon);
+		}
+#endif
+
 		/* Run it through the hoops (find a driver, etc) */
 		if (!status) {
 			status = usb_new_device(udev);
@@ -5148,6 +5277,14 @@ loop:
 		/* When halfway through our retry count, power-cycle the port */
 		if (i == (SET_CONFIG_TRIES / 2) - 1) {
 			dev_info(&port_dev->dev, "attempt power cycle\n");
+			#if defined(CONFIG_USB_NVTIVOT_HCD)
+			if (hdev->devpath[0] == '0') {
+				dev_err(&port_dev->dev, "do port pc reset\n");
+				if (bus_to_hcd(hdev->bus)->driver->port_nc)
+					bus_to_hcd(hdev->bus)->driver->port_nc(bus_to_hcd(hdev->bus));
+			} else
+				set_bit(1, &hcd->modem_dongle);
+			#endif
 			usb_hub_set_port_power(hdev, hub, port1, false);
 			msleep(2 * hub_power_on_good_delay(hub));
 			usb_hub_set_port_power(hdev, hub, port1, true);
@@ -5161,7 +5298,6 @@ loop:
 			dev_err(&port_dev->dev,
 					"unable to enumerate USB device\n");
 	}
-
 done:
 	hub_port_disable(hub, port1, 1);
 	if (hcd->driver->relinquish_port && !hub->hdev->parent) {
@@ -5239,6 +5375,9 @@ static void port_event(struct usb_hub *hub, int port1)
 	struct usb_device *udev = port_dev->child;
 	struct usb_device *hdev = hub->hdev;
 	u16 portstatus, portchange;
+#if CONFIG_USB_EHCI_HCD_NVTIVOT
+	struct usb_hcd *hcd = bus_to_hcd(hdev->bus);
+#endif
 
 	connect_change = test_bit(port1, hub->change_bits);
 	clear_bit(port1, hub->event_bits);
@@ -5246,12 +5385,23 @@ static void port_event(struct usb_hub *hub, int port1)
 
 	if (hub_port_status(hub, port1, &portstatus, &portchange) < 0)
 		return;
+#if CONFIG_USB_EHCI_HCD_NVTIVOT
+	if ((portchange & USB_PORT_STAT_C_CONNECTION) || (test_bit(port1, &hcd->porcd_conn_chg))) {
+		usb_clear_port_feature(hdev, port1, USB_PORT_FEAT_C_CONNECTION);
+		connect_change = 1;
+		if ((port1 == 1) && (test_bit(port1, &hcd->porcd_conn_chg))) {
+			pr_info("port_nc ever happen, clear porcd_conn_chg\n");
+			clear_bit(port1, &hcd->porcd_conn_chg);
+		}
+	}
 
+#else
 	if (portchange & USB_PORT_STAT_C_CONNECTION) {
 		usb_clear_port_feature(hdev, port1, USB_PORT_FEAT_C_CONNECTION);
 		connect_change = 1;
 	}
 
+#endif
 	if (portchange & USB_PORT_STAT_C_ENABLE) {
 		if (!connect_change)
 			dev_dbg(&port_dev->dev, "enable change, status %08x\n",
@@ -5333,6 +5483,15 @@ static void port_event(struct usb_hub *hub, int port1)
 			connect_change = 0;
 		}
 	}
+
+#if CONFIG_USB_EHCI_HCD_NVTIVOT
+	if (test_bit(port1, &hcd->se1_err_flag)) {
+		//se1 issue recover
+		clear_bit(1, &hcd->se1_err_flag);
+		hcd->driver->port_nc(bus_to_hcd(hdev->bus));
+
+	}
+#endif
 
 	if (connect_change)
 		hub_port_connect_change(hub, port1, portstatus, portchange);

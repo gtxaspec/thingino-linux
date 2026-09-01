@@ -102,8 +102,12 @@ struct usb_hcd {
 	unsigned long porcd;
 	unsigned long porcd2;
 	unsigned long adjust_async_ladr;
+	unsigned long porcd_conn_chg;
 	unsigned long modem_dongle;
 	unsigned long nvt_flag;
+	unsigned long se1_mon;
+	unsigned long se1_err_flag;
+	unsigned long gain_mdm_comp;
 #endif
 	/*
 	 * OTG and some Host controllers need software interaction with phys;

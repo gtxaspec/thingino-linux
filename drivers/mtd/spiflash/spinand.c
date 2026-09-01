@@ -24,6 +24,9 @@
 #include <linux/version.h>
 #include <plat/nvt-sramctl.h>
 #include <plat/pad.h>
+#include <plat/top.h>
+#include <linux/gpio.h>
+#include <plat/nvt-gpio.h>
 
 #include "../nvt_flash_spi/nvt_flash_spi_reg.h"
 #include "../nvt_flash_spi/nvt_flash_spi_int.h"
@@ -37,7 +40,7 @@
 #include <asm/div64.h>
 #include "../mtdcore.h"
 
-#define NAND_VERSION "1.04.233"
+#define NAND_VERSION "1.04.236"
 
 static int enable_erase_cnt = 0;
 static u32 erase_count[4096] = {};
@@ -448,7 +451,15 @@ static struct nand_flash_dev spinand_flash_ids[] = {
 	// GigaDevice 4G
 	{"GD5F4GQ4UAYIG 4GiB 3.3V",
 		{ .id = {MFG_ID_GD, 0xF4} },
-		SZ_2K, SZ_512, SZ_128K, 0, 2, 64 },    
+		SZ_2K, SZ_512, SZ_128K, 0, 2, 64 },
+	// GigaDevice 1G
+	{"GD5F1GM7UE 4GiB 3.3V",
+		{ .id = {MFG_ID_GD, 0x91} },
+		SZ_2K, SZ_128, SZ_128K, 0, 2, 128 },
+	// GigaDevice 4G, 2k page
+	{"GD5F4GM8UE 4GiB 3.3V",
+		{ .id = {MFG_ID_GD, 0x95} },
+		SZ_2K, SZ_512, SZ_128K, 0, 2, 128 },
 };
 
 #ifdef CONFIG_MTD_SPINAND_HWECC
@@ -760,7 +771,7 @@ static int spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 	if (oob_required)
 		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
 
-	mutex_lock(&info->lock);
+	mutex_lock(info->lock);
 
 	if (info->retcode == ERR_ECC_UNCLEAN) {
 		mtd->ecc_stats.failed++;
@@ -813,7 +824,7 @@ static int spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
     				NAND_SPI_STS_FEATURE_3);
 
                 if (((status >> 4) & 0x7) == 0) {
-                    mutex_unlock(&info->lock);
+                    mutex_unlock(info->lock);
     	            return 0;
                 } else if (((status >> 4) & 0x7) == 0x1) {
                     count = 1;
@@ -832,7 +843,7 @@ static int spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 		}
 	}
 
-	mutex_unlock(&info->lock);
+	mutex_unlock(info->lock);
 
 	return ret;
 
@@ -862,7 +873,7 @@ static int drv_nand_read_id(struct drv_nand_dev_info *info, uint32_t *id)
 
 	memset(card_id, 0, sizeof(card_id));
 
-	mutex_lock(&info->lock);
+	mutex_lock(info->lock);
 
 	if (nand_cmd_read_id(card_id, info) != E_OK) {
 		pr_err("NAND cmd timeout\r\n");
@@ -898,7 +909,7 @@ static int drv_nand_read_id(struct drv_nand_dev_info *info, uint32_t *id)
 		ret = E_OK;
 	}
 
-	mutex_unlock(&info->lock);
+	mutex_unlock(info->lock);
 
 	return ret;
 }
@@ -933,8 +944,6 @@ static irqreturn_t spinand_irq(int irq, void *devid)
 		return IRQ_HANDLED;
 	} else
 		return IRQ_NONE;
-
-
 }
 
 static inline int is_buf_blank(uint8_t *buf, size_t len)
@@ -956,10 +965,10 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned command,
 	info->use_dma = (use_dma) ? 1 : 0;
 	info->data_size = 0;
 	info->state = STATE_READY;
-	info->retcode = ERR_NONE;
 
 	switch (command) {
 	case NAND_CMD_READOOB:
+		info->retcode = ERR_NONE;
 		info->buf_count = mtd->writesize + mtd->oobsize;
 		info->buf_start = mtd->writesize + column;
 
@@ -968,24 +977,25 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned command,
 			dev_err(&info->pdev->dev,
 			"info->buf_start = %d, != 0\n", info->buf_start);
 		}
-		mutex_lock(&info->lock);
+		mutex_lock(info->lock);
 		nand_cmd_read_page_spare_data(info, ptr,
 				info->flash_info->page_size * page_addr);
-		mutex_unlock(&info->lock);
+		mutex_unlock(info->lock);
 		/* We only are OOB, so if the data has error, does not matter */
 	break;
 
 	case NAND_CMD_READ0:
 	case NAND_CMD_READ1:
+		info->retcode = ERR_NONE;
 		if (((unsigned long)(info->data_buff)) % CACHE_LINE_SIZE)
 			dev_err(&info->pdev->dev,
 				"NAND_CMD_READ0 : is not Cache_Line_Size alignment!\n");
 
 		info->buf_start = column;
 		info->buf_count = mtd->writesize + mtd->oobsize;
-		mutex_lock(&info->lock);
+		mutex_lock(info->lock);
 		ret = drv_nand_readpage(info, column, page_addr);
-		mutex_unlock(&info->lock);
+		mutex_unlock(info->lock);
 		if (ret == E_CTX)
 			info->retcode = ERR_ECC_UNCLEAN;
 		else if (ret < 0)
@@ -997,6 +1007,7 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned command,
 	break;
 
 	case NAND_CMD_SEQIN:
+		info->retcode = ERR_NONE;
 		info->buf_start = column;
 		info->buf_count = mtd->writesize + mtd->oobsize;
 		memset(info->data_buff, 0xff, info->buf_count);
@@ -1007,21 +1018,23 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned command,
 	break;
 
 	case NAND_CMD_PAGEPROG:
+		info->retcode = ERR_NONE;
 		if (((unsigned long)(info->data_buff)) % CACHE_LINE_SIZE)
 			dev_err(&info->pdev->dev,
 				"not CACHE_LINE_SIZE alignment!\n");
-		mutex_lock(&info->lock);
+		mutex_lock(info->lock);
 		ret = drv_nand_write_page(info, info->seqin_column, info->seqin_page_addr);
-		mutex_unlock(&info->lock);
+		mutex_unlock(info->lock);
 
 		if (ret)
 			info->retcode = ERR_SENDCMD;
 	break;
 
 	case NAND_CMD_ERASE1:
-		mutex_lock(&info->lock);
+		info->retcode = ERR_NONE;
+		mutex_lock(info->lock);
 		ret = nand_cmd_erase_block(info, page_addr);
-		mutex_unlock(&info->lock);
+		mutex_unlock(info->lock);
 
 		if (ret)
 			info->retcode = ERR_BBERR;
@@ -1036,6 +1049,7 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned command,
 	break;
 
 	case NAND_CMD_READID:
+		info->retcode = ERR_NONE;
 		info->buf_start = 0;
 		info->buf_count = 16;
 		if(info->flash_info->chip_id)
@@ -1047,11 +1061,12 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned command,
 		}
 	break;
 	case NAND_CMD_STATUS:
+		info->retcode = ERR_NONE;
 		info->buf_start = 0;
 		info->buf_count = 1;
-		mutex_lock(&info->lock);
+		mutex_lock(info->lock);
 		nand_cmd_read_status(info, NAND_SPI_STS_FEATURE_2);
-		mutex_unlock(&info->lock);
+		mutex_unlock(info->lock);
 		if (!(info->data_buff[0] & 0x80))
 			info->data_buff[0] = 0x80;
 	break;
@@ -1152,7 +1167,7 @@ static int nvt_nand_scan_2plane_id(uint32_t id)
 	int32_t i, read_id, flash_id;
 
 	read_id = (id & 0x0000FFFF);
-	
+
 	for (i = 0 ; i < NUM_OF_2PLANE_ID; i++) {
 		flash_id = (nand_2plane_list[i].mfr_id + (nand_2plane_list[i].dev_id << 8));
 		if (read_id == flash_id)
@@ -1171,7 +1186,7 @@ static int drv_nand_identify(struct drv_nand_dev_info *info)
 		return -EIO;
 
 	info->flash_info->chip_id = id;
-	info->flash_info->chip_sel = 0;
+	//info->flash_info->chip_sel = 0;
 
 	if (info->flash_info->page_size == 4096) {
 		info->flash_info->oob_size = 128;
@@ -1186,14 +1201,14 @@ static int drv_nand_identify(struct drv_nand_dev_info *info)
 	}
 
 	total_block_cnt = info->flash_info->num_blocks;
-	
+
 	if (nvt_nand_scan_2plane_id(id) == 1) {
 		info->flash_info->plane_flags = 1;
 	} else {
 		info->flash_info->plane_flags = 0;
 	}
 
-	mutex_lock(&info->lock);
+	mutex_lock(info->lock);
 	status = nand_cmd_read_status(info, NAND_SPI_STS_FEATURE_2);
 
 	if (status & SPINAND_CONFIG_ECCEN) {
@@ -1211,7 +1226,7 @@ static int drv_nand_identify(struct drv_nand_dev_info *info)
 	reg = NAND_GETREG(info, NAND_MODULE0_REG_OFS);
 	reg &= ~(0x7FFFF);
 	NAND_SETREG(info, NAND_MODULE0_REG_OFS, reg | info->flash_info->module_config);
-	mutex_unlock(&info->lock);
+	mutex_unlock(info->lock);
 
 	flash_copy_info(info);
 
@@ -1345,7 +1360,9 @@ static int spinand_probe(struct platform_device *pdev)
 		goto fail_free_mtd;
 	}
 
-	info->mmio_base = devm_ioremap_resource(&pdev->dev, res);
+//	info->mmio_base = devm_ioremap_resource(&pdev->dev, res);
+	info->mmio_base = ioremap_nocache(res->start, (res->end - res->start + 1));
+
 	if (IS_ERR(info->mmio_base)) {
 		PTR_ERR(info->mmio_base);
 		goto fail_free_mtd;
@@ -1364,24 +1381,69 @@ static int spinand_probe(struct platform_device *pdev)
 		goto fail_free_buf;
 	}
 
+	of_property_read_u32(pdev->dev.of_node, "clock-frequency",
+				&info->flash_freq);
+
+	info->flash_info->chip_sel = 0;
+	of_property_read_u32(pdev->dev.of_node, "chip-select",
+		&info->flash_info->chip_sel);
+
+	dev_info(&pdev->dev, "chip_select %d \n", info->flash_info->chip_sel);
+
+	info->flash_info->cs_switch_io = -1;
+
+	of_property_read_u32(pdev->dev.of_node, "cs_switch_io",
+		&info->flash_info->cs_switch_io);
+
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR) && defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+	if(info->flash_info->cs_switch_io < 0) {
+		dev_err(&pdev->dev, "nor nand model but not define cs switch GPIO @ 56x SoC\n");
+		goto fail_free_buf;
+	} else {
+		dev_err(&pdev->dev, "nand force set GPIO  0x%08x as gpio output cs = %d\n", info->flash_info->cs_switch_io, info->flash_info->chip_sel);
+
+		if(nvt_pinmux_check_pin_function(info->flash_info->cs_switch_io) != 1) {
+			dev_err(&pdev->dev, "nor nand model @ 56x and cs switch = 0x%08x, but not config as GPIO!!!\n", info->flash_info->cs_switch_io);
+			goto fail_free_buf;
+		}
+		info->flash_info->common_req_gpio = common_request_gpio(info->flash_info->cs_switch_io, "cs_switch");
+
+		if(info->flash_info->common_req_gpio) {
+			dev_err(&pdev->dev, "nand failed to request GPIO 0x%08x\n", info->flash_info->cs_switch_io);
+		} else {
+			gpio_direction_output(info->flash_info->cs_switch_io, 1);
+		}
+	}
+#endif
+
+	#if (0)
 	ret = request_irq(info->irq, spinand_irq, IRQF_SHARED, pdev->name, info);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to request IRQ\n");
 		goto fail_free_buf;
 	}
+	#else
+	ret = request_common_irq(info->irq, spinand_irq, IRQF_SHARED, \
+		pdev->name, info, info->flash_info->chip_sel);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to request IRQ\n");
+		goto fail_free_buf;
+	}
+	#endif
 
 	of_property_read_u32(pdev->dev.of_node, "clock-frequency",
 				&info->flash_freq);
 
-	mutex_init(&info->lock);
-
+	info->lock = mutex_common_init();
 	init_completion(&info->cmd_complete);
 
-	mutex_lock(&info->lock);
+	info->flash_info->config_nand_type = NANDCTRL_SPI_NAND_TYPE;
+
+	mutex_lock(info->lock);
 	drv_nand_reset(info, pdev);
 	nand_phy_config(info);
 	nand_dll_reset(info);
-	mutex_unlock(&info->lock);
+	mutex_unlock(info->lock);
 	/*Delay 1ms for spinand characteristic*/
 	mdelay(1);
 
@@ -1457,7 +1519,7 @@ static int spinand_probe(struct platform_device *pdev)
 	}
 
 	dev_info(&pdev->dev, "%d-bit mode @ %d Hz\n",
-		info->flash_info->spi_nand_status.quad_program ? 4 : 1, 
+		info->flash_info->spi_nand_status.quad_program ? 4 : 1,
 		info->flash_freq);
 
 	ret = nvt_nand_proc_init();

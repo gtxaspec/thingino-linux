@@ -267,7 +267,7 @@ void sdiohost_disclockout(struct mmc_nvt_host *host, uint32_t id)
 void sdiohost_setphyrst(struct mmc_nvt_host *host)
 {
 	union SDIO_PHY_REG phyreg, phyreg_read;
-	u8 i;
+	u32 i = 0;
 
 	phyreg.reg = sdiohost_getreg(host, host->id, SDIO_PHY_REG_OFS);
 	phyreg.bit.PHY_SW_RST = 1;
@@ -704,10 +704,15 @@ uint32_t *prsp3, uint32_t *prsp2, uint32_t *prsp1, uint32_t *prsp0)
 void sdiohost_setinten(struct mmc_nvt_host *host, uint32_t id, uint32_t bits)
 {
 	union SDIO_INT_MASK_REG intenreg;
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->int_mask_lock, flags);
 
 	intenreg.reg = sdiohost_getreg(host, id, SDIO_INT_MASK_REG_OFS);
 	intenreg.reg |= bits;
 	sdiohost_setreg(host, id, SDIO_INT_MASK_REG_OFS, intenreg.reg);
+
+	spin_unlock_irqrestore(&host->int_mask_lock, flags);
 }
 
 /*
@@ -723,10 +728,15 @@ void sdiohost_setinten(struct mmc_nvt_host *host, uint32_t id, uint32_t bits)
 void sdiohost_disinten(struct mmc_nvt_host *host, uint32_t id, uint32_t bits)
 {
 	union SDIO_INT_MASK_REG intenreg;
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->int_mask_lock, flags);
 
 	intenreg.reg = sdiohost_getreg(host, id, SDIO_INT_MASK_REG_OFS);
 	intenreg.reg &= ~bits;
 	sdiohost_setreg(host, id, SDIO_INT_MASK_REG_OFS, intenreg.reg);
+
+	spin_unlock_irqrestore(&host->int_mask_lock, flags);
 }
 
 /*
@@ -1418,18 +1428,30 @@ uint32_t uilength)
 uint32_t sdiohost_setiointen(struct mmc_nvt_host *host, uint32_t id, bool ben)
 {
 	union SDIO_INT_MASK_REG intenreg;
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->int_mask_lock, flags);
 
 	intenreg.reg = sdiohost_getreg(host, id, SDIO_INT_MASK_REG_OFS);
 	intenreg.bit.SDIO_INT_INT_EN = ben;
 	sdiohost_setreg(host, id, SDIO_INT_MASK_REG_OFS, intenreg.reg);
+
+	spin_unlock_irqrestore(&host->int_mask_lock, flags);
+
 	return TRUE;
 }
 
 bool sdiohost_getiointen(struct mmc_nvt_host *host, uint32_t id)
 {
 	union SDIO_INT_MASK_REG intenreg;
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->int_mask_lock, flags);
 
 	intenreg.reg = sdiohost_getreg(host, id, SDIO_INT_MASK_REG_OFS);
+
+	spin_unlock_irqrestore(&host->int_mask_lock, flags);
+
 	if (intenreg.bit.SDIO_INT_INT_EN)
 		return TRUE;
 	else
@@ -1672,6 +1694,7 @@ void sdiohost_power_switch(struct mmc_nvt_host *host, bool enable)
 void sdiohost_set_pads(struct mmc_nvt_host *host, PAD_PULL pulltype)
 {
 	if (host->id == SDIO_HOST_ID_1) {
+		pad_set_pull_updown(PAD_PIN_CGPIO11, PAD_PULLDOWN);
 		pad_set_pull_updown(PAD_PIN_CGPIO12, pulltype);
 		pad_set_pull_updown(PAD_PIN_CGPIO13, pulltype);
 		pad_set_pull_updown(PAD_PIN_CGPIO14, pulltype);
@@ -1681,6 +1704,7 @@ void sdiohost_set_pads(struct mmc_nvt_host *host, PAD_PULL pulltype)
 #if defined(CONFIG_NVT_IVOT_PLAT_NA51089)
 		if (host->pinmux_value & PIN_SDIO_CFG_2ND_PINMUX)
 		{
+			pad_set_pull_updown(PAD_PIN_SGPIO0, PAD_PULLDOWN);
 			pad_set_pull_updown(PAD_PIN_SGPIO1, pulltype);
 			pad_set_pull_updown(PAD_PIN_SGPIO2, pulltype);
 			pad_set_pull_updown(PAD_PIN_SGPIO3, pulltype);
@@ -1689,6 +1713,7 @@ void sdiohost_set_pads(struct mmc_nvt_host *host, PAD_PULL pulltype)
 		}
 		else if (host->pinmux_value & PIN_SDIO_CFG_3RD_PINMUX)
 		{
+			pad_set_pull_updown(PAD_PIN_DSIGPIO7, PAD_PULLDOWN);
 			pad_set_pull_updown(PAD_PIN_DSIGPIO6, pulltype);
 			pad_set_pull_updown(PAD_PIN_DSIGPIO2, pulltype);
 			pad_set_pull_updown(PAD_PIN_DSIGPIO3, pulltype);
@@ -1698,6 +1723,7 @@ void sdiohost_set_pads(struct mmc_nvt_host *host, PAD_PULL pulltype)
 		else
 #endif
 		{
+			pad_set_pull_updown(PAD_PIN_CGPIO17, PAD_PULLDOWN);
 			pad_set_pull_updown(PAD_PIN_CGPIO18, pulltype);
 			pad_set_pull_updown(PAD_PIN_CGPIO19, pulltype);
 			pad_set_pull_updown(PAD_PIN_CGPIO20, pulltype);
@@ -1905,16 +1931,19 @@ u32 sdiohost_set_voltage_switch(struct mmc_nvt_host *host)
 	union SDIO_DATA_CTRL_REG datactrl_reg;
 	union SDIO_VOL_SWITCH_TIMER_REG timer_reg;
 	union SDIO_INT_MASK_REG int_mask_reg;
+	unsigned long flags;
 
 	host->voltage_switch_timeout = 0;
 
 	timer_reg.reg = clk_get_rate(host->clk)/1000;
 	sdiohost_setreg(host, host->id, SDIO_VOL_SWITCH_TIMER_REG_OFS, timer_reg.reg);
 
+	spin_lock_irqsave(&host->int_mask_lock, flags);
 	int_mask_reg.reg = sdiohost_getreg(host, host->id, SDIO_INT_MASK_REG_OFS);
 	int_mask_reg.bit.VOL_SWITCH_END_INT_EN = 1;
 	int_mask_reg.bit.VOL_SWITCH_TIMEOUT_INT_EN = 1;
 	sdiohost_setreg(host, host->id, SDIO_INT_MASK_REG_OFS, int_mask_reg.reg);
+	spin_unlock_irqrestore(&host->int_mask_lock, flags);
 
 	datactrl_reg.reg = sdiohost_getreg(host, host->id, SDIO_DATA_CTRL_REG_OFS);
 	datactrl_reg.bit.WAIT_VOL_SWITCH_EN = 1;
@@ -1922,10 +1951,12 @@ u32 sdiohost_set_voltage_switch(struct mmc_nvt_host *host)
 
 	wait_for_completion(&host->voltage_switch_complete);
 
+	spin_lock_irqsave(&host->int_mask_lock, flags);
 	int_mask_reg.reg = sdiohost_getreg(host, host->id, SDIO_INT_MASK_REG_OFS);
 	int_mask_reg.bit.VOL_SWITCH_END_INT_EN = 0;
 	int_mask_reg.bit.VOL_SWITCH_TIMEOUT_INT_EN = 0;
 	sdiohost_setreg(host, host->id, SDIO_INT_MASK_REG_OFS, int_mask_reg.reg);
+	spin_unlock_irqrestore(&host->int_mask_lock, flags);
 
 	if (host->voltage_switch_timeout) {
 		pr_err("voltage switch timeout\n");
@@ -1953,7 +1984,7 @@ int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode, bool print_patter
 	struct mmc_data *dummy_data;
 	u32 i, blocksize, timeout, status;
 	struct platform_device *pdev = to_platform_device(host->mmc->parent);
-	u8 *tuningbuf;
+	u8 *tuningbuf = NULL;
 	dma_addr_t tuningbuf_pa;
 	u8 golden_buf[64] = {
 		0xFF, 0x0F, 0xFF, 0x00, 0xFF, 0xCC, 0xC3, 0xCC,
@@ -1970,7 +2001,7 @@ int sdiohost_tuning_cmd(struct mmc_nvt_host *host, u32 opcode, bool print_patter
 
 	if (!dummy_data) {
 		pr_err("failed to allocate dummy_data\n");
-		goto read_error;
+		goto dummy_alloc_error;
 	}
 
 	host->data = dummy_data;
@@ -2051,7 +2082,11 @@ read_error:
 
 	kfree(dummy_data);
 
-	dmam_free_coherent(&pdev->dev, 128, tuningbuf, tuningbuf_pa);
+    if (tuningbuf) {
+        dmam_free_coherent(&pdev->dev, 128, tuningbuf, tuningbuf_pa);
+    }
+
+dummy_alloc_error:
 
 	return E_SYS;
 }

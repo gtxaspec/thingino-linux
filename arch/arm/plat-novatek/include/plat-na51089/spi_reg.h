@@ -108,7 +108,8 @@ union SPI_CTRL_REG {		     /* SPI Control Register */
 	unsigned int spi_rdsts_dis:1;	/* Abort read flash status */
 	unsigned int spi_gyro_en:1;	/* Start GYRO mode */
 	unsigned int spi_gyro_dis:1;	/* Abort GYRO mode */
-	unsigned int reserved0:8;
+	unsigned int spi_gyro_update:1;
+	unsigned int reserved0:7;
 	unsigned int spi_dma_sts:1;	/* DMA mode status */
 	unsigned int spi_rdsts_sts:1;	/* Flash mode status */
 	unsigned int spi_gyro_sts:1;	/* Gyro mode status */
@@ -185,20 +186,11 @@ union SPI_FLASH_CTRL_REG {		/* SPI Flash Control Register */
 union SPI_DLY_CHAIN_REG {		/* SPI Delay Chain Register */
 	uint32_t reg;
 	struct {
-	unsigned int dly_clk_sel:6;	/* delay how many delay cell to sample data */
-	unsigned int reserved0:2;
-	unsigned int dly_clk_polarity:1;
-	unsigned int reserved1:1;
-	unsigned int dly_clk_src:1;
-	unsigned int reserved2:1;
-	unsigned int latch_data_src:1;
-	unsigned int reserved3:1;
-	unsigned int dly_clk_edge:1;
-	unsigned int reserved4:1;
+	unsigned int reserved0:16;
 	unsigned int latch_clk_shift:2;
-	unsigned int reserved5:2;
+	unsigned int reserved1:2;
 	unsigned int latch_clk_edge:1;
-	unsigned int reserved6:11;
+	unsigned int reserved2:11;
 	} bit;
 };
 
@@ -224,9 +216,9 @@ union SPI_STATUS_REG {			/* SPI Status Register */
 union SPI_INTEN_REG {			/* SPI Status Register */
 	uint32_t reg;
 	struct {
-	unsigned int spi_tdr_empty:1;	/* Transmit data register empty.  */
+	unsigned int reserved0:1;	/* Transmit data register empty.  */
 	unsigned int spi_rdr_full:1;	/* Receive data register full.  */
-	unsigned int dma_abort_en:1;
+	unsigned int reserved1:1;
 	unsigned int spi_dmaed_en:1;	/* 0: DMA not transfer/receive end , 1: DMA transfer/receive end */
 	unsigned int spi_rdstsed_en:1;	/* 0: SPI is reading status from serial flash or idle , 1: read SPI status done */
 	unsigned int gyro_trs_rdy_en:1;
@@ -234,7 +226,7 @@ union SPI_INTEN_REG {			/* SPI Status Register */
 	unsigned int all_gyrotrs_done_en:1;
 	unsigned int gyro_seq_err_en:1;
 	unsigned int gyro_trs_timeout_en:1;
-	unsigned int reserved0:22;
+	unsigned int reserved2:22;
 	} bit;
 };
 
@@ -278,8 +270,7 @@ union SPI_DMA_BUFSIZE_REG {			/* SPI DMA Control Register */
 union SPI_DMA_STARTADDR_REG {			/* SPI DMA Control Register */
 	uint32_t reg;
 	struct {
-	unsigned int spi_dma_start_addr:30;	/* DMA DRAM starting address */
-	unsigned int reserved0:2;
+	unsigned int spi_dma_start_addr:32;	/* DMA DRAM starting address */
 	} bit;
 };
 
@@ -292,15 +283,17 @@ union SPI_GYROSEN_CONFIG_REG {		/* SPI Gyro sensor Configuration Register */
 	unsigned int trscnt:5;		/* gyro transfer count per trigger */
 	unsigned int reserved0:3;
 	unsigned int trslen:2;		/* gyro transfer length: how many OPs */
-	unsigned int reserved1:6;
+	unsigned int reserved1:2;
+	unsigned int spi_gyro_vdsrc:2;
+	unsigned int reserved2:2;
 	unsigned int len_op0:3;		/* OP0 byte length */
-	unsigned int reserved2:1;
-	unsigned int len_op1:3;		/* OP1 byte length */
 	unsigned int reserved3:1;
-	unsigned int len_op2:3;		/* OP2 byte length */
+	unsigned int len_op1:3;		/* OP1 byte length */
 	unsigned int reserved4:1;
-	unsigned int len_op3:3;		/* OP3 byte length */
+	unsigned int len_op2:3;		/* OP2 byte length */
 	unsigned int reserved5:1;
+	unsigned int len_op3:3;		/* OP3 byte length */
+	unsigned int reserved6:1;
 	} bit;
 };
 

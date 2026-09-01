@@ -150,6 +150,18 @@ int pinmux_set_config(PINMUX_FUNC_ID id, u32 pinmux)
 }
 EXPORT_SYMBOL(pinmux_set_config);
 
+
+int nvt_pinmux_check_pin_function(u32 pin)
+{
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51089)	
+	return pinmux_parsing_gpio_function(pin);
+#else 
+	return -1;
+#endif
+}
+EXPORT_SYMBOL(nvt_pinmux_check_pin_function);
+
+
 int nvt_pinmux_probe(struct platform_device *pdev)
 {
 	struct nvt_pinctrl_info *info;

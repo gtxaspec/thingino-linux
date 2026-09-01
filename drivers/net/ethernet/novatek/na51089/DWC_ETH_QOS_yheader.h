@@ -109,6 +109,13 @@
 
 /*#include <asm-generic/errno.h>*/
 
+//#define TIMER_CONTROL
+#ifdef TIMER_CONTROL
+#define TIMER_LATENCY 100			/* ms */
+#define DWC_ETH_QOS_PKG_TH 4000			/* pkg/10  */
+#define DWC_ETH_QOS_TIMER_DURATION 20       	/* sec */
+#endif
+
 #ifdef CONFIG_PGTEST_OBJ
 #define DWC_ETH_QOS_CONFIG_PGTEST
 #endif
@@ -418,13 +425,27 @@
 
 /* Helper macro for handling coalesce parameters via ethtool */
 /* Obtained by trial and error  */
+#ifdef TIMER_CONTROL
+#define DWC_ETH_QOS_OPTIMAL_DMA_RIWT_USEC  4352
+#else
 #define DWC_ETH_QOS_OPTIMAL_DMA_RIWT_USEC  124
+#endif
 /* Max delay before RX interrupt after a pkt is received Max
  * delay in usecs is 4352 for 15 MHz device clock */
 #define DWC_ETH_QOS_MAX_DMA_RIWT  0xff
+
+#ifdef TIMER_CONTROL
+/* Max no of pkts to be received before an RX interrupt */
+#define DWC_ETH_QOS_RX_MAX_FRAMES 64
+/* Max no of pkts to be received before an TX interrupt */
+#define DWC_ETH_QOS_TX_MAX_FRAMES 2
+#else
 /* Max no of pkts to be received before an RX interrupt */
 #define DWC_ETH_QOS_RX_MAX_FRAMES 32
+/* Max no of pkts to be received before an TX interrupt */
+#define DWC_ETH_QOS_TX_MAX_FRAMES 1
 
+#endif
 #define DMA_SBUS_AXI_PBL_MASK 0xFE
 
 /* Helper macros for handling receive error */
@@ -1384,6 +1405,13 @@ struct DWC_ETH_QOS_prv_data {
 
 	void *mau_dummy_ptr;
 	dma_addr_t mau_dummy_dma_addr;
+#ifdef TIMER_CONTROL
+	struct timer_list timer;
+	int rx_mcast_pkg_th;
+	int rx_timer_blk_duration;
+	int rx_timer_blk_enable;
+	int rx_timer_log_enable;
+#endif
 };
 
 typedef enum {
@@ -1466,6 +1494,9 @@ int DWC_ETH_QOS_alloc_tx_buf_pg(struct DWC_ETH_QOS_prv_data *pdata,
 				gfp_t gfp);
 #endif /* end of DWC_ETH_QOS_CONFIG_PGTEST */
 
+#ifdef TIMER_CONTROL
+void DWC_ETH_QOS_I_monitor_func(struct timer_list *arg);
+#endif
 /* For debug prints*/
 #define DRV_NAME "DWC_ETH_QOS_drv.c"
 

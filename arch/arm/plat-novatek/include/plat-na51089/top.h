@@ -399,7 +399,7 @@ typedef enum {
 	PIN_SPI_CFG_CH3            = 0x100,   ///< Enable channel 3. Eanble @P_GPIO17[SPI3_1_CS]|P_GPIO18[SPI3_1_CLK]|P_GPIO19[SPI3_1_DO]. Enable 2BITs && P_GPIO20[SPI3_1_DI])
 	PIN_SPI_CFG_CH3_2BITS      = 0x200,   ///< Enable channel 3. Eanble SPI3_1_DI on P_GPIO[20] or  SPI3_2_DI on MC14 or SPI3_3_DI on P_GPIO[7]
 	PIN_SPI_CFG_CH3_2ND_PINMUX = 0x400,   ///< Enable 2nd pinmux of channel 3. Enable @MC11[SPI3_2_CLK]|MC12[SPI3_2_DO]|MC13[SPI3_2_CS]. Enable 2BITs && MC14[SPI3_2_DI]
-	PIN_SPI_CFG_CH3_RDY        = 0x800,   ///< Enable channel 3 RDY. If enable SPI3_1_RDY (P_GPIO[21]). If enable SPI3_2_RDY (MC15).    SPI3_3_RDY (P_GPIO[8]) 
+	PIN_SPI_CFG_CH3_RDY        = 0x800,   ///< Enable channel 3 RDY. If enable SPI3_1_RDY (P_GPIO[21]). If enable SPI3_2_RDY (MC15).    SPI3_3_RDY (P_GPIO[8])
 
 	//Only support @ 528 below  (CH4/CH5)  ---------------------------------------------------------------------------------------------------------------------
 	PIN_SPI_CFG_CH4            = 0x1000,    ///< Not support
@@ -1253,7 +1253,7 @@ int nvt_pinmux_update(PIN_GROUP_CONFIG *pinmux_config, int count);
 int pinmux_set_config(PINMUX_FUNC_ID id, u32 pinmux);
 UINT32 nvt_get_chip_id(void);
 PINMUX_LCDINIT pinmux_get_dispmode(PINMUX_FUNC_ID id);
-
+int nvt_pinmux_check_pin_function(u32 pin);
 extern void pinmux_enable_pwr_isofunc(PINMUX_POWER_ISOFUNC en);
 extern void pinmux_set_direct_channel(PINMUX_DIRECTMODE_CH ch);
 #endif

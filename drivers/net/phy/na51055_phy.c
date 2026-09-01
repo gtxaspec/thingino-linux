@@ -251,7 +251,13 @@ static int nvt_resume(struct phy_device *phydev)
 
 	eth_phy_poweron();
 
-	set_best_setting();
+	if (nvt_get_chip_id() == CHIP_NA51055) {
+		/* NA51055 */
+		set_best_setting_t28();
+	} else {
+		/* NA51084 / NA51089 */
+		set_best_setting_t22();
+	}
 	phy_sw_reset_enable();
 	set_break_link_timer();
 #if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
@@ -306,11 +312,11 @@ static int nvt_suspend(struct phy_device *phydev)
 static void nvt_link_change_notify(struct phy_device *phydev)
 {
 	int status, phy_link;
+	int ret;
 #ifdef NVT_PHY_AN_FAIL_10M_TO_100M
 	static unsigned long crc_count = 0, crc_count_old = 0;
 	static unsigned long reg_old, tx_reg_old;
 	unsigned long reg = 0, tx_reg = 0;
-	int ret;
 #endif
 
 	status = phy_read(phydev, MII_BMSR);
@@ -349,7 +355,12 @@ static void nvt_link_change_notify(struct phy_device *phydev)
 		eq_reset_disable();
 	} else if ((bplug==0) && (phydev->state == PHY_RUNNING)) {
 		printk("plug\r\n");
-		phy_write(phydev, 0x1F, 0xC00);
+		ret = phy_write(phydev, 0x1F, 0xC00);
+		if (ret < 0) {
+			printk("phy write fail, ret = %x\r\n", ret);
+			return;
+		}
+
 		bplug = 1;
 	}
 	na510xx_phy_state = phydev->state;
@@ -382,5 +393,5 @@ static struct mdio_device_id __maybe_unused novatek_tbl[] = {
 MODULE_DEVICE_TABLE(mdio, novatek_tbl);
 
 MODULE_DESCRIPTION("Novatek Ethernet PHY Driver");
-MODULE_VERSION("1.00.006");
+MODULE_VERSION("1.00.007");
 MODULE_LICENSE("GPL");

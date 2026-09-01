@@ -119,6 +119,11 @@ extern int hub_port_debounce(struct usb_hub *hub, int port1,
 extern int usb_clear_port_feature(struct usb_device *hdev,
 		int port1, int feature);
 
+#if CONFIG_USB_EHCI_HCD_NVTIVOT
+extern int nvt_set_port_reset(struct usb_hub *hub, struct usb_device *udev, int port1);
+extern int get_dummy_cx_status(struct usb_hub *hub, struct usb_device *udev);
+extern struct usb_hub *nvt_get_hub(struct usb_device *udev);
+#endif
 static inline bool hub_is_port_power_switchable(struct usb_hub *hub)
 {
 	__le16 hcs;

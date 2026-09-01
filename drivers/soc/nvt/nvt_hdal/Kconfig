@@ -2,39 +2,86 @@ menu "Novatek HDAL Drivers"
 
 config NVT_DMA_MONITOR
 	bool "NVT dma channel monitor"
-	depends on ARCH_NVT_IVOT_V7	
+	depends on ARCH_NVT_IVOT_V7
 	default y
 	help
 	  This option will configure dma channel monitor for debug.
-	  
+
 config NVT_SMALL_HDAL
 	bool "NVT small HDAL"
-	depends on ARCH_NVT_IVOT_V7	
+	depends on ARCH_NVT_IVOT_V7
 	default n
 	help
-	  This option will configure fewer HDAL paths.		   
+	  This option will configure fewer HDAL paths.
 
 if NVT_HDAL_BUILD_IN
 config NVT_VOS_KWRAP
-	bool "Novatek vos basic handling API"
-	default y
-	depends on NVT_HDAL_BUILD_IN
-	help
-	  Novatek VOS api to provide basic multi-OS interface.
+        bool
 
 config NVT_HDAL_KDRV_BUILTIN
-	bool "Novatek hdal k-driver built-in part"
-	default y
-	depends on NVT_HDAL_BUILD_IN
-	help
-	  Novatek hdal k-driver's built-in
+        bool
 
 config NVT_FAST_ISP_FLOW
 	bool "NVT fast boot isp flow"
-	depends on NVT_HDAL_BUILD_IN	
+	depends on NVT_HDAL_BUILD_IN
 	default y
 	help
 	  This option will configure fast boot isp table and flow.
 endif
+
+config NVT_HDAL_KDRV_COMM
+        bool
+        default n
+config NVT_HDAL_KDRV_GFX2D
+        bool
+        default n
+config NVT_HDAL_KDRV_VIDEOCAPTURE
+        bool
+        default n
+config NVT_HDAL_KDRV_VIDEOPROCESS
+        bool
+        default n
+config NVT_HDAL_KDRV_VIDEOCODEC
+        bool
+        default n
+config NVT_HDAL_KDRV_AUDIO_COMMON
+        bool
+        default n
+config NVT_HDAL_KDRV_AUDIO
+        bool
+        default n
+config NVT_HDAL_KFLOW_COMMON
+        bool
+        default n
+config NVT_HDAL_KFLOW_VIDEOCAPTURE
+        bool
+        default n
+config NVT_HDAL_KFLOW_VIDEOPROCESS
+        bool
+        default n
+config NVT_HDAL_KFLOW_VIDEOENC
+        bool
+        default n
+config NVT_HDAL_KFLOW_GFX2D
+        bool
+        default n
+config NVT_HDAL_KFLOW_VIDEOSPRITE
+        bool
+        default n
+config NVT_HDAL_KFLOW_AUDIOCAPTURE
+        bool
+        default n
+config NVT_HDAL_ISP_ISP
+        bool
+        default n
+config NVT_HDAL_ISP_AE
+        bool
+        default n
+config NVT_HDAL_ISP_AWB
+        bool
+        default n
+config NVT_HDAL_ISP_IQ
+        bool
+        default n
 
 endmenu

@@ -489,17 +489,21 @@ static int DWC_ETH_QOS_init_phy(struct net_device *dev)
 	}
 
 	if (pdata->interface == PHY_INTERFACE_MODE_GMII) {
+		// coverity[dereference], phydev has been checked by IS_ERR
 		phydev->supported = PHY_GBIT_FEATURES;
 #ifdef DWC_ETH_QOS_CERTIFICATION_PKTBURSTCNT_HALFDUPLEX
 		phydev->supported &= ~SUPPORTED_1000baseT_Full;
 #endif
 	} else if ((pdata->interface == PHY_INTERFACE_MODE_MII) ||
 		(pdata->interface == PHY_INTERFACE_MODE_RMII)) {
+		// coverity[dereference]
 		phydev->supported = PHY_BASIC_FEATURES;
 	}
 
 #ifndef DWC_ETH_QOS_CONFIG_PGTEST
-	phydev->supported |= (SUPPORTED_Pause | SUPPORTED_Asym_Pause);
+	// coverity[dereference]
+	if (phydev->supported)
+		phydev->supported |= (SUPPORTED_Pause | SUPPORTED_Asym_Pause);
 #endif
 
     /* Lets Make the code support for both 100M and Giga bit */

@@ -29,7 +29,7 @@
 #include <plat/nvt-sramctl.h>
 
 #define	DRIVER_DESC	"FOTG211 USB Device Controller Driver"
-#define	DRIVER_VERSION	"1.00.021"
+#define	DRIVER_VERSION	"1.00.022"
 
 #define USE_TASKLET_FOR_IRQ 0
 
@@ -92,6 +92,11 @@ MODULE_PARM_DESC(outslice, "Fot class(CDC-NCM) out size is unknown, the use of s
 static unsigned debug_on = 0;
 module_param(debug_on, uint, S_IRUGO);
 MODULE_PARM_DESC(debug_on, "Whether to enable debug message. Default = 0");
+
+static unsigned force_fs = 0;
+module_param(force_fs, uint, S_IRUGO);
+MODULE_PARM_DESC(force_fs, "Whether to force fullspeed. Default = 0");
+
 
 static int do_test_packet = 0;
 
@@ -2324,10 +2329,13 @@ static void fotg210_set_feature(struct fotg210_udc *fotg210,
 	case USB_RECIP_ENDPOINT: {
 		u8 epnum;
 		epnum = le16_to_cpu(ctrl->wIndex) & USB_ENDPOINT_NUMBER_MASK;
-		if (epnum)
+		if (epnum) {
+			fotg210->ep[epnum]->stall = 1;
 			fotg210_set_epnstall(fotg210->ep[epnum]);
+		}
 		else
 			fotg210_set_cxstall(fotg210);
+
 		fotg210_set_cxdone(fotg210);
 		}
 		break;
@@ -2380,6 +2388,12 @@ static int fotg210_is_epnstall(struct fotg210_ep *ep)
 	return value & INOUTEPMPSR_STL_EP ? 1 : 0;
 }
 
+static int fotg210_is_cxstall(struct fotg210_udc *fotg210)
+{
+	u32 value = ioread32(fotg210->reg + FOTG210_DCFESR);
+	return value & DCFESR_CX_STL ? 1 : 0;
+}
+
 static void fotg210_get_status(struct fotg210_udc *fotg210,
 				struct usb_ctrlrequest *ctrl)
 {
@@ -2399,7 +2413,9 @@ static void fotg210_get_status(struct fotg210_udc *fotg210,
 				fotg210_is_epnstall(fotg210->ep[epnum])
 				<< USB_ENDPOINT_HALT;
 		else
-			fotg210_request_error(fotg210);
+			fotg210->ep0_data =
+				fotg210_is_cxstall(fotg210)
+				<< USB_ENDPOINT_HALT;
 		break;
 
 	default:
@@ -2857,6 +2873,10 @@ static void fotg210_init(struct fotg210_udc *fotg210)
 	#ifdef CONFIG_NVT_FPGA_EMULATION
 	value |= DMCR_HALF_SPEED;
 	#endif
+
+	if(force_fs)
+		value |= DMCR_FORCE_FS;
+
 	iowrite32(value, fotg210->reg + FOTG210_DMCR);
 
 	/* disable all fifo interrupt */

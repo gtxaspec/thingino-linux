@@ -15,7 +15,11 @@
 #include <mach/drvdump.h>
 #include <plat/pad.h>
 
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR) && defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+static int request_gpio = -1;
+#endif
 static struct drv_nand_dev_info drvdump_info;
+DEFINE_MUTEX(spi_nand_lock);
 
 static void dma_flushwritecache(dma_addr_t *dma_handle, void *pbuf, u32 len)
 {
@@ -49,7 +53,7 @@ static int spiflash_disable_write_latch(struct drv_nand_dev_info *info)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -129,7 +133,7 @@ static int spinand_wait_status(struct drv_nand_dev_info *info, uint32_t feature,
 		trans_param.fifo_dir = _FIFO_READ;
 		trans_param.trans_mode = _PIO_MODE;
 		trans_param.type = _AUTO_STATUS;
-		trans_param.cs = 0;
+		trans_param.cs = info->flash_info->chip_sel;
 
 		nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 		reg_cmd_cycle.bit.cmd_cyc_1st = feature;
@@ -193,7 +197,7 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _PIO_MODE;
 			trans_param.type = _CMD_ADDR;
-			trans_param.cs = 0;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			nand_host_set_spi_io(info, NAND_SPI_CS_ACTIVE_LOW, NAND_SPI_NORMAL_DUPLEX_MODE, NAND_SPI_ORDER_MODE_1);
 			nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
@@ -232,7 +236,7 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _PIO_MODE;
 			trans_param.type = _CMD_ADDR;
-			trans_param.cs = 0;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			if (col_addr == info->flash_info->page_size)
 				trans_param.row_addr |= (2 << 14) << 8;
@@ -257,7 +261,7 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _DMA_MODE;
 			trans_param.type = _SPI_READ_N_BYTES;
-			trans_param.cs = 0;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			NAND_SETREG(info, NAND_DMASTART_REG_OFS, virt_to_phys(pul_buf));
 
@@ -345,7 +349,7 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _DMA_MODE;
 			trans_param.type = _DATA_RD3;
-			trans_param.cs = NAND_CS0_EN;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			//Read spare data
 			if(col_addr == info->flash_info->page_size) {
@@ -537,7 +541,88 @@ static int spinand_read_page(struct drv_nand_dev_info *info, uint32_t row_addr, 
     return ret;
 }
 
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR) && defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+struct nvt_flash *store_dev;
+struct drv_nand_dev_info *store_info;
+static int log_cs = 0;
 
+static irqreturn_t common_flash_irq(int irq, void *dev_id)
+{
+	struct drv_nand_dev_info *info;
+#if (0)
+	if(gpio_get_value(store_dev->info->flash_info->cs_switch_io) == 0) {
+		info = store_dev->info;	//NOR
+	} else {
+		info = store_info;
+	}
+#else
+	if(log_cs == 1) {
+		info = store_info;
+		if(gpio_get_value(info->flash_info->cs_switch_io) != info->flash_info->chip_sel) {
+			info = store_dev->info;
+		}
+	} else {
+		info = store_dev->info;
+		if(gpio_get_value(info->flash_info->cs_switch_io) != info->flash_info->chip_sel) {
+			info = store_info;
+		}
+	}
+
+#endif
+
+
+	info->nand_int_status = NAND_GETREG(info, NAND_CTRL_STS_REG_OFS);
+	if (info->nand_int_status) {
+		NAND_SETREG(info, NAND_CTRL_STS_REG_OFS, info->nand_int_status);
+		complete(&info->cmd_complete);
+		return IRQ_HANDLED;
+	} else
+		return IRQ_NONE;
+}
+#endif
+
+int request_common_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
+	    const char *name, void *dev, u32 cs)
+{
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR)
+	static int block = 0;
+
+	if (cs)
+		store_info = dev;	//NAND
+	else
+		store_dev = dev;	//NOR
+
+	if (!block) {
+		block = 1;
+		log_cs = cs;
+		return request_irq(irq, common_flash_irq, flags, name, dev);
+	}
+
+	return 0;
+#else
+	return request_irq(irq, handler, flags, name, dev);
+#endif
+}
+
+struct mutex * mutex_common_init(void) {
+	return &spi_nand_lock;
+}
+
+#if defined(CONFIG_MTD_SPINAND) && defined(CONFIG_MTD_SPINOR) && defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+int common_request_gpio(unsigned gpio, const char *label)
+{
+	int ret;
+	if(request_gpio) {
+		ret = gpio_request(D_GPIO(6), label);
+		if(ret) {
+			request_gpio = -1;
+		} else {
+			request_gpio = ret;
+		}
+	}
+	return request_gpio;
+}
+#endif
 /*
     Unlock SPI NAND block protect
 */
@@ -553,7 +638,7 @@ int spi_nand_unlock_bp(struct drv_nand_dev_info *info)
 		trans_param.fifo_dir = _FIFO_READ;
 		trans_param.trans_mode = _PIO_MODE;
 		trans_param.type = _CMD_ADDR;
-		trans_param.cs = NAND_CS0_EN;
+		trans_param.cs = info->flash_info->chip_sel;
 
 		nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -612,7 +697,7 @@ static int spinand_program_page(struct drv_nand_dev_info *info,
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _PIO_MODE;
 			trans_param.type = _CMD;
-			trans_param.cs = NAND_CS0_EN;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -640,7 +725,7 @@ static int spinand_program_page(struct drv_nand_dev_info *info,
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _PIO_MODE;
 			trans_param.type = _CMD_ADDR;
-			trans_param.cs = 0;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -696,7 +781,7 @@ static int spinand_program_page(struct drv_nand_dev_info *info,
 			trans_param.fifo_dir = _FIFO_READ;
 			trans_param.trans_mode = _PIO_MODE;
 			trans_param.type = _CMD_ADDR;
-			trans_param.cs = 0;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -729,7 +814,7 @@ static int spinand_program_page(struct drv_nand_dev_info *info,
 			trans_param.fifo_dir = _FIFO_WRITE;
 			trans_param.trans_mode = _DMA_MODE;
 			trans_param.type = _SPI_PROG_CMD;
-			trans_param.cs = NAND_CS0_EN;
+			trans_param.cs = info->flash_info->chip_sel;
 
 			dma_flushwritecache(&dma_handle, info->data_buff, info->flash_info->page_size);
 
@@ -803,7 +888,7 @@ int nand_cmd_reset(struct drv_nand_dev_info *info)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD;
-	trans_param.cs = NAND_CS0_EN;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -837,7 +922,7 @@ int nand_cmd_read_status(struct drv_nand_dev_info *info, uint32_t set)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD_STS;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_set_spi_io(info, NAND_SPI_CS_ACTIVE_LOW, NAND_SPI_NORMAL_DUPLEX_MODE, NAND_SPI_ORDER_MODE_1);
 
@@ -937,7 +1022,7 @@ int nand_cmd_read_config(struct drv_nand_dev_info *info, u32 config)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD_STS;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -975,7 +1060,7 @@ int nand_cmd_erase_block(struct drv_nand_dev_info *info, uint32_t block_address)
         trans_param.fifo_dir = _FIFO_READ;
         trans_param.trans_mode = _PIO_MODE;
         trans_param.type = _CMD;
-        trans_param.cs = NAND_CS0_EN;
+        trans_param.cs = info->flash_info->chip_sel;
 
         nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -990,7 +1075,7 @@ int nand_cmd_erase_block(struct drv_nand_dev_info *info, uint32_t block_address)
 	trans_param.fifo_dir = _FIFO_WRITE;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _BLK_ERSE;
-	trans_param.cs = NAND_CS0_EN;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	// Once if not write operation => disable write protect EN
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
@@ -1032,13 +1117,15 @@ int nand_cmd_read_id(uint8_t * card_id, struct drv_nand_dev_info *info)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _READ_ID;
-	trans_param.cs = NAND_CS0_EN;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 4, _SINGLE_PAGE);
 
+	nand_host_setup_address_cycle(info, NAND_ROW_ADDRESS_1_CYCLE_CNT, NAND_NOT_CONFIGED_COL_ADDRESS_CYCLE_CNT);
+
 	nand_host_send_command(info, SPINAND_CMD_JEDECID, FALSE);
 
-    	return nand_host_receive_data(info, card_id, 4, _PIO_MODE);
+    return nand_host_receive_data(info, card_id, 4, _PIO_MODE);
 }
 
 /*
@@ -1057,7 +1144,7 @@ int nand_cmd_read_flash_ecc_corrected(struct drv_nand_dev_info *info)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _READ_ID;
-	trans_param.cs = NAND_CS0_EN;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 4, _SINGLE_PAGE);
 
@@ -1136,7 +1223,7 @@ static int spiflash_wait_ready(struct drv_nand_dev_info *info, u8 * status)
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _AUTO_STATUS;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -1313,7 +1400,7 @@ static int spiflash_read_data(struct drv_nand_dev_info *info, u32 addr, u32 byte
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD_ADDR;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -1335,7 +1422,7 @@ static int spiflash_read_data(struct drv_nand_dev_info *info, u32 addr, u32 byte
 	trans_param.col_addr = 0;
 	trans_param.row_addr = 0;
 	trans_param.fifo_dir = _FIFO_READ;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	if (info->flash_info->nor_read_mode != SPI_NOR_NORMAL_READ) {
 		trans_param.type = _DUMMY_CLOCK;
@@ -1467,7 +1554,7 @@ static int spiflash_page_program(struct drv_nand_dev_info *info, u32 addr, u32 b
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD_ADDR;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -1702,7 +1789,7 @@ int spinor_erase_sector(struct drv_nand_dev_info *info, u8 cmd, u32 addr)
 	trans_param.fifo_dir = _FIFO_WRITE;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _BLK_ERSE;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	if (info->flash_info->device_size > SPI_FLASH_16MB_BOUN)
 		nand_host_setup_address_cycle(info, NAND_ROW_ADDRESS_4_CYCLE_CNT, NAND_NOT_CONFIGED_COL_ADDRESS_CYCLE_CNT);
@@ -1749,7 +1836,7 @@ int spinor_read_sfdp(struct drv_nand_dev_info *info, u32 addr, u32 byte_size, u8
 	trans_param.fifo_dir = _FIFO_READ;
 	trans_param.trans_mode = _PIO_MODE;
 	trans_param.type = _CMD_ADDR;
-	trans_param.cs = 0;
+	trans_param.cs = info->flash_info->chip_sel;
 
 	nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
 
@@ -1804,6 +1891,142 @@ int spinor_read_sfdp(struct drv_nand_dev_info *info, u32 addr, u32 byte_size, u8
 	/*Enable clk_auto_gating after set cs_manual*/
 	if (!(clk_get_phase(info->clk)))
 		clk_set_phase(info->clk, 1);
+
+	return ret;
+}
+
+int spinor_read_status(struct drv_nand_dev_info *info, u8 status_set, u8 *status)
+{
+	struct smc_setup_trans trans_param;
+	u32 spi_cmd = 0;
+	int ret = E_OK;
+
+	do {
+		trans_param.col_addr = 0;
+		trans_param.row_addr = 0;
+		trans_param.fifo_dir = _FIFO_READ;
+		trans_param.trans_mode = _PIO_MODE;
+		trans_param.type = _CMD_STS;
+		trans_param.cs  = info->flash_info->chip_sel;
+
+		nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
+
+		if (status_set == NAND_SPI_NOR_STS_RDSR_1) {
+			spi_cmd = FLASH_CMD_RDSR;
+		} else if (status_set == NAND_SPI_NOR_STS_RDCR) {
+			spi_cmd = FLASH_CMD_RDCR;
+		} else {
+			spi_cmd = FLASH_CMD_RDSR2;
+		}
+
+		nand_host_send_command(info, spi_cmd, FALSE);
+
+		ret = nand_cmd_wait_complete(info);
+
+	} while (0);
+
+	*status = NAND_GETREG(info, NAND_CTRL_STS_REG_OFS);
+
+	return ret;
+}
+
+int spinor_write_status(struct drv_nand_dev_info *info, u8 status_set, u8 status)
+{
+	union NAND_COMMAND_REG cmd_cycle= {0};
+	struct smc_setup_trans trans_param;
+	u32 spi_cmd = 0;
+	int ret = E_OK;
+	u8 wait_status = 0;
+
+	spiflash_enable_write_latch(info);
+
+	do {
+		//row addr = 0x44332211 --> 0x44 --> 0x33 --> 0x22 --> 0x11
+		//                                            ___     ___________
+		//use command + 1 cycle row address cycle ___|cmd|___|Row1stcycle|___
+
+		if (status_set == NAND_SPI_NOR_STS_WRSR_1) {
+			cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_WRSR;
+		} else {
+			cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_WRSR2;
+		}
+
+		spi_cmd = status;
+
+		trans_param.col_addr = 0;
+		trans_param.row_addr = spi_cmd;
+		trans_param.fifo_dir = _FIFO_READ;
+		trans_param.trans_mode = _PIO_MODE;
+		trans_param.type = _CMD_ADDR;
+		trans_param.cs  = info->flash_info->chip_sel;
+
+		nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
+
+		if (info->flash_info->nor_quad_support) {
+			nand_host_setup_address_cycle(info, NAND_ROW_ADDRESS_2_CYCLE_CNT, NAND_COL_ADDRESS_1_CYCLE_CNT);
+		} else {
+			nand_host_setup_address_cycle(info, NAND_ROW_ADDRESS_1_CYCLE_CNT, NAND_COL_ADDRESS_1_CYCLE_CNT);
+		}
+
+		nand_host_send_command(info, cmd_cycle.reg, FALSE);
+
+		ret = nand_cmd_wait_complete(info);
+
+		if (ret) {
+			return ret;
+		}
+
+	} while (0);
+
+	ret = spiflash_wait_ready(info, &wait_status);
+	if (ret) {
+		printk("wait ready timeout with status 0x%x\n", wait_status);
+	}
+
+	return ret;
+}
+
+int spi_nor_set_status_half_word(struct drv_nand_dev_info *info, u16 hstatus)
+{
+	union NAND_COMMAND_REG cmd_cycle= {0};
+	struct smc_setup_trans trans_param;
+	u32 spi_cmd = 0;
+	int ret = E_OK;
+	u8 wait_status = 0;
+
+	spiflash_enable_write_latch(info);
+
+	do {
+		cmd_cycle.bit.cmd_cyc_1st = FLASH_CMD_WRSR;
+
+		spi_cmd = hstatus;
+
+		trans_param.col_addr = 0;
+		trans_param.row_addr = spi_cmd;
+		trans_param.fifo_dir = _FIFO_READ;
+		trans_param.trans_mode = _PIO_MODE;
+		trans_param.type = _CMD_ADDR;
+		trans_param.cs = info->flash_info->chip_sel;
+
+		nand_host_setup_transfer(info, &trans_param, 0, 0, _SINGLE_PAGE);
+
+		/*Note CMD address is msb first*/
+		/*Ex 0x00000740 will send __|07|__|40|__*/
+		nand_host_setup_address_cycle(info, NAND_ROW_ADDRESS_2_CYCLE_CNT, NAND_COL_ADDRESS_1_CYCLE_CNT);
+
+		nand_host_send_command(info, cmd_cycle.reg, FALSE);
+
+		ret = nand_cmd_wait_complete(info);
+
+		if (ret) {
+			return ret;
+		}
+	} while (0);
+
+	ret = spiflash_wait_ready(info, &wait_status);
+	if (ret) {
+		printk("wait ready timeout with status 0x%x\n", wait_status);
+	}
 
 	return ret;
 }

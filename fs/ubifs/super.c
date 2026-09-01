@@ -1436,6 +1436,8 @@ static int mount_ubifs(struct ubifs_info *c)
 
 	c->mounting = 0;
 
+	sync_filesystem(c->vfs_sb);
+
 	ubifs_msg(c, "UBIFS: mounted UBI device %d, volume %d, name \"%s\"%s",
 		  c->vi.ubi_num, c->vi.vol_id, c->vi.name,
 		  c->ro_mount ? ", R/O mode" : "");

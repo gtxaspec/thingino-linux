@@ -717,7 +717,12 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 	u32			status, masked_status, pcd_status = 0, cmd;
 	int			bh;
 	unsigned long		flags;
-
+#if CONFIG_USB_EHCI_HCD_NVTIVOT
+	static int err_counter = 0;
+	static ktime_t errk_time;
+	static int abnormal_sts_chg = 0;
+	static ktime_t errk_time2;
+#endif
 	/*
 	 * For threadirqs option we use spin_lock_irqsave() variant to prevent
 	 * deadlock with ehci hrtimer callback, because hrtimer callbacks run
@@ -755,8 +760,25 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 	if (likely ((status & (STS_INT|STS_ERR)) != 0)) {
 		if (likely ((status & STS_ERR) == 0))
 			COUNT (ehci->stats.normal);
-		else
+		else {
 			COUNT (ehci->stats.error);
+			#if CONFIG_USB_EHCI_HCD_NVTIVOT
+			if (hcd->gain_mdm_comp) {
+				if(err_counter++ == 1000) {
+					errk_time = ktime_get();
+				}
+
+				if(err_counter > 3000 ) {
+					err_counter = 0;
+
+					if(ktime_to_ms(ktime_sub(ktime_get(), errk_time)) < 2000) {
+						printk("error too much!!");
+						hcd->driver->port_nc(hcd);
+					}
+				}
+			}
+			#endif
+		}
 		bh = 1;
 	}
 
@@ -787,10 +809,33 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 	/* remote wakeup [4.3.1] */
 	if (status & STS_PCD) {
 		unsigned	i = HCS_N_PORTS (ehci->hcs_params);
+		u32             ppcd = ~0;
+
 #if defined(CONFIG_USB_NVTIVOT_HCD)
 		u32 port_status = readl(&ehci->regs->port_status[0]);
+
+		if (hcd->gain_mdm_comp) {
+			//printk("port_status=0x%x...err_counter = %u\n",port_status, err_counter);
+			if ((port_status & PORT_CONNECT) && (port_status & PORT_PEC)) { //port change, but connection keep case
+				abnormal_sts_chg++;
+			} else {
+				abnormal_sts_chg = 0;
+			}
+
+			if (abnormal_sts_chg == 5) {
+				errk_time2 = ktime_get();
+			}
+
+			if (abnormal_sts_chg >= 20) {
+				abnormal_sts_chg = 0;
+
+				if(ktime_to_ms(ktime_sub(ktime_get(), errk_time2)) < 2000) {
+					printk("port status abnormal change!\n");
+					hcd->driver->port_nc(hcd);
+				}
+			}
+		}
 #endif
-		u32		ppcd = ~0;
 
 #if defined(CONFIG_USB_NVTIVOT_HCD)
 		//printk("K-psts=0x%X\n",port_status);

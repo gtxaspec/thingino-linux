@@ -29,7 +29,7 @@
 #include <plat/nvt-sramctl.h>
 
 #define	DRIVER_DESC	"FOTG210 USB Device Controller Driver"
-#define	DRIVER_VERSION	"1.00.040"
+#define	DRIVER_VERSION	"1.00.041"
 
 static bool is_cdc_class = 0;
 u32 vbus_gpio_no = D_GPIO(7);
@@ -58,6 +58,12 @@ static const struct {
 	EP_INFO("ep4",
 		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
 	EP_INFO("ep5",
+		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
+	EP_INFO("ep6",
+		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
+	EP_INFO("ep7",
+		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
+	EP_INFO("ep8",
 		USB_EP_CAPS(USB_EP_CAPS_TYPE_ALL, USB_EP_CAPS_DIR_ALL)),
 
 #undef EP_INFO
@@ -1305,7 +1311,7 @@ static void fotg210_clear_tx0byte(struct fotg210_udc *fotg210)
 	u32 value = ioread32(fotg210->reg + FOTG210_TX0BYTE);
 
 	value &= (TX0BYTE_EP1 | TX0BYTE_EP2 | TX0BYTE_EP3
-		   | TX0BYTE_EP4);
+		   | TX0BYTE_EP4 | TX0BYTE_EP5 | TX0BYTE_EP6 | TX0BYTE_EP7 | TX0BYTE_EP8);
 	iowrite32(value, fotg210->reg + FOTG210_TX0BYTE);
 }
 
@@ -1314,7 +1320,7 @@ static void fotg210_clear_rx0byte(struct fotg210_udc *fotg210)
 	u32 value = ioread32(fotg210->reg + FOTG210_RX0BYTE);
 
 	value &= ~(RX0BYTE_EP1 | RX0BYTE_EP2 | RX0BYTE_EP3
-		   | RX0BYTE_EP4);
+		   | RX0BYTE_EP4 | RX0BYTE_EP5 | RX0BYTE_EP6 | RX0BYTE_EP7 | RX0BYTE_EP8);
 	iowrite32(value, fotg210->reg + FOTG210_RX0BYTE);
 }
 
@@ -2116,6 +2122,7 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 	int i;
 	int val, val2, val3, val4;
 	UINT32 EPi, FIFOi;
+	UINT32 epnum = FOTG210_DEFAULT_NUM_EP;
 
 	if (debug_on)
 		numsg("fotg210_udc_probe\r\n");
@@ -2225,7 +2232,7 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 
 #if 0
 	/* Using tasklet for command processing */
-	ret =  request_threaded_irq(ires->start, fotg210_isr, fotg210_ist, 
+	ret =  request_threaded_irq(ires->start, fotg210_isr, fotg210_ist,
 			IRQF_SHARED, udc_name, fotg210);
 #else
 	ret = request_irq(ires->start, fotg210_irq, IRQF_SHARED,
@@ -2268,6 +2275,17 @@ static int fotg210_udc_probe(struct platform_device *pdev)
 		gFIFOOutMap[FIFOi] = USB_EP_NOT_USE;
 	}
 #endif
+
+	if(!of_property_read_u32(pdev->dev.of_node, "epnum", &epnum)) {
+		if(epnum > FOTG210_DEFAULT_NUM_EP)
+		{
+			dev_info(&pdev->dev, "more than 8 EPs!, switch to 1 EP 1 Fifo\n");
+			for (EPi = 0 ; EPi < (FOTG210_MAX_NUM_EP - 1) ; EPi++) {
+				gEPBlkNo[EPi] = BLKNUM_SINGLE;
+			}
+		}
+	}
+
 	return 0;
 
 err_add_udc:

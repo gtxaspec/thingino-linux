@@ -167,6 +167,12 @@ static void DWC_ETH_QOS_stop_dev(struct DWC_ETH_QOS_prv_data *pdata)
 
 	DBGPR("-->DWC_ETH_QOS_stop_dev\n");
 
+#ifdef TIMER_CONTROL
+	if (pdata->rx_timer_blk_enable) {
+		del_timer_sync(&pdata->timer);
+	}
+#endif
+
 	DWC_ETH_QOS_disable_all_ch_dma_interrpt(pdata);
 
 	netif_tx_disable(pdata->dev);
@@ -364,8 +370,237 @@ static void DWC_ETH_QOS_start_dev(struct DWC_ETH_QOS_prv_data *pdata)
 
 	netif_tx_wake_all_queues(pdata->dev);
 
+#ifdef TIMER_CONTROL
+	timer_setup(&pdata->timer, DWC_ETH_QOS_I_monitor_func, 0);
+	pdata->timer.function = DWC_ETH_QOS_I_monitor_func;
+	pdata->timer.expires  = jiffies + round_jiffies(HZ/100);
+	if (pdata->rx_timer_blk_enable) {
+		add_timer(&pdata->timer);
+	}
+#endif
 	DBGPR("<--DWC_ETH_QOS_start_dev\n");
 }
+
+#ifdef TIMER_CONTROL
+static ssize_t rx_mcast_th_per_second_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+
+	return sprintf(buf, "rx handle %d multicast per second\n", pdata->rx_mcast_pkg_th * 10);
+}
+
+static ssize_t rx_mcast_th_per_second_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t len)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+	int ret, rx_mcast_pkg_th;
+
+	ret = sscanf(buf, "%d", &rx_mcast_pkg_th);
+	if (ret != 1 || rx_mcast_pkg_th < 0) {
+		printk(KERN_ALERT "%s: expected 1 positive integer, got %d rx_mcast_pkg_th %d\n", __func__, ret, rx_mcast_pkg_th);
+		return -EINVAL;
+	}
+
+	pdata->rx_mcast_pkg_th = rx_mcast_pkg_th / 10;
+	return len;
+}
+
+static ssize_t rx_timer_blk_duration_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+
+	return sprintf(buf, "rx timer blk duration %d sec\n", pdata->rx_timer_blk_duration);
+}
+
+static ssize_t rx_timer_blk_duration_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t len)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+	int ret, rx_timer_blk_duration;
+
+	ret = sscanf(buf, "%d", &rx_timer_blk_duration);
+	if (ret != 1 || rx_timer_blk_duration < 0) {
+		printk(KERN_ALERT "%s: expected 1 positive integer, got %d rx_mcast_pkg_th %d\n", __func__, ret, rx_timer_blk_duration);
+		return -EINVAL;
+	}
+
+	pdata->rx_timer_blk_duration = rx_timer_blk_duration;
+	return len;
+}
+
+static ssize_t rx_timer_blk_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+
+	return sprintf(buf, "rx_timer_blk_enable : %d \n", pdata->rx_timer_blk_enable);
+}
+
+static ssize_t rx_timer_blk_enable_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t len)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+	unsigned long varMAC_MPFR;
+	int ret, rx_timer_enable;
+
+	ret = sscanf(buf, "%d", &rx_timer_enable);
+	if (ret != 1 || (rx_timer_enable != 0 && rx_timer_enable != 1)) {
+		printk(KERN_ALERT "%s: expected 0: disable, 1:enable\n", __func__);
+		return -EINVAL;
+	}
+
+	if (pdata->rx_timer_blk_enable != rx_timer_enable) {
+		if (rx_timer_enable == 0) {
+			del_timer_sync(&pdata->timer);
+			MAC_MPFR_RgRd(varMAC_MPFR);
+			varMAC_MPFR = varMAC_MPFR & (ULONG)(0x803107cf);
+			varMAC_MPFR = varMAC_MPFR | (1 << 4);
+			MAC_MPFR_RgWr(varMAC_MPFR);
+		} else {
+			add_timer(&pdata->timer);
+		}
+		pdata->rx_timer_blk_enable = rx_timer_enable;
+	} else {
+		printk(KERN_ALERT "Not Change rx_timer_blk_enable : %d\n", rx_timer_enable);
+	}
+
+	return len;
+}
+
+static ssize_t rx_timer_log_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+
+	return sprintf(buf, "rx_timer_log_enable : %d \n", pdata->rx_timer_log_enable);
+}
+
+static ssize_t rx_timer_log_enable_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t len)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(ndev);
+	int ret, rx_log_enable;
+
+	ret = sscanf(buf, "%d", &rx_log_enable);
+	if (ret != 1 || (rx_log_enable != 0 && rx_log_enable != 1)) {
+		printk(KERN_ALERT "%s: expected 0: disable, 1:enable\n", __func__);
+		return -EINVAL;
+	}
+
+	pdata->rx_timer_log_enable = rx_log_enable;
+
+	return len;
+}
+
+
+static DEVICE_ATTR_RW(rx_mcast_th_per_second);
+static DEVICE_ATTR_RW(rx_timer_blk_duration);
+static DEVICE_ATTR_RW(rx_timer_blk_enable);
+static DEVICE_ATTR_RW(rx_timer_log_enable);
+
+int nvt_rx_mcast_blk_sysfs_init(struct net_device *ndev)
+{
+	struct device *dev = &ndev->dev;
+	int ret = 0;
+
+	ret |= sysfs_create_file(&dev->kobj, &dev_attr_rx_mcast_th_per_second.attr);
+	if (ret)
+		printk("%s: unable to create rx_mcast_th_per_second sysfs file (%d)\n", __func__, ret);
+
+	ret |= sysfs_create_file(&dev->kobj, &dev_attr_rx_timer_blk_duration.attr);
+	if (ret)
+		printk("%s: unable to create rx_timer_blk_duration sysfs file (%d)\n", __func__, ret);
+
+	ret |= sysfs_create_file(&dev->kobj, &dev_attr_rx_timer_blk_enable.attr);
+	if (ret)
+		printk("%s: unable to create rx_mcast_th_per_second sysfs file (%d)\n", __func__, ret);
+
+	ret |= sysfs_create_file(&dev->kobj, &dev_attr_rx_timer_log_enable.attr);
+	if (ret)
+		printk("%s: unable to create rx_mcast_th_per_second sysfs file (%d)\n", __func__, ret);
+
+
+	return ret;
+}
+
+void nvt_rx_mcast_blk_sysfs_remove(struct net_device *ndev)
+{
+	struct device *dev = &ndev->dev;
+
+	sysfs_remove_file(&dev->kobj, &dev_attr_rx_mcast_th_per_second.attr);
+	sysfs_remove_file(&dev->kobj, &dev_attr_rx_timer_blk_duration.attr);
+	sysfs_remove_file(&dev->kobj, &dev_attr_rx_timer_blk_enable.attr);
+	sysfs_remove_file(&dev->kobj, &dev_attr_rx_timer_log_enable.attr);
+}
+
+void DWC_ETH_QOS_I_monitor_func(struct timer_list *arg)
+{
+	unsigned long expires;
+	struct DWC_ETH_QOS_prv_data *pdata = from_timer(pdata,arg,timer);
+	unsigned int RXPACKETCOUNT_GB_val = 0;
+	unsigned int RXBROADCASTPACKETS_G_val = 0;
+	unsigned int RXMULTICASTPACKETS_G_val = 0;
+	unsigned char pm_mode = 0;
+	unsigned char dbf_mode = 0;
+	unsigned long varMAC_MPFR;
+	static int blktimes = 0, blkcount = 0, old_blkcount =0;
+
+	MMC_RXPACKETCOUNT_GB_RgRd(RXPACKETCOUNT_GB_val);
+	MMC_RXBROADCASTPACKETS_G_RgRd(RXBROADCASTPACKETS_G_val);
+	MMC_RXMULTICASTPACKETS_G_RgRd(RXMULTICASTPACKETS_G_val);
+
+	if ((RXMULTICASTPACKETS_G_val > pdata->rx_mcast_pkg_th) && (blktimes == 0)) {
+		if (blkcount >= 5) {
+			dbf_mode = 1;
+			blktimes = (1000 / TIMER_LATENCY) * pdata->rx_timer_blk_duration;
+			if (pdata->rx_timer_log_enable) {
+				printk("V4 multicast = %u, threshold = %d/s, blktimes = %d\n",
+						RXMULTICASTPACKETS_G_val,
+						pdata->rx_mcast_pkg_th * 10, blktimes);
+			}
+		}
+		blkcount ++;
+	} else {
+		if (blktimes <= 0) {
+			pm_mode = 1;
+		} else {
+			dbf_mode = 1;
+			blktimes--;
+			if (pdata->rx_timer_log_enable) {
+				printk("v4 multicast = %u, threshold = %d/s, blktimes = %d\n",
+						RXMULTICASTPACKETS_G_val,
+						pdata->rx_mcast_pkg_th * 10, blktimes);
+			}
+		}
+		if (blkcount == old_blkcount) {
+			blkcount = 0;
+		}
+		old_blkcount = blkcount;
+	}
+
+	MAC_MPFR_RgRd(varMAC_MPFR);
+	varMAC_MPFR = varMAC_MPFR & (ULONG)(0x803107cf);
+	varMAC_MPFR = varMAC_MPFR |((pm_mode) << 4) | ((dbf_mode) << 5);
+	MAC_MPFR_RgWr(varMAC_MPFR);
+
+	expires = (msecs_to_jiffies(1) * TIMER_LATENCY) / 10;
+	mod_timer(&pdata->timer, jiffies + expires);
+}
+#endif
 
 /*!
  * \details This function is invoked by isr handler when device issues an FATAL
@@ -1715,6 +1950,15 @@ static int DWC_ETH_QOS_open(struct net_device *dev)
 
 	DWC_ETH_QOS_mmc_setup(pdata);
 
+#ifdef TIMER_CONTROL
+	timer_setup(&pdata->timer,DWC_ETH_QOS_I_monitor_func,0);
+	pdata->timer.function = DWC_ETH_QOS_I_monitor_func;
+	pdata->timer.expires  = jiffies + round_jiffies(HZ/100);
+	ret = nvt_rx_mcast_blk_sysfs_init(dev);
+	if (ret) {
+		printk(KERN_ALERT "%s: sysfs init fail ret = %d\r\n", __func__, ret);
+	}
+#endif
 	/* initializes MAC and DMA */
 	hw_if->init(pdata);
 
@@ -1744,6 +1988,11 @@ static int DWC_ETH_QOS_open(struct net_device *dev)
 		phy_start(pdata->phydev);
 	}
 
+#ifdef TIMER_CONTROL
+	if (pdata->rx_timer_blk_enable) {
+		add_timer(&pdata->timer);
+	}
+#endif
 	DBGPR("<--DWC_ETH_QOS_open\n");
 
 	return ret;
@@ -1785,6 +2034,12 @@ static int DWC_ETH_QOS_close(struct net_device *dev)
 
 	DWC_ETH_QOS_disable_all_ch_rx_interrpt(pdata);
 
+#ifdef TIMER_CONTROL
+	if (pdata->rx_timer_blk_enable) {
+		del_timer_sync(&pdata->timer);
+	}
+	nvt_rx_mcast_blk_sysfs_remove(dev);
+#endif
 #ifndef DWC_ETH_QOS_CONFIG_PGTEST
 	netif_tx_disable(dev);
 	DWC_ETH_QOS_all_ch_napi_disable(pdata);
@@ -5495,7 +5750,7 @@ static int DWC_ETH_QOS_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	}
 
 	if (cmd == SIOCSMIIREG) {
-		phy_write(pdata->phydev, (data->reg_num & 0x1F), data->val_in);
+		ret = phy_write(pdata->phydev, (data->reg_num & 0x1F), data->val_in);
 
 		printk(KERN_ALERT "SIOCSMIIREG reg(%#x) = %#x\n",
 			(data->reg_num & 0x1F), data->val_in);
