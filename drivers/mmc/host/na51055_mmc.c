@@ -355,6 +355,7 @@ static void nvt_mmc_fifo_data_trans(struct mmc_nvt_host *host, unsigned int n)
 static void nvt_mmc_start_command(struct mmc_nvt_host *host, struct mmc_command *cmd)
 {
 	u32 cmd_reg = 0;
+	unsigned long flags;
 	char *s;
 
 	switch (mmc_resp_type(cmd)) {
@@ -403,6 +404,9 @@ static void nvt_mmc_start_command(struct mmc_nvt_host *host, struct mmc_command 
 		cmd_reg |= 0;
 		SDIO_TR("unknown resp_type %04x\n",
 			mmc_resp_type(cmd));
+		spin_lock_irqsave(&host->lock, flags);
+		sdiohost_setinten(host, host->id, SDIO_STATUS_REG_CMD_SEND);
+		spin_unlock_irqrestore(&host->lock, flags);
 		break;
 	}
 
@@ -539,12 +543,19 @@ static void nvt_mmc_prepare_data(struct mmc_nvt_host *host, struct mmc_request *
 		host->buffer_bytes_left, host->data_dir);
 	}
 }
-
+static int nvt_mmc_get_cd(struct mmc_host *mmc);
 static void nvt_mmc_request(struct mmc_host *mmc, struct mmc_request *req)
 {
 	struct mmc_nvt_host *host = mmc_priv(mmc);
 	unsigned long timeout;
 	u32 mmcst1 = 0;
+
+       if (nvt_mmc_get_cd(mmc) == 0) {
+	       mmc_detect_change(host->mmc, 0);
+               req->cmd->error = -ENOMEDIUM;
+               mmc_request_done(mmc, req);
+               return;
+       }
 
 	if ((clk_get_phase(host->clk)) && (host->id == SDIO_HOST_ID_1) && \
 		(req->cmd->opcode == SD_SWITCH_VOLTAGE))
@@ -625,31 +636,31 @@ static void nvt_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	/*Set host sampling strategy according to different speeds and modes*/
 	if (ios->clock >= 192000000) {
-		sdiohost_setphyclkindly(host, 0x9);
+		//sdiohost_setphyclkindly(host, 0x9);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR104);
 		sdiohost_setblkfifoen(host, true);
 	} else if (ios->clock >= 160000000) {
-		sdiohost_setphyclkindly(host, 0x3);
+		//sdiohost_setphyclkindly(host, 0x3);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR104);
 		sdiohost_setblkfifoen(host, true);
 	} else if (ios->clock >= 120000000) {
-		sdiohost_setphyclkindly(host, 0x1f);
+		//sdiohost_setphyclkindly(host, 0x1f);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR104);
 		sdiohost_setblkfifoen(host, true);
 	} else if (ios->clock >= 96000000) {
-		sdiohost_setphyclkindly(host, 0x1b);
+		//sdiohost_setphyclkindly(host, 0x1b);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR50);
 		sdiohost_setblkfifoen(host, true);
 	} else if (ios->clock >= 50000000) {
-		sdiohost_setphyclkindly(host, 0x0);
+		//sdiohost_setphyclkindly(host, 0x0);
 		sdiohost_setpaddriving(host, SDIO_MODE_SDR50);
 		sdiohost_setblkfifoen(host, true);
 	} else if (ios->clock >= 25000000) {
-		sdiohost_setphyclkindly(host, 0x0);
+		//sdiohost_setphyclkindly(host, 0x0);
 		sdiohost_setpaddriving(host, SDIO_MODE_HS);
 		sdiohost_setblkfifoen(host, false);
 	} else {
-		sdiohost_setphyclkindly(host, 0x0);
+		//sdiohost_setphyclkindly(host, 0x0);
 		sdiohost_setpaddriving(host, SDIO_MODE_DS);
 		sdiohost_setblkfifoen(host, false);
 	}
@@ -785,6 +796,7 @@ static irqreturn_t nvt_mmc_irq(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
+	sdiohost_disinten(host, host->id, SDIO_STATUS_REG_CMD_SEND);
 	qstatus = sdiohost_getstatus(host, host->id);
 	host->status = qstatus;
 
@@ -1035,6 +1047,8 @@ static int nvt_start_signal_voltage_switch(struct mmc_host *mmc,
 static int nvt_card_busy(struct mmc_host *mmc)
 {
 	struct mmc_nvt_host *host = mmc_priv(mmc);
+
+	if (nvt_mmc_get_cd(mmc) == 0) return 0;
 
 	/* Check whether DAT[0] is 0 */
 	return !(sdiohost_getrdy(host, host->id));
@@ -1358,6 +1372,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	u32 card_power_gpio[2] = {0};
 	u32 force_power_cycle[2] = {0};
 	u32 power_down_delay_ms = 0;
+	u32 power_up_delay_ms = 0;
 	u32 pad_driving[SDIO_MAX_MODE_DRIVING] = {0};
 	u32 ss_clk[2] = {0};
 	size_t mem_size;
@@ -1400,6 +1415,9 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 
 	of_property_read_u32(pdev->dev.of_node, "power_down_delay_ms",
 				&power_down_delay_ms);
+
+	of_property_read_u32(pdev->dev.of_node, "power_up_delay_ms",
+				&power_up_delay_ms);
 
 	of_property_read_u32_array(pdev->dev.of_node, "cd_gpio", cd_gpio, 3);
 
@@ -1504,6 +1522,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	host->indly_sel = indly_sel;
 	host->outdly_sel = outdly_sel;
 	host->power_down_delay_ms = power_down_delay_ms;
+	host->power_up_delay_ms = power_up_delay_ms;
 
 	if (host->force_power_cycle) {
 		/* In general, the power cycle takes 500ms to 1s */
@@ -1686,7 +1705,7 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 	nvt_host[host->id] = host;
 	#endif
 
-	ret = request_irq(irq, nvt_mmc_irq, 0, mmc_hostname(mmc), host);
+	ret = request_threaded_irq(irq, NULL, nvt_mmc_irq, IRQF_ONESHOT, mmc_hostname(mmc), host);
 	if (ret)
 		goto out;
 
@@ -1841,5 +1860,5 @@ MODULE_AUTHOR("Novatek");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MMC/SD driver for NOVATEK MMC controller");
 MODULE_ALIAS("nvt_mmc");
-MODULE_VERSION("1.07.112");
+MODULE_VERSION("1.07.120");
 

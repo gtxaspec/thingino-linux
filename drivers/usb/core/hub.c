@@ -2142,6 +2142,10 @@ void usb_disconnect(struct usb_device **pdev)
 	struct usb_device *udev = *pdev;
 	struct usb_hub *hub = NULL;
 	int port1 = 1;
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	struct usb_device *hdev = udev->parent;
+	struct usb_hcd *hcd = bus_to_hcd(udev->bus);
+#endif
 
 	/* mark the device as inactive, so any further urb submissions for
 	 * this device (and any of its children) will fail immediately.
@@ -2151,6 +2155,14 @@ void usb_disconnect(struct usb_device **pdev)
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	if (test_bit(1, &hcd->adjust_async_ladr)) {
+		if (hdev->devpath[0] == '0') {
+			clear_bit(1, &hcd->adjust_async_ladr);
+			//printk("%s remove adjust_async_ladr flag\n", __FUNCTION__);
+		}
+	}
+#endif
 	/*
 	 * Ensure that the pm runtime code knows that the USB device
 	 * is in the process of being disconnected.
@@ -4989,6 +5001,14 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 	else
 		unit_load = 100;
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	if (portchange & (USB_PORT_STAT_C_CONNECTION | USB_PORT_STAT_C_ENABLE)) {
+		if (hdev->devpath[0] == '0') {
+			//printk("%s: add adjust_async_ladr flag\n", __FUNCTION__);
+			set_bit(1, &hcd->adjust_async_ladr);
+		}
+	}
+#endif
 	status = 0;
 	for (i = 0; i < SET_CONFIG_TRIES; i++) {
 

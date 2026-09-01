@@ -902,6 +902,11 @@ static const char *eth_root_parent[] __initconst = {
         "pll6", "pll16"
 };
 
+static const char *cpu_clk_parent[] __initconst = {
+		"fix80m", "pll8", "fix480m"
+};
+
+
 static struct nvt_composite_mux_clk novatek_cmux_clk[] __initdata = {
 	COMP_MUX_CONF("f0420000.mmc", sdio_clk_parent, 312500, 0,
 		      CG_PERI_CLK_RATE_REG0_OFFSET, BIT4, WID2,
@@ -997,7 +1002,7 @@ static struct nvt_composite_mux_clk novatek_cmux_clk[] __initdata = {
 		      0, 0, 0,
 		      CG_CLK_EN_REG0_OFFSET, BIT20, NOT_ENABLE,
 		      CG_SYS_RESET_REG0_OFFSET, BIT20, DO_RESET,
-		      CG_CLK_AUTO_GATING_REG1_OFFSET, BIT2, DO_AUTOGATING),		  		  
+		      CG_CLK_AUTO_GATING_REG1_OFFSET, BIT2, DO_AUTOGATING),
 	COMP_MUX_CONF("f0c00000.siemck", siemclk_clk_parent, 240000000, 0,
 		      CG_IPP_CLK_RATE_REG1_OFFSET, BIT8, WID2,
 		      CG_IPP_CLK_DIV_REG0_OFFSET, BIT0, WID8,
@@ -1292,6 +1297,12 @@ static struct nvt_composite_mux_clk novatek_cmux_clk[] __initdata = {
 		       CG_CLK_EN_REG2_OFFSET, BIT24, NOT_ENABLE,
 		       0, 0, 0,
 		       0, 0, 0),
+	COMP_MUX_CONF("cpu_clk", cpu_clk_parent, 960000000, 1,
+		      CG_SYS_CLK_RATE_REG_OFFSET, BIT0, WID2,
+		      0, 0, 0,
+		      0, 0, 0,
+		      0, 0, 0,
+		      0, 0, 0),
 };
 
 static struct nvt_clk_gating_init novatek_init_gating_clk[] __initdata = {
@@ -1483,7 +1494,7 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 			name_ptr = keeper[keeper_count].name;
 			if (!of_property_read_string(keeper_node, "keeper_name", &name_ptr)) {
 				strncpy(keeper[keeper_count].name, name_ptr, CLK_NAME_STR_SIZE);
-				
+
 				if (of_property_read_u32(keeper_node, "do_reset",&do_reset))
                     do_reset = UINT_MAX;
                 keeper[keeper_count].do_reset = do_reset;
@@ -1495,7 +1506,7 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
             	if (of_property_read_u32(keeper_node, "rate",&rate))
                 	rate = UINT_MAX;
                 keeper[keeper_count].rate = rate;
-				
+
 				keeper_count++;
 				if (keeper_count == CLK_NAME_STR_CNT) {
 					pr_err("exceed keeper limitation");
@@ -1511,7 +1522,7 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 			if (strncmp(composite_mux_clks[i].name, keeper[j].name, max(strlen(composite_mux_clks[i].name),strlen(keeper[j].name))) == 0){
 				if(keeper[j].do_reset != UINT_MAX)
 					composite_mux_clks[i].do_reset = (keeper[j].do_reset>0)?DO_RESET:NOT_RESET;
-				
+
 				if(keeper[j].parent_idx != UINT_MAX)
 					composite_mux_clks[i].parent_idx = keeper[j].parent_idx;
 
@@ -1519,8 +1530,8 @@ static void nvt_get_keeper_array(struct nvt_composite_mux_clk composite_mux_clks
 					composite_mux_clks[i].current_rate = keeper[j].rate;
 				else
 					composite_mux_clks[i].keep_rate = 1;
-	
-				printk("[%s] do_reset=%d, keep_rate=%d, idx=%d, rate=%d\r\n",composite_mux_clks[i].name,composite_mux_clks[i].do_reset,composite_mux_clks[i].keep_rate,composite_mux_clks[i].parent_idx,composite_mux_clks[i].current_rate);
+
+				printk("[%s] do_reset=%d, keep_rate=%d, idx=%d, rate=%d\r\n",composite_mux_clks[i].name,composite_mux_clks[i].do_reset,composite_mux_clks[i].keep_rate,composite_mux_clks[i].parent_idx,(int)composite_mux_clks[i].current_rate);
 			}
 		}
 	}

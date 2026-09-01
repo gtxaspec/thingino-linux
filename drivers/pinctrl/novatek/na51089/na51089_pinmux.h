@@ -9,7 +9,7 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 
-#define DRV_VERSION "1.00.23"
+#define DRV_VERSION "1.00.24"
 
 typedef enum
 {

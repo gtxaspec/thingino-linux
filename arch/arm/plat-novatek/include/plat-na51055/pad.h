@@ -211,6 +211,11 @@ typedef enum {
 	PAD_DRIVINGSINK_40MA    =    0x8000,     ///< Pad driver/sink 40mA
 	PAD_DRIVINGSINK_8MA     =    0x10000,    ///< Pad driver/sink 8mA
 	PAD_DRIVINGSINK_12MA    =    0x20000,    ///< Pad driver/sink 12mA
+	PAD_DRIVINGSINK_3MA     =    0x40000,    ///< Pad driver/sink 3mA
+	PAD_DRIVINGSINK_9MA     =    0x80000,    ///< Pad driver/sink 9mA
+	PAD_DRIVINGSINK_18MA    =    0x100000,   ///< Pad driver/sink 18mA
+	PAD_DRIVINGSINK_21MA    =    0x200000,   ///< Pad driver/sink 21mA
+	PAD_DRIVINGSINK_24MA    =    0x400000,   ///< Pad driver/sink 24mA
 
 	ENUM_DUMMY4WORD(PAD_DRIVINGSINK)
 } PAD_DRIVINGSINK;

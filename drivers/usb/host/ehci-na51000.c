@@ -853,4 +853,4 @@ static struct platform_driver ehci_hcd_na51000_driver = {
 	}
 };
 
-MODULE_VERSION("1.00.004");
+MODULE_VERSION("1.00.005");

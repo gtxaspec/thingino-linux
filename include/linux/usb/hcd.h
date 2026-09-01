@@ -101,6 +101,7 @@ struct usb_hcd {
 #if defined(CONFIG_USB_NVTIVOT_HCD)
 	unsigned long porcd;
 	unsigned long porcd2;
+	unsigned long adjust_async_ladr;
 	unsigned long modem_dongle;
 	unsigned long nvt_flag;
 #endif

@@ -402,7 +402,8 @@ void pinmux_parsing(struct nvt_pinctrl_info *info)
 	}
 
 	if ((mipi_lvds_sensor[1] != 0) && (local_top_reg_sgpio0.bit.SGPIO_4 == GPIO_ID_EMUM_FUNC) \
-			&& (local_top_reg_sgpio0.bit.SGPIO_5 == GPIO_ID_EMUM_FUNC))
+			&& (local_top_reg_sgpio0.bit.SGPIO_5 == GPIO_ID_EMUM_FUNC)\
+			&& (local_top_reg3.bit.SEN2_VSHS == VD_HD_SEL_ENUM_SIE_VDHD))
 		value |= PIN_SENSOR2_CFG_LVDS_VDHD;
 	if ((top_reg3.bit.SENSOR2 == SENSOR2_ENUM_CCIR8BITS) && (local_top_reg_pgpio0.bit.PGPIO_11 == GPIO_ID_EMUM_FUNC))
 		value |= PIN_SENSOR2_CFG_CCIR8BITS_FIELD;
@@ -1775,6 +1776,36 @@ static int pinmux_config_sensor2(uint32_t config)
 		}
 
 		if ((mipi_lvds_sensor[1] != 0) && (config & PIN_SENSOR2_CFG_LVDS_VDHD)) {
+
+			if (top_reg5.bit.I2C2 == I2C_ENUM_I2C) {
+				pr_err("SEN2_VSHS conflict with I2C2_1\r\n");
+				return E_OBJ;
+			}
+
+			if ((top_reg5.bit.SPI == SPI_2ND_PINMUX) &&
+				(top_reg5.bit.SPI_DAT == SPI_DAT_ENUM_2BIT)){
+				pr_err("SEN2_VSHS conflict with SPI_2_DI\r\n");
+				return E_OBJ;
+			}
+
+			if (top_reg5.bit.SIFCH1 == SIFCH_ENUM_SIF) {
+				pr_err("SEN2_VSHS conflict with SIF_CH1\r\n");
+				return E_OBJ;
+			}
+
+			if ((top_reg7.bit.PWM3 == PWM_ENUM_PWM_3RD) ||
+				(top_reg7.bit.PWM4 == PWM_ENUM_PWM_3RD)){
+
+				pr_err("SEN2_VSHS conflict with PWM3_3/PWM4_3 \r\n");
+				return E_OBJ;
+			}
+
+			if (top_reg9.bit.UART3 == UART3_ENUM_5TH_PINMUX){
+
+				pr_err("SEN2_VSHS conflict with UART3_5 \r\n");
+				return E_OBJ;
+			}
+
 			// Assing LVDS VD/HD when project layer select this config
 			top_reg3.bit.SEN2_VSHS = VD_HD_SEL_ENUM_SIE_VDHD;
 			top_reg_sgpio0.bit.SGPIO_4 = GPIO_ID_EMUM_FUNC; //XVS
@@ -1930,8 +1961,9 @@ static int pinmux_config_i2c(uint32_t config)
 		}
 
 		if (config & PIN_I2C_CFG_CH2) {
-			if (top_reg5.bit.SPI == SPI_2ND_PINMUX) {
-				pr_err("I2C2_1 conflict with SPI_2\r\n");
+			if ((top_reg5.bit.SPI == SPI_2ND_PINMUX) &&
+				(top_reg5.bit.SPI_DAT == SPI_DAT_ENUM_2BIT)){
+				pr_err("I2C2_1 conflict with SPI_2_DI\r\n");
 				return E_OBJ;
 			}
 
@@ -1944,6 +1976,18 @@ static int pinmux_config_i2c(uint32_t config)
 				(top_reg7.bit.PWM4 == PWM_ENUM_PWM_3RD)){
 
 				pr_err("I2C2_1 conflict with PWM3_3/PWM4_3 \r\n");
+				return E_OBJ;
+			}
+
+			if (top_reg9.bit.UART3 == UART3_ENUM_5TH_PINMUX){
+
+				pr_err("I2C2_1 conflict with UART3_5 \r\n");
+				return E_OBJ;
+			}
+
+			if (top_reg3.bit.SEN2_VSHS == VD_HD_SEL_ENUM_SIE_VDHD){
+
+				pr_err("I2C2_1 conflict with SEN2_VSHS \r\n");
 				return E_OBJ;
 			}
 
@@ -2064,8 +2108,29 @@ static int pinmux_config_sif(uint32_t config)
 		}
 
 		if (config & (PIN_SIF_CFG_CH1|PIN_SIF_CFG_CH1_2ND_PINMUX)) {
-			if (top_reg5.bit.SPI == SPI_2ND_PINMUX) {
-				pr_err("SIF_CH1 conflict with SPI_2\r\n");
+
+			if ((top_reg5.bit.SPI == SPI_2ND_PINMUX) &&
+				(top_reg5.bit.SPI_DAT == SPI_DAT_ENUM_2BIT)){
+				pr_err("SIF_CH1 conflict with SPI_2_DI\r\n");
+				return E_OBJ;
+			}
+
+			if ((top_reg7.bit.PWM3 == PWM_ENUM_PWM_3RD) ||
+				(top_reg7.bit.PWM4 == PWM_ENUM_PWM_3RD)){
+
+				pr_err("SIF_CH1 conflict with PWM3_3/PWM4_3 \r\n");
+				return E_OBJ;
+			}
+
+			if (top_reg9.bit.UART3 == UART3_ENUM_5TH_PINMUX){
+
+				pr_err("SIF_CH1 conflict with UART3_5 \r\n");
+				return E_OBJ;
+			}
+
+			if (top_reg3.bit.SEN2_VSHS == VD_HD_SEL_ENUM_SIE_VDHD){
+
+				pr_err("SIF_CH1 conflict with SEN2_VSHS \r\n");
 				return E_OBJ;
 			}
 
@@ -2329,6 +2394,35 @@ static int pinmux_config_uart(uint32_t config)
 
 				top_reg9.bit.UART3 = UART3_ENUM_4TH_PINMUX;
 			} else if (config & PIN_UART_CFG_CH3_5TH) {
+
+				if (top_reg5.bit.SPI == SPI_2ND_PINMUX) {
+					pr_err("UART3_5 conflict with SPI_2\r\n");
+					return E_OBJ;
+				}
+
+				if (top_reg5.bit.SIFCH1 == SIFCH_ENUM_SIF) {
+					pr_err("UART3_5 conflict with SIF_CH1\r\n");
+					return E_OBJ;
+				}
+
+				if ((top_reg7.bit.PWM3 == PWM_ENUM_PWM_3RD) ||
+					(top_reg7.bit.PWM4 == PWM_ENUM_PWM_3RD)){
+
+					pr_err("UART3_5 conflict with PWM3_3/PWM4_3 \r\n");
+					return E_OBJ;
+				}
+
+				if (top_reg3.bit.SEN2_VSHS == VD_HD_SEL_ENUM_SIE_VDHD){
+
+					pr_err("UART3_5 conflict with SEN2_VSHS \r\n");
+					return E_OBJ;
+				}
+
+				if (top_reg5.bit.I2C2 == I2C_ENUM_I2C) {
+					pr_err("UART3_5 conflict with I2C2_1\r\n");
+					return E_OBJ;
+				}
+
 				top_reg_sgpio0.bit.SGPIO_4 = GPIO_ID_EMUM_FUNC;
 				top_reg_sgpio0.bit.SGPIO_5 = GPIO_ID_EMUM_FUNC;
 
@@ -2961,6 +3055,28 @@ static int pinmux_config_pwm(uint32_t config)
 		top_reg_cgpio0.bit.CGPIO_16 = GPIO_ID_EMUM_FUNC;
 		top_reg7.bit.PWM3 = PWM_ENUM_PWM_2ND;
 	} else if (config & PIN_PWM_CFG_PWM3_3) {
+		if (top_reg5.bit.SIFCH1 == SIFCH_ENUM_SIF) {
+			pr_err("PWM3_3 conflict with SIF_CH1\r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg9.bit.UART3 == UART3_ENUM_5TH_PINMUX){
+
+			pr_err("PWM3_3 conflict with UART3_5 \r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg3.bit.SEN2_VSHS == VD_HD_SEL_ENUM_SIE_VDHD){
+
+			pr_err("PWM3_3 conflict with SEN2_VSHS \r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg5.bit.I2C2 == I2C_ENUM_I2C) {
+			pr_err("PWM3_3 conflict with I2C2_1\r\n");
+			return E_OBJ;
+		}
+
 		top_reg_sgpio0.bit.SGPIO_4= GPIO_ID_EMUM_FUNC;
 		top_reg7.bit.PWM3 = PWM_ENUM_PWM_3RD;
 	} else if (config & PIN_PWM_CFG_PWM3_4) {
@@ -3020,6 +3136,34 @@ static int pinmux_config_pwm2(uint32_t config)
 		top_reg_cgpio0.bit.CGPIO_11 = GPIO_ID_EMUM_FUNC;
 		top_reg7.bit.PWM4 = PWM_ENUM_PWM_2ND;
 	} else if (config & PIN_PWM_CFG2_PWM4_3) {
+		if ((top_reg5.bit.SPI == SPI_2ND_PINMUX) &&
+			(top_reg5.bit.SPI_DAT == SPI_DAT_ENUM_2BIT)){
+			pr_err("PWM4_3 conflict with SPI_2_DI\r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg5.bit.SIFCH1 == SIFCH_ENUM_SIF) {
+			pr_err("PWM4_3 conflict with SIF_CH1\r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg9.bit.UART3 == UART3_ENUM_5TH_PINMUX){
+
+			pr_err("PWM4_3 conflict with UART3_5 \r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg3.bit.SEN2_VSHS == VD_HD_SEL_ENUM_SIE_VDHD){
+
+			pr_err("PWM4_3 conflict with SEN2_VSHS \r\n");
+			return E_OBJ;
+		}
+
+		if (top_reg5.bit.I2C2 == I2C_ENUM_I2C) {
+			pr_err("PWM4_3 conflict with I2C2_1\r\n");
+			return E_OBJ;
+		}
+
 		top_reg_sgpio0.bit.SGPIO_5= GPIO_ID_EMUM_FUNC;
 		top_reg7.bit.PWM4 = PWM_ENUM_PWM_3RD;
 	} else if (config & PIN_PWM_CFG2_PWM4_4) {

@@ -353,8 +353,16 @@ static u32 driving_xfer(u32 driving)
 		pad_driving = PAD_DRIVINGSINK_8MA;
 	else if (driving == 12)
 		pad_driving = PAD_DRIVINGSINK_12MA;
-	else if (driving == 16)
-		pad_driving = PAD_DRIVINGSINK_16MA;
+	else if (driving == 3)
+		pad_driving = PAD_DRIVINGSINK_3MA;
+	else if (driving == 9)
+		pad_driving = PAD_DRIVINGSINK_9MA;
+	else if (driving == 18)
+		pad_driving = PAD_DRIVINGSINK_18MA;
+	else if (driving == 21)
+		pad_driving = PAD_DRIVINGSINK_21MA;
+	else if (driving == 24)
+		pad_driving = PAD_DRIVINGSINK_24MA;
 	else
 		pad_driving = PAD_DRIVINGSINK_5MA;
 
@@ -416,7 +424,7 @@ int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mode)
 	} else {
 		if (host->mmc) {
 			if (host->mmc->caps & MMC_CAP_8_BIT_DATA) {
-				pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO0, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
@@ -424,18 +432,18 @@ int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mode)
 				pad_set_drivingsink(PAD_DS_CGPIO5, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO6, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO7, data_uidriving);
-				pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO9, cmd_uidriving);
 				return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
 			} else {
-				pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO0, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
 				pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
-				pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
+				pad_set_drivingsink(PAD_DS_CGPIO9, cmd_uidriving);
 				return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
 			}
 		} else {
-			pad_set_drivingsink(PAD_DS_CGPIO0, cmd_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO0, data_uidriving);
 			pad_set_drivingsink(PAD_DS_CGPIO1, data_uidriving);
 			pad_set_drivingsink(PAD_DS_CGPIO2, data_uidriving);
 			pad_set_drivingsink(PAD_DS_CGPIO3, data_uidriving);
@@ -443,7 +451,7 @@ int sdiohost_setpaddriving(struct mmc_nvt_host *host, SDIO_SPEED_MODE mode)
 			pad_set_drivingsink(PAD_DS_CGPIO5, data_uidriving);
 			pad_set_drivingsink(PAD_DS_CGPIO6, data_uidriving);
 			pad_set_drivingsink(PAD_DS_CGPIO7, data_uidriving);
-			pad_set_drivingsink(PAD_DS_CGPIO9, data_uidriving);
+			pad_set_drivingsink(PAD_DS_CGPIO9, cmd_uidriving);
 			return pad_set_drivingsink(PAD_DS_CGPIO8, clk_uidriving);
 		}
 	}
@@ -1450,13 +1458,8 @@ static REGVALUE sdiohost_getreg(struct mmc_nvt_host *host, uint32_t id,
 uint32_t offset)
 {
 	REGVALUE value;
-	unsigned long flags;
-
-	spin_lock_irqsave(&host->lock, flags);
 
 	value = nvt_readl(host->base + offset);
-
-	spin_unlock_irqrestore(&host->lock, flags);
 
 	return value;
 }
@@ -1477,13 +1480,7 @@ uint32_t offset)
 static void sdiohost_setreg(struct mmc_nvt_host *host, uint32_t id,
 uint32_t offset, REGVALUE value)
 {
-	unsigned long flags;
-
-	spin_lock_irqsave(&host->lock, flags);
-
 	nvt_writel(value, host->base + offset);
-
-	spin_unlock_irqrestore(&host->lock, flags);
 }
 #endif
 
@@ -1721,7 +1718,7 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_0);
 
 	if (host->cp_gpio)
-		gpio_set_value(host->cp_gpio, !host->cp_gpio_value);
+		gpio_set_value_cansleep(host->cp_gpio, !host->cp_gpio_value);
 
 	if (host->power_down_delay_ms > 0) {
 		msleep(host->power_down_delay_ms);
@@ -1731,7 +1728,11 @@ void sdiohost_power_down(struct mmc_nvt_host *host)
 void sdiohost_power_up(struct mmc_nvt_host *host)
 {
 	if (host->cp_gpio)
-		gpio_set_value(host->cp_gpio, host->cp_gpio_value);
+		gpio_set_value_cansleep(host->cp_gpio, host->cp_gpio_value);
+
+	if (host->power_up_delay_ms > 0) {
+		msleep(host->power_up_delay_ms);
+	}
 
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
 
@@ -1783,13 +1784,13 @@ void sdiohost_power_up(struct mmc_nvt_host *host)
 
 void sdiohost_power_cycle(struct mmc_nvt_host *host, uint32_t delay_ms)
 {
-	gpio_set_value(host->cp_gpio, !host->cp_gpio_value);
+	gpio_set_value_cansleep(host->cp_gpio, !host->cp_gpio_value);
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_0);
 	sdiohost_power_down(host);
 	msleep(delay_ms);
 	sdiohost_power_up(host);
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
-	gpio_set_value(host->cp_gpio, host->cp_gpio_value);
+	gpio_set_value_cansleep(host->cp_gpio, host->cp_gpio_value);
 }
 
 /*

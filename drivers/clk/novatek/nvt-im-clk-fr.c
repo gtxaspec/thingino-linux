@@ -24,7 +24,7 @@
 #include "nvt-im-clk.h"
 #include <plat/top.h>
 #include <plat/cg-reg.h>
-#define div_mask(width)	((1 << (width)) - 1)
+#define div_mask(width) ((1 << (width)) - 1)
 
 static int log_index_cgate = 0;
 static int log_index_cmux = 0;
@@ -33,8 +33,8 @@ void __iomem *cg_base = NULL;
 int fastboot = 0x0;
 int logoboot = 0x0;
 
-#define CG_SETREG(ofs, value)	writel((value), (cg_base+(ofs)))
-#define CG_GETREG(ofs)		readl(cg_base+(ofs))
+#define CG_SETREG(ofs, value)   writel((value), (cg_base+(ofs)))
+#define CG_GETREG(ofs)          readl(cg_base+(ofs))
 
 void nvt_fastboot_detect(int fastboot_init)
 {
@@ -52,7 +52,7 @@ void nvt_cg_base_remap(void __iomem *remap_base)
 }
 
 void nvt_init_clk_auto_gating(struct nvt_clk_gating_init nvt_clk_gating_init[],
-				int array_size, spinlock_t *lock)
+							  int array_size, spinlock_t *lock)
 {
 	unsigned long flags;
 	int i = 0;
@@ -60,38 +60,37 @@ void nvt_init_clk_auto_gating(struct nvt_clk_gating_init nvt_clk_gating_init[],
 	spin_lock_irqsave(lock, flags);
 	for (i = 0; i < array_size; i++)
 		CG_SETREG(nvt_clk_gating_init[i].autogating_reg_offset, \
-			nvt_clk_gating_init[i].autogating_value);
+				  nvt_clk_gating_init[i].autogating_value);
 	spin_unlock_irqrestore(lock, flags);
 }
 
 int nvt_fixed_rate_clk_register(struct nvt_fixed_rate_clk fixed_rate_clks[],
-				int array_size)
+								int array_size)
 {
 	struct clk *clk;
 	int i, ret = 0;
 
 	for (i = 0; i < array_size; i++) {
 		clk =
-		    clk_register_fixed_rate(NULL, fixed_rate_clks[i].name, NULL, 0,
-					    fixed_rate_clks[i].fixed_rate);
+			clk_register_fixed_rate(NULL, fixed_rate_clks[i].name, NULL, 0,
+									fixed_rate_clks[i].fixed_rate);
 		if (IS_ERR(clk)) {
 			pr_err
-			    ("%s: failed to register fixed rate clock \"%s\"\n",
-			     __func__, fixed_rate_clks[i].name);
+			("%s: failed to register fixed rate clock \"%s\"\n",
+			 __func__, fixed_rate_clks[i].name);
 			ret = -EPERM;
 			goto err;
 		}
 		if (clk_register_clkdev(clk, fixed_rate_clks[i].name, NULL)) {
 			pr_err("%s: failed to register lookup %s!\n", __func__,
-			    fixed_rate_clks[i].name);
+				   fixed_rate_clks[i].name);
 			ret = -EPERM;
 			goto err;
-		}
-		else {
+		} else {
 			ret = clk_prepare_enable(clk);
 			if (ret < 0)
 				pr_err
-				    ("Fixed clock prepare & enable failed!\n");
+				("Fixed clock prepare & enable failed!\n");
 		}
 	}
 
@@ -111,8 +110,9 @@ static int nvt_pll_clk_enable(struct clk_hw *hw)
 	reg_val |= (0x1 << pll->gate_bit_idx);
 	CG_SETREG(pll->gate_reg_offset, reg_val);
 
-	if (!(CG_GETREG(pll->status_reg_offset) & (0x1 << pll->gate_bit_idx)))
+	if (!(CG_GETREG(pll->status_reg_offset) & (0x1 << pll->gate_bit_idx))) {
 		mdelay(3);
+	}
 
 	/* race condition protect. leave critical section */
 	spin_unlock_irqrestore(pll->lock, flags);
@@ -125,6 +125,31 @@ static void nvt_pll_clk_disable(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
+
+#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
+	/* DRAM clock may refer to pll9 or pll11
+	 * so other modules can not change the clock frequency
+	 * or disable it
+	 * */
+	unsigned int reg;
+	void *iomem = ioremap(0xf0024000, 0x1000);
+
+	reg = readl((void *)(iomem + 0x368));
+	if (reg & 0x4) {
+		if (((reg >> 0x3) & 0x3) == 0x3) {
+			if (strncmp(pll->name, "pll9", strlen("pll9")) == 0) {
+				pr_err("Can not disable DRAM or CPU clock(%s)\n", pll->name);
+				return;
+			}
+
+		} else if (((reg >> 0x3) & 0x3) == 0x2) {
+			if (strncmp(pll->name, "pll11", strlen("pll11")) == 0) {
+				pr_err("Can not disable DRAM or CPU clock(%s)\n", pll->name);
+				return;
+			}
+		}
+	}
+#endif
 
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(pll->lock, flags);
@@ -144,7 +169,7 @@ static int nvt_pll_clk_is_enabled(struct clk_hw *hw)
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(pll->lock, flags);
 	is_enabled =
-	    CG_GETREG(pll->gate_reg_offset) & (0x1 << pll->gate_bit_idx);
+		CG_GETREG(pll->gate_reg_offset) & (0x1 << pll->gate_bit_idx);
 	/* race condition protect. leave critical section */
 	spin_unlock_irqrestore(pll->lock, flags);
 
@@ -152,7 +177,7 @@ static int nvt_pll_clk_is_enabled(struct clk_hw *hw)
 }
 
 static long nvt_pll_clk_round_rate(struct clk_hw *hw, unsigned long rate,
-				   unsigned long *parent_rate)
+								   unsigned long *parent_rate)
 {
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
 #ifndef CONFIG_NVT_FPGA_EMULATION
@@ -164,10 +189,11 @@ static long nvt_pll_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 
 	do_div(ratio, pll->parent_rate);
 
-	if (!ratio)
+	if (!ratio) {
 		pll->pll_ratio = 1;
-	else
+	} else {
 		pll->pll_ratio = ratio;
+	}
 
 
 	temp_rate = pll->pll_ratio * pll->parent_rate;
@@ -180,7 +206,7 @@ static long nvt_pll_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 }
 
 static unsigned long nvt_pll_clk_recalc_rate(struct clk_hw *hw,
-					     unsigned long parent_rate)
+		unsigned long parent_rate)
 {
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
 #ifndef CONFIG_NVT_FPGA_EMULATION
@@ -203,11 +229,36 @@ static unsigned long nvt_pll_clk_recalc_rate(struct clk_hw *hw,
 }
 
 static int nvt_pll_clk_set_rate(struct clk_hw *hw, unsigned long rate,
-				unsigned long parent_rate)
+								unsigned long parent_rate)
 {
 #ifndef CONFIG_NVT_FPGA_EMULATION
 	struct nvt_pll_clk *pll = container_of(hw, struct nvt_pll_clk, pll_hw);
 	unsigned long flags;
+
+#ifdef CONFIG_NVT_IVOT_PLAT_NA51089
+	/* DRAM clock may refer to pll9 or pll11
+	 * so other modules can not change the clock frequency
+	 * or disable it
+	 * */
+	unsigned int reg;
+	void *iomem = ioremap(0xf0024000, 0x1000);
+
+	reg = readl((void *)(iomem + 0x368));
+	if (reg & 0x4) {
+		if (((reg >> 0x3) & 0x3) == 0x3) {
+			if (strncmp(pll->name, "pll9", strlen("pll9")) == 0) {
+				pr_err("Can not change DRAM or CPU rate(%s)\n", pll->name);
+				return pll->current_rate;
+			}
+
+		} else if (((reg >> 0x3) & 0x3) == 0x2) {
+			if (strncmp(pll->name, "pll11", strlen("pll11")) == 0) {
+				pr_err("Can not change DRAM or CPU rate(%s)\n", pll->name);
+				return pll->current_rate;
+			}
+		}
+	}
+#endif
 
 	spin_lock_irqsave(pll->lock, flags);
 	if ((nvt_get_chip_id() == CHIP_NA51084) && (pll->gate_bit_idx == PLL_CPU_BIT)) {
@@ -228,12 +279,13 @@ static int nvt_pll_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 		udelay(50);
 
 		reg = CG_GETREG(CG528_ARMPLL_CONTROL2_REG_OFFSET) & (~(0x3 << 5));
-		if (pll_rate < 1000000000)
+		if (pll_rate < 1000000000) {
 			reg |= (0x1 << 5);
-		else if (pll_rate < 1400000000)
+		} else if (pll_rate < 1400000000) {
 			reg |= (0x2 << 5);
-		else
+		} else {
 			reg |= (0x3 << 5);
+		}
 
 		CG_SETREG(CG528_ARMPLL_CONTROL2_REG_OFFSET, reg);
 		/* assert resetb_armpll to 1 */
@@ -260,7 +312,7 @@ static const struct clk_ops nvt_pll_clk_ops = {
 };
 
 int nvt_pll_clk_register(struct nvt_pll_clk pll_clks[], int array_size,
-			 unsigned long pll_div_value, spinlock_t *cg_spinlock)
+						 unsigned long pll_div_value, spinlock_t *cg_spinlock)
 {
 	struct clk *clk;
 	struct clk_init_data init;
@@ -278,7 +330,7 @@ int nvt_pll_clk_register(struct nvt_pll_clk pll_clks[], int array_size,
 
 	for (i = 0; i < array_size; i++) {
 		snprintf(pstr, CLK_NAME_STR_SIZE, "%s_factor",
-			 pll_clks[i].name);
+				 pll_clks[i].name);
 
 		p_pll_clk = NULL;
 		p_pll_clk = kzalloc(sizeof(struct nvt_pll_clk), GFP_KERNEL);
@@ -289,9 +341,9 @@ int nvt_pll_clk_register(struct nvt_pll_clk pll_clks[], int array_size,
 		}
 
 		clk =
-		    clk_register_fixed_factor(NULL, pstr, "osc_in", 0,
-					      pll_clks[i].pll_ratio,
-					      pll_div_value);
+			clk_register_fixed_factor(NULL, pstr, "osc_in", 0,
+									  pll_clks[i].pll_ratio,
+									  pll_div_value);
 		p_pll_clk->fixed_factor = __clk_get_hw(clk);
 		p_pll_clk->parent_rate = clk_get_rate(clk_get_parent(clk));
 #ifndef CONFIG_NVT_FPGA_EMULATION
@@ -318,13 +370,13 @@ int nvt_pll_clk_register(struct nvt_pll_clk pll_clks[], int array_size,
 		clk = clk_register(NULL, &p_pll_clk->pll_hw);
 		if (IS_ERR(clk)) {
 			pr_err("%s: failed to register clk %s!\n", __func__,
-			       p_pll_clk->name);
+				   p_pll_clk->name);
 			ret = -EPERM;
 			goto err;
 		}
 		if (clk_register_clkdev(clk, p_pll_clk->name, NULL)) {
 			pr_err("%s: failed to register lookup %s!\n", __func__,
-			       p_pll_clk->name);
+				   p_pll_clk->name);
 			ret = -EPERM;
 			goto err;
 		} else {
@@ -332,7 +384,7 @@ int nvt_pll_clk_register(struct nvt_pll_clk pll_clks[], int array_size,
 				ret = clk_prepare_enable(clk);
 				if (ret < 0)
 					pr_err("%s prepare & enable failed!\n",
-						p_pll_clk->name);
+						   p_pll_clk->name);
 			}
 		}
 	}
@@ -348,7 +400,7 @@ static int nvt_composite_gate_clk_prepare(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if (gate->do_reset) {
 		if (gate->reset_reg_offset != 0) {
@@ -386,7 +438,7 @@ static int nvt_composite_gate_clk_is_prepared(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if (gate->reset_reg_offset != 0) {
 		/* race condition protect. enter critical section */
@@ -396,8 +448,9 @@ static int nvt_composite_gate_clk_is_prepared(struct clk_hw *hw)
 		/* race condition protect. leave critical section */
 		spin_unlock_irqrestore(gate->lock, flags);
 		return (reg_val && (0x1 << gate->reset_bit_idx));
-	} else
+	} else {
 		return 0;
+	}
 }
 
 static int nvt_composite_gate_clk_enable(struct clk_hw *hw)
@@ -405,11 +458,11 @@ static int nvt_composite_gate_clk_enable(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if ((gate->max_rate) && (gate->current_rate > gate->max_rate)) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
-			__func__, gate->name, gate->current_rate, gate->max_rate);
+			   __func__, gate->name, gate->current_rate, gate->max_rate);
 		return -1;
 	}
 
@@ -431,7 +484,7 @@ static void nvt_composite_gate_clk_disable(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if (gate->gate_reg_offset != 0) {
 		/* race condition protect. enter critical section */
@@ -449,12 +502,12 @@ static int nvt_composite_gate_clk_is_enabled(struct clk_hw *hw)
 	unsigned long flags;
 	bool is_enabled;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(gate->lock, flags);
 	is_enabled =
-	    CG_GETREG(gate->gate_reg_offset) & (0x1 << gate->gate_bit_idx);
+		CG_GETREG(gate->gate_reg_offset) & (0x1 << gate->gate_bit_idx);
 	/* race condition protect. leave critical section */
 	spin_unlock_irqrestore(gate->lock, flags);
 
@@ -462,68 +515,70 @@ static int nvt_composite_gate_clk_is_enabled(struct clk_hw *hw)
 }
 
 static long nvt_composite_gate_clk_round_rate(struct clk_hw *hw,
-					      unsigned long rate,
-					      unsigned long *parent_rate)
+		unsigned long rate,
+		unsigned long *parent_rate)
 {
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if ((gate->max_rate) && (gate->current_rate > gate->max_rate) && nvt_composite_gate_clk_is_enabled(hw) && log_index_cgate) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
-			__func__, gate->name, gate->current_rate, gate->max_rate);
+			   __func__, gate->name, gate->current_rate, gate->max_rate);
 	}
 
-	if (gate->divider == NULL)
+	if (gate->divider == NULL) {
 		return rate;
-	else
+	} else
 		return clk_divider_ops.round_rate(gate->divider, rate,
-						  &gate->parent_rate);
+										  &gate->parent_rate);
 }
 
 static unsigned long nvt_composite_gate_clk_recalc_rate(struct clk_hw *hw,
-							unsigned long
-							parent_rate)
+		unsigned long
+		parent_rate)
 {
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if ((gate->max_rate) && (gate->current_rate > gate->max_rate) && nvt_composite_gate_clk_is_enabled(hw) && log_index_cgate) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
-			__func__, gate->name, gate->current_rate, gate->max_rate);
+			   __func__, gate->name, gate->current_rate, gate->max_rate);
 	}
 
 	return gate->current_rate;
 }
 
 static int nvt_composite_gate_clk_set_rate(struct clk_hw *hw,
-					   unsigned long rate,
-					   unsigned long parent_rate)
+		unsigned long rate,
+		unsigned long parent_rate)
 {
 	int ret;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
-	if (gate->divider == NULL)
+	if (gate->divider == NULL) {
 		return -EPERM;
+	}
 
 	if ((gate->max_rate) && (gate->current_rate > gate->max_rate)) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
-			__func__, gate->name, gate->current_rate, gate->max_rate);
+			   __func__, gate->name, gate->current_rate, gate->max_rate);
 		return -1;
 	}
 
 	/* race condition protect. enter critical section */
 	ret = clk_divider_ops.set_rate(gate->divider, rate, gate->parent_rate);
 	/* race condition protect. leave critical section */
-	if (ret == 0)
+	if (ret == 0) {
 		gate->current_rate = rate;
+	}
 	return ret;
 }
 
 static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 {
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 	unsigned long flags;
 	unsigned int reg_val;
 //	unsigned long ssc_step = 0x2;
@@ -532,9 +587,11 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 	spin_lock_irqsave(gate->lock, flags);
 
 	/*Disable PLLx*/
-	reg_val = CG_GETREG(0x0);
-	reg_val &= ~(0x1 << gate->gate_bit_idx);
-	CG_SETREG(0x0, reg_val);
+	if (steps != 0) {
+		reg_val = CG_GETREG(0x0);
+		reg_val &= ~(0x1 << gate->gate_bit_idx);
+		CG_SETREG(0x0, reg_val);
+	}
 
 	/* Setup period vlaue */
 	CG_SETREG(gate->autogating_reg_offset, ssc_period_value);
@@ -544,7 +601,7 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 
 	/* Setup SET_SEL */
 	if ((nvt_get_chip_id() == CHIP_NA51055)) {
-		#if 0  /* use default value 0x44CC = 0x14 */
+#if 0  /* use default value 0x44CC = 0x14 */
 		reg_val = CG_GETREG(gate->gate_reg_offset);
 		reg_val &= ~(0x3 << SSC_STEP);
 		reg_val |= (ssc_step << SSC_STEP);
@@ -554,7 +611,7 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 		reg_val &= ~((0x1 << SSC_NEW_MODE) | (0x1 << SSC_DSSC));
 		reg_val |= (0x1 << SSC_NEW_MODE) | (0x1 << SSC_DSSC);
 		CG_SETREG(gate->gate_reg_offset, reg_val);
-		#endif
+#endif
 
 		/*Write 1 to SSC_EN*/
 		reg_val = CG_GETREG(gate->div_reg_offset);
@@ -565,7 +622,7 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 		}
 		CG_SETREG(gate->div_reg_offset, reg_val);
 	} else {
-		#if 0  /* use default value 0x11C8 = 0x6 */
+#if 0  /* use default value 0x11C8 = 0x6 */
 		reg_val = CG_GETREG(gate->div_reg_offset);
 		reg_val &= ~(0x3 << SSC_528_STEP);
 		reg_val |= (ssc_step << SSC_528_STEP);
@@ -575,7 +632,7 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 		reg_val &= ~((0x1 << SSC_528_NEW_MODE) | (0x1 << SSC_528_DSSC));
 		reg_val |= (0x1 << SSC_528_NEW_MODE) | (0x1 << SSC_528_DSSC);
 		CG_SETREG(gate->div_reg_offset, reg_val);
-		#endif
+#endif
 
 		/*Write 1 to SSC_EN*/
 		reg_val = CG_GETREG(gate->div_reg_offset);
@@ -588,9 +645,11 @@ static int nvt_pll_clk_set_ss_rate(struct clk_hw *hw, int steps)
 	}
 
 	/*Enable PLLx*/
-	reg_val = CG_GETREG(0x0);
-	reg_val |= (0x1 << gate->gate_bit_idx);
-	CG_SETREG(0x0, reg_val);
+	if (steps != 0) {
+		reg_val = CG_GETREG(0x0);
+		reg_val |= (0x1 << gate->gate_bit_idx);
+		CG_SETREG(0x0, reg_val);
+	}
 
 	spin_unlock_irqrestore(gate->lock, flags);
 	return 0;
@@ -601,7 +660,7 @@ static int nvt_composite_gate_clk_set_phase(struct clk_hw *hw, int enable)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if (gate->gate_reg_offset > SSC_BOUND) {
 		if ((nvt_get_chip_id() == CHIP_NA51055) &&
@@ -622,10 +681,11 @@ static int nvt_composite_gate_clk_set_phase(struct clk_hw *hw, int enable)
 		spin_lock_irqsave(gate->lock, flags);
 		reg_val = CG_GETREG(gate->autogating_reg_offset);
 
-		if (enable == 0)
+		if (enable == 0) {
 			reg_val &= ~(0x1 << gate->autogating_bit_idx);
-		else
+		} else {
 			reg_val |= (0x1 << gate->autogating_bit_idx);
+		}
 
 		CG_SETREG(gate->autogating_reg_offset, reg_val);
 		/* race condition protect. leave critical section */
@@ -640,14 +700,14 @@ static int nvt_composite_gate_clk_get_phase(struct clk_hw *hw)
 	unsigned long flags;
 	int is_enabled = 0;
 	struct nvt_composite_gate_clk *gate =
-	    container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
+		container_of(hw, struct nvt_composite_gate_clk, cgate_hw);
 
 	if (gate->autogating_reg_offset != 0) {
 		/* race condition protect. enter critical section */
 		spin_lock_irqsave(gate->lock, flags);
 		is_enabled =
-		    (CG_GETREG(gate->autogating_reg_offset) &
-		    (0x1 << gate->autogating_bit_idx)) ? 1 : 0;
+			(CG_GETREG(gate->autogating_reg_offset) &
+			 (0x1 << gate->autogating_bit_idx)) ? 1 : 0;
 		/* race condition protect. leave critical section */
 		spin_unlock_irqrestore(gate->lock, flags);
 	}
@@ -670,8 +730,8 @@ static const struct clk_ops nvt_composite_gate_clk_ops = {
 };
 
 int nvt_composite_gate_clk_register(struct nvt_composite_gate_clk
-				    composite_gate_clks[], int array_size,
-				    spinlock_t *cg_spinlock)
+									composite_gate_clks[], int array_size,
+									spinlock_t *cg_spinlock)
 {
 	struct clk *clk;
 	struct clk_init_data init;
@@ -689,11 +749,11 @@ int nvt_composite_gate_clk_register(struct nvt_composite_gate_clk
 
 	for (i = 0; i < array_size; i++) {
 		snprintf(pstr, CLK_NAME_STR_SIZE, "%s_div",
-			 composite_gate_clks[i].name);
+				 composite_gate_clks[i].name);
 
 		p_cgate_clk = NULL;
 		p_cgate_clk =
-		    kzalloc(sizeof(struct nvt_composite_gate_clk), GFP_KERNEL);
+			kzalloc(sizeof(struct nvt_composite_gate_clk), GFP_KERNEL);
 		if (!p_cgate_clk) {
 			pr_err("%s: failed to alloc cgate_clk!\n", __func__);
 			kfree(pstr);
@@ -701,60 +761,60 @@ int nvt_composite_gate_clk_register(struct nvt_composite_gate_clk
 		}
 
 		memcpy(p_cgate_clk->name, composite_gate_clks[i].name,
-		       CLK_NAME_STR_SIZE);
+			   CLK_NAME_STR_SIZE);
 		p_cgate_clk->div_reg_offset =
-		    composite_gate_clks[i].div_reg_offset;
+			composite_gate_clks[i].div_reg_offset;
 		p_cgate_clk->div_bit_idx = composite_gate_clks[i].div_bit_idx;
 		p_cgate_clk->div_bit_width =
-		    composite_gate_clks[i].div_bit_width;
+			composite_gate_clks[i].div_bit_width;
 		p_cgate_clk->gate_reg_offset =
-		    composite_gate_clks[i].gate_reg_offset;
+			composite_gate_clks[i].gate_reg_offset;
 		p_cgate_clk->gate_bit_idx = composite_gate_clks[i].gate_bit_idx;
 		p_cgate_clk->do_enable = composite_gate_clks[i].do_enable;
 		p_cgate_clk->reset_reg_offset =
-		    composite_gate_clks[i].reset_reg_offset;
+			composite_gate_clks[i].reset_reg_offset;
 		p_cgate_clk->reset_bit_idx =
-		    composite_gate_clks[i].reset_bit_idx;
+			composite_gate_clks[i].reset_bit_idx;
 		p_cgate_clk->do_reset = composite_gate_clks[i].do_reset;
 		p_cgate_clk->autogating_reg_offset =
-		    composite_gate_clks[i].autogating_reg_offset;
+			composite_gate_clks[i].autogating_reg_offset;
 		p_cgate_clk->autogating_bit_idx =
-		    composite_gate_clks[i].autogating_bit_idx;
+			composite_gate_clks[i].autogating_bit_idx;
 		p_cgate_clk->do_autogating = composite_gate_clks[i].do_autogating;
 		p_cgate_clk->lock = cg_spinlock;
 
 		if (composite_gate_clks[i].div_bit_width == 0) {
 			/* No clock divider */
 			snprintf(pstr, CLK_NAME_STR_SIZE, "%s",
-				 composite_gate_clks[i].parent_name);
+					 composite_gate_clks[i].parent_name);
 			p_cgate_clk->divider = NULL;
 		} else {
 			clk =
-			    clk_register_divider(NULL, pstr,
-						 composite_gate_clks
-						 [i].parent_name,
-						 CLK_GET_RATE_NOCACHE,
-						 cg_base +
-						 composite_gate_clks
-						 [i].div_reg_offset,
-						 composite_gate_clks
-						 [i].div_bit_idx,
-						 composite_gate_clks
-						 [i].div_bit_width,
-						 composite_gate_clks
-						 [i].div_flags, cg_spinlock);
+				clk_register_divider(NULL, pstr,
+									 composite_gate_clks
+									 [i].parent_name,
+									 CLK_GET_RATE_NOCACHE,
+									 cg_base +
+									 composite_gate_clks
+									 [i].div_reg_offset,
+									 composite_gate_clks
+									 [i].div_bit_idx,
+									 composite_gate_clks
+									 [i].div_bit_width,
+									 composite_gate_clks
+									 [i].div_flags, cg_spinlock);
 			p_cgate_clk->divider = __clk_get_hw(clk);
 			p_cgate_clk->parent_rate =
-			    clk_get_rate(clk_get_parent(clk));
+				clk_get_rate(clk_get_parent(clk));
 		}
 
 		if (p_cgate_clk->divider != NULL) {
 			if (!fastboot) {
 				/* race condition protect. enter critical section */
 				clk_divider_ops.set_rate(p_cgate_clk->divider,
-							composite_gate_clks
-							[i].current_rate,
-							p_cgate_clk->parent_rate);
+										 composite_gate_clks
+										 [i].current_rate,
+										 p_cgate_clk->parent_rate);
 				/* race condition protect. leave critical section */
 			}
 
@@ -772,32 +832,32 @@ int nvt_composite_gate_clk_register(struct nvt_composite_gate_clk
 		clk = clk_register(NULL, &(p_cgate_clk->cgate_hw));
 		if (IS_ERR(clk)) {
 			pr_err("%s: failed to register clk %s!\n", __func__,
-			       p_cgate_clk->name);
+				   p_cgate_clk->name);
 			ret = -EPERM;
 			goto err;
 		}
 		if (clk_register_clkdev(clk, p_cgate_clk->name, NULL)) {
 			pr_err("%s: failed to register lookup %s!\n", __func__,
-			       p_cgate_clk->name);
+				   p_cgate_clk->name);
 			ret = -EPERM;
 			goto err;
 		} else {
 			if (p_cgate_clk->divider == NULL) {
 				p_cgate_clk->parent_rate =
-				    p_cgate_clk->current_rate =
-				    clk_get_rate(clk_get_parent(clk));
+					p_cgate_clk->current_rate =
+						clk_get_rate(clk_get_parent(clk));
 			}
 			if (composite_gate_clks[i].do_enable) {
 				ret = clk_prepare_enable(clk);
 				if (ret < 0)
 					pr_err("%s prepare & enable failed!\n",
-					       p_cgate_clk->name);
+						   p_cgate_clk->name);
 			}
 
 			ret = clk_set_phase(clk, composite_gate_clks[i].do_autogating);
 			if (ret < 0)
 				pr_err("%s enable autogating failed!\n",
-				       p_cgate_clk->name);
+					   p_cgate_clk->name);
 		}
 	}
 
@@ -814,7 +874,7 @@ static int nvt_composite_group_pwm_clk_prepare(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 
 	if (gpwm->reset_reg_offset != 0) {
 		/* race condition protect. enter critical section */
@@ -841,7 +901,7 @@ static int nvt_composite_group_pwm_clk_is_prepared(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 
 	if (gpwm->reset_reg_offset != 0) {
 		/* race condition protect. enter critical section */
@@ -851,8 +911,9 @@ static int nvt_composite_group_pwm_clk_is_prepared(struct clk_hw *hw)
 		/* race condition protect. leave critical section */
 		spin_unlock_irqrestore(gpwm->lock, flags);
 		return (reg_val && (0x1 << gpwm->reset_bit_idx));
-	} else
+	} else {
 		return 0;
+	}
 }
 
 static int nvt_composite_group_pwm_clk_enable(struct clk_hw *hw)
@@ -860,7 +921,7 @@ static int nvt_composite_group_pwm_clk_enable(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(gpwm->lock, flags);
@@ -878,7 +939,7 @@ static void nvt_composite_group_pwm_clk_disable(struct clk_hw *hw)
 	unsigned int reg_val;
 	unsigned long flags;
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(gpwm->lock, flags);
 	reg_val = CG_GETREG(gpwm->gate_reg_offset);
@@ -893,11 +954,11 @@ static int nvt_composite_group_pwm_clk_is_enabled(struct clk_hw *hw)
 	unsigned long flags;
 	bool is_enabled;
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(gpwm->lock, flags);
 	is_enabled =
-	    CG_GETREG(gpwm->gate_reg_offset) & (0x1 << gpwm->gate_bit_idx);
+		CG_GETREG(gpwm->gate_reg_offset) & (0x1 << gpwm->gate_bit_idx);
 	/* race condition protect. leave critical section */
 	spin_unlock_irqrestore(gpwm->lock, flags);
 
@@ -905,43 +966,45 @@ static int nvt_composite_group_pwm_clk_is_enabled(struct clk_hw *hw)
 }
 
 static long nvt_composite_group_pwm_clk_round_rate(struct clk_hw *hw,
-						   unsigned long rate,
-						   unsigned long *parent_rate)
+		unsigned long rate,
+		unsigned long *parent_rate)
 {
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 
-	if (gpwm->divider == NULL)
+	if (gpwm->divider == NULL) {
 		return rate;
-	else
+	} else
 		return clk_divider_ops.round_rate(gpwm->divider, rate,
-						  &gpwm->parent_rate);
+										  &gpwm->parent_rate);
 }
 
 static unsigned long nvt_composite_group_pwm_clk_recalc_rate(struct clk_hw *hw,
-							     unsigned long
-							     parent_rate)
+		unsigned long
+		parent_rate)
 {
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 	return gpwm->current_rate;
 }
 
 static int nvt_composite_group_pwm_clk_set_rate(struct clk_hw *hw,
-						unsigned long rate,
-						unsigned long parent_rate)
+		unsigned long rate,
+		unsigned long parent_rate)
 {
 	int ret;
 	struct nvt_composite_group_pwm_clk *gpwm =
-	    container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
+		container_of(hw, struct nvt_composite_group_pwm_clk, cgpwm_hw);
 
-	if (gpwm->divider == NULL)
+	if (gpwm->divider == NULL) {
 		return -EPERM;
+	}
 	/* race condition protect. enter critical section */
 	ret = clk_divider_ops.set_rate(gpwm->divider, rate, gpwm->parent_rate);
 	/* race condition protect. leave critical section */
-	if (ret == 0)
+	if (ret == 0) {
 		gpwm->current_rate = rate;
+	}
 	return ret;
 }
 
@@ -958,9 +1021,9 @@ static const struct clk_ops nvt_composite_group_pwm_clk_ops = {
 };
 
 int nvt_composite_group_pwm_clk_register(struct nvt_composite_group_pwm_clk
-					 composite_group_pwm_clks[],
-					 int array_size,
-					 spinlock_t *cg_spinlock)
+		composite_group_pwm_clks[],
+		int array_size,
+		spinlock_t *cg_spinlock)
 {
 	struct clk *clk, *div_clk;
 	struct clk_init_data init;
@@ -985,78 +1048,78 @@ int nvt_composite_group_pwm_clk_register(struct nvt_composite_group_pwm_clk
 	for (i = 0; i < array_size; i++) {
 		if (composite_group_pwm_clks[i].div_bit_width == 0) {
 			pr_err("%s: PWM clock should have a divider HW!\n",
-			       __func__);
+				   __func__);
 			ret = -EPERM;
 			goto err;
 		}
 		if (composite_group_pwm_clks[i].gate_bit_start_idx >
-		    composite_group_pwm_clks[i].gate_bit_end_idx) {
+			composite_group_pwm_clks[i].gate_bit_end_idx) {
 			pr_err
-			    ("%s: PWM start idx should be less than end idx!\n",
-			     __func__);
+			("%s: PWM start idx should be less than end idx!\n",
+			 __func__);
 			ret = -EPERM;
 			goto err;
 		}
 		snprintf(pstr1, CLK_NAME_STR_SIZE, "pwm_clk%d-%d_div",
-			 composite_group_pwm_clks[i].gate_bit_start_idx,
-			 composite_group_pwm_clks[i].gate_bit_end_idx);
+				 composite_group_pwm_clks[i].gate_bit_start_idx,
+				 composite_group_pwm_clks[i].gate_bit_end_idx);
 
 		div_clk =
-		    clk_register_divider(NULL, pstr1,
-					 composite_group_pwm_clks
-					 [i].parent_name,
-					 CLK_GET_RATE_NOCACHE,
-					 cg_base +
-					 composite_group_pwm_clks
-					 [i].div_reg_offset,
-					 composite_group_pwm_clks
-					 [i].div_bit_idx,
-					 composite_group_pwm_clks
-					 [i].div_bit_width,
-					 composite_group_pwm_clks
-					 [i].div_flags, cg_spinlock);
+			clk_register_divider(NULL, pstr1,
+								 composite_group_pwm_clks
+								 [i].parent_name,
+								 CLK_GET_RATE_NOCACHE,
+								 cg_base +
+								 composite_group_pwm_clks
+								 [i].div_reg_offset,
+								 composite_group_pwm_clks
+								 [i].div_bit_idx,
+								 composite_group_pwm_clks
+								 [i].div_bit_width,
+								 composite_group_pwm_clks
+								 [i].div_flags, cg_spinlock);
 
 		for (j = composite_group_pwm_clks[i].gate_bit_start_idx;
-		     j <= composite_group_pwm_clks[i].gate_bit_end_idx; j++) {
+			 j <= composite_group_pwm_clks[i].gate_bit_end_idx; j++) {
 
 			p_cgpwm_clk = NULL;
 			p_cgpwm_clk =
-			    kzalloc(sizeof(struct nvt_composite_group_pwm_clk),
-				    GFP_KERNEL);
+				kzalloc(sizeof(struct nvt_composite_group_pwm_clk),
+						GFP_KERNEL);
 			if (!p_cgpwm_clk) {
 				pr_err("%s: failed to alloc cgpwm_clk!\n",
-				       __func__);
+					   __func__);
 				kfree(pstr1);
 				ret = -EPERM;
 				goto err;
 			}
 
 			p_cgpwm_clk->div_reg_offset =
-			    composite_group_pwm_clks[i].div_reg_offset;
+				composite_group_pwm_clks[i].div_reg_offset;
 			p_cgpwm_clk->div_bit_idx =
-			    composite_group_pwm_clks[i].div_bit_idx;
+				composite_group_pwm_clks[i].div_bit_idx;
 			p_cgpwm_clk->div_bit_width =
-			    composite_group_pwm_clks[i].div_bit_width;
+				composite_group_pwm_clks[i].div_bit_width;
 			p_cgpwm_clk->gate_reg_offset =
-			    composite_group_pwm_clks[i].gate_reg_offset;
+				composite_group_pwm_clks[i].gate_reg_offset;
 			p_cgpwm_clk->gate_bit_start_idx =
-			    composite_group_pwm_clks[i].gate_bit_start_idx;
+				composite_group_pwm_clks[i].gate_bit_start_idx;
 			p_cgpwm_clk->gate_bit_end_idx =
-			    composite_group_pwm_clks[i].gate_bit_end_idx;
+				composite_group_pwm_clks[i].gate_bit_end_idx;
 			p_cgpwm_clk->do_enable =
-			    composite_group_pwm_clks[i].do_enable;
+				composite_group_pwm_clks[i].do_enable;
 			p_cgpwm_clk->reset_reg_offset =
-			    composite_group_pwm_clks[i].reset_reg_offset;
+				composite_group_pwm_clks[i].reset_reg_offset;
 			p_cgpwm_clk->reset_bit_idx =
-			    composite_group_pwm_clks[i].reset_bit_idx;
+				composite_group_pwm_clks[i].reset_bit_idx;
 			p_cgpwm_clk->gate_bit_idx = j;
 			p_cgpwm_clk->lock = cg_spinlock;
 
 			p_cgpwm_clk->divider = __clk_get_hw(div_clk);
 			p_cgpwm_clk->parent_rate =
-			    clk_get_rate(clk_get_parent(div_clk));
+				clk_get_rate(clk_get_parent(div_clk));
 			p_cgpwm_clk->current_rate =
-			    composite_group_pwm_clks[i].current_rate;
+				composite_group_pwm_clks[i].current_rate;
 
 			snprintf(pstr2, CLK_NAME_STR_SIZE, "pwm_clk.%d", j);
 			init.name = pstr2;
@@ -1070,13 +1133,13 @@ int nvt_composite_group_pwm_clk_register(struct nvt_composite_group_pwm_clk
 			clk = clk_register(NULL, &(p_cgpwm_clk->cgpwm_hw));
 			if (IS_ERR(clk)) {
 				pr_err("%s: failed to register clk %s!",
-				       __func__, pstr2);
+					   __func__, pstr2);
 				ret = -EPERM;
 				goto err;
 			}
 			if (clk_register_clkdev(clk, pstr2, NULL)) {
 				pr_err("%s: failed to register lookup %s!",
-				       __func__, pstr2);
+					   __func__, pstr2);
 				ret = -EPERM;
 				goto err;
 			} else {
@@ -1084,8 +1147,8 @@ int nvt_composite_group_pwm_clk_register(struct nvt_composite_group_pwm_clk
 					ret = clk_prepare_enable(clk);
 					if (ret < 0)
 						pr_err
-						    ("%s prepare & enable failed!",
-						     pstr2);
+						("%s prepare & enable failed!",
+						 pstr2);
 				}
 			}
 		}
@@ -1102,12 +1165,12 @@ static int nvt_composite_mux_clk_is_enabled(struct clk_hw *hw)
 	bool is_enabled;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
 	/* race condition protect. enter critical section */
 	spin_lock_irqsave(mux->lock, flags);
 	is_enabled =
-	    CG_GETREG(mux->gate_reg_offset) & (0x1 << mux->gate_bit_idx);
+		CG_GETREG(mux->gate_reg_offset) & (0x1 << mux->gate_bit_idx);
 	/* race condition protect. leave critical section */
 	spin_unlock_irqrestore(mux->lock, flags);
 
@@ -1121,10 +1184,11 @@ static int nvt_composite_mux_clk_prepare(struct clk_hw *hw)
 	int keep_do_reset = 1;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
-	if (fastboot && nvt_composite_mux_clk_is_enabled(hw))
+	if (fastboot && nvt_composite_mux_clk_is_enabled(hw)) {
 		keep_do_reset = 0;
+	}
 
 	if (mux->do_reset && keep_do_reset) {
 		if (mux->reset_reg_offset != 0) {
@@ -1166,7 +1230,7 @@ static int nvt_composite_mux_clk_is_prepared(struct clk_hw *hw)
 	unsigned long flags;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
 	if (mux->reset_reg_offset != 0) {
 		/* race condition protect. enter critical section */
@@ -1176,8 +1240,9 @@ static int nvt_composite_mux_clk_is_prepared(struct clk_hw *hw)
 		/* race condition protect. leave critical section */
 		spin_unlock_irqrestore(mux->lock, flags);
 		return (reg_val && (0x1 << mux->reset_bit_idx));
-	} else
+	} else {
 		return 0;
+	}
 }
 
 static int nvt_composite_mux_clk_enable(struct clk_hw *hw)
@@ -1186,11 +1251,11 @@ static int nvt_composite_mux_clk_enable(struct clk_hw *hw)
 	unsigned long flags;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
 	if ((mux->max_rate) && (mux->current_rate > mux->max_rate)) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
-			__func__, mux->name, mux->current_rate, mux->max_rate);
+			   __func__, mux->name, mux->current_rate, mux->max_rate);
 		return -1;
 	}
 
@@ -1228,7 +1293,7 @@ static void nvt_composite_mux_clk_disable(struct clk_hw *hw)
 	unsigned long flags;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
 	if (mux->gate_reg_offset == SIEMCLK_COMM_CLK_EN_REG0_OFFSET) {
 		unsigned long offset = mux->gate_reg_offset & SIEMCLK_COMM_MASK;
@@ -1256,44 +1321,47 @@ static void nvt_composite_mux_clk_disable(struct clk_hw *hw)
 }
 
 static long nvt_composite_mux_clk_round_rate(struct clk_hw *hw,
-					     unsigned long rate,
-					     unsigned long *prate)
+		unsigned long rate,
+		unsigned long *prate)
 {
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 	u32 best_div, max_div;
 
-	if (!(mux->div_bit_width))
+	if (!(mux->div_bit_width)) {
 		return mux->current_rate;
+	}
 
 	max_div = div_mask(mux->div_bit_width);
 
 	best_div = DIV_ROUND_UP(*prate, rate);
 
-	if (best_div < 1)
+	if (best_div < 1) {
 		best_div = 1;
-	if (best_div > max_div)
+	}
+	if (best_div > max_div) {
 		best_div = max_div;
+	}
 
-	mux->current_rate = *prate/best_div;
+	mux->current_rate = *prate / best_div;
 
 	if ((mux->max_rate) && (mux->current_rate > mux->max_rate) && nvt_composite_mux_clk_is_enabled(hw) && log_index_cmux) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
-			__func__, mux->name, mux->current_rate, mux->max_rate);
+			   __func__, mux->name, mux->current_rate, mux->max_rate);
 	}
 
 	return mux->current_rate;
 }
 
 static unsigned long nvt_composite_mux_clk_recalc_rate(struct clk_hw
-						       *hw,
-						       unsigned long
-						       parent_rate)
+		*hw,
+		unsigned long
+		parent_rate)
 {
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 	unsigned long flags;
 	u32 divider, reg_val;
 
@@ -1308,28 +1376,28 @@ static unsigned long nvt_composite_mux_clk_recalc_rate(struct clk_hw
 		divider = (reg_val >> mux->div_bit_idx);
 		spin_unlock_irqrestore(mux->lock, flags);
 
-		siemclk1_rate = parent_rate/(divider+1);
+		siemclk1_rate = parent_rate / (divider + 1);
 
 		spin_lock_irqsave(mux->lock, flags);
 		reg_val = CG_GETREG(offset);
 		reg_val &= (div_mask(mux->div_bit_width) <<
-				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
+					(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
 		divider = (reg_val >>
-				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
+				   (mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
 		spin_unlock_irqrestore(mux->lock, flags);
 
-		siemclk2_rate = parent_rate/(divider+1);
+		siemclk2_rate = parent_rate / (divider + 1);
 
 		mux->current_rate = (siemclk1_rate == siemclk2_rate) ?
-					siemclk1_rate : 0;
+							siemclk1_rate : 0;
 
 		return mux->current_rate;
 	}
 
 	/*If there is no divider, parent rate equals to current rate*/
-	if (!(mux->div_bit_width))
+	if (!(mux->div_bit_width)) {
 		mux->current_rate = parent_rate;
-	else {
+	} else {
 		/*Update current rate with hardware runtime value*/
 		spin_lock_irqsave(mux->lock, flags);
 		reg_val = CG_GETREG(mux->div_reg_offset);
@@ -1337,40 +1405,42 @@ static unsigned long nvt_composite_mux_clk_recalc_rate(struct clk_hw
 		divider = (reg_val >> mux->div_bit_idx);
 		spin_unlock_irqrestore(mux->lock, flags);
 
-		mux->current_rate = parent_rate/(divider+1);
+		mux->current_rate = parent_rate / (divider + 1);
 	}
 
 	if ((mux->max_rate) && (mux->current_rate > mux->max_rate) && nvt_composite_mux_clk_is_enabled(hw) && log_index_cmux) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld) !!!!\n",
-			__func__, mux->name, mux->current_rate, mux->max_rate);
+			   __func__, mux->name, mux->current_rate, mux->max_rate);
 	}
 
 	return mux->current_rate;
 }
 
 static int nvt_composite_mux_clk_set_rate(struct clk_hw *hw,
-					  unsigned long rate,
-					  unsigned long parent_rate)
+		unsigned long rate,
+		unsigned long parent_rate)
 {
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 	unsigned long flags;
 
 	u32 divider, reg_val;
 
-	if (!(mux->div_reg_offset))
+	if (!(mux->div_reg_offset)) {
 		return 0;
+	}
 
 	if ((mux->max_rate) && (mux->current_rate > mux->max_rate)) {
 		pr_err("!!!! %s: %s current_freq(%ld) exceed max_freq(%ld), return !!!!\n",
-			__func__, mux->name, mux->current_rate, mux->max_rate);
+			   __func__, mux->name, mux->current_rate, mux->max_rate);
 		return -1;
 	}
 
 	divider = (parent_rate / rate);
-	if (!divider)
+	if (!divider) {
 		divider = 1;
+	}
 
 	if (mux->div_reg_offset == SIEMCLK_COMM_CLK_DIV_REG0_OFFSET) {
 		unsigned long offset = mux->div_reg_offset & SIEMCLK_COMM_MASK;
@@ -1379,12 +1449,12 @@ static int nvt_composite_mux_clk_set_rate(struct clk_hw *hw,
 		reg_val = CG_GETREG(offset);
 		reg_val &= ~(div_mask(mux->div_bit_width) << mux->div_bit_idx);
 		reg_val &= ~(div_mask(mux->div_bit_width) <<
-				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
+					 (mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
 		CG_SETREG(offset, reg_val);
 		udelay(2);
 		reg_val |= ((divider - 1) << mux->div_bit_idx);
 		reg_val |= ((divider - 1) <<
-				(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
+					(mux->div_bit_idx + SIEMCLK_COMM_DIV_SHIFT));
 		CG_SETREG(offset, reg_val);
 		spin_unlock_irqrestore(mux->lock, flags);
 
@@ -1406,7 +1476,7 @@ static int nvt_composite_mux_clk_set_parent(struct clk_hw *hw, u8 index)
 {
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 	unsigned long flags;
 	u32 reg_val;
 
@@ -1417,7 +1487,7 @@ static int nvt_composite_mux_clk_set_parent(struct clk_hw *hw, u8 index)
 		reg_val = CG_GETREG(offset);
 		reg_val &= ~(div_mask(mux->mux_bit_width) << mux->mux_bit_idx);
 		reg_val &= ~(div_mask(mux->mux_bit_width) <<
-				(mux->mux_bit_idx + SIEMCLK_COMM_RATE_SHIFT));
+					 (mux->mux_bit_idx + SIEMCLK_COMM_RATE_SHIFT));
 		reg_val |= (index << mux->mux_bit_idx);
 		reg_val |= (index << (mux->mux_bit_idx + SIEMCLK_COMM_RATE_SHIFT));
 		CG_SETREG(offset, reg_val);
@@ -1432,6 +1502,14 @@ static int nvt_composite_mux_clk_set_parent(struct clk_hw *hw, u8 index)
 		reg_val &= ~(div_mask(mux->mux_bit_width) << mux->mux_bit_idx);
 		reg_val |= (index << mux->mux_bit_idx);
 		CG_SETREG(mux->mux_reg_offset, reg_val);
+#if defined (CONFIG_NVT_IVOT_PLAT_NA51089) || defined (CONFIG_NVT_IVOT_PLAT_NA51055)
+		if (mux->mux_reg_offset == CG_SYS_CLK_RATE_REG_OFFSET && mux->mux_bit_idx == BIT0) {
+			CG_SETREG(0xA0, 0x34);
+			while ((CG_GETREG(0xA0) & (0x1 << 3)) != (0x1 << 3)) {
+			}
+			CG_SETREG(0xA0, 0x28);
+		}
+#endif
 		spin_unlock_irqrestore(mux->lock, flags);
 	}
 
@@ -1442,7 +1520,7 @@ static u8 nvt_composite_mux_clk_get_parent(struct clk_hw *hw)
 {
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 	u32 reg_val, index;
 
 	if (mux->mux_reg_offset == SIEMCLK_COMM_CLK_RATE_REG0_OFFSET) {
@@ -1466,17 +1544,18 @@ static int nvt_composite_mux_clk_set_phase(struct clk_hw *hw, int enable)
 	unsigned long flags;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
 	if (mux->autogating_reg_offset != 0) {
 		/* race condition protect. enter critical section */
 		spin_lock_irqsave(mux->lock, flags);
 		reg_val = CG_GETREG(mux->autogating_reg_offset);
 
-		if (enable == 0)
+		if (enable == 0) {
 			reg_val &= ~(0x1 << mux->autogating_bit_idx);
-		else
+		} else {
 			reg_val |= (0x1 << mux->autogating_bit_idx);
+		}
 
 		CG_SETREG(mux->autogating_reg_offset, reg_val);
 		/* race condition protect. leave critical section */
@@ -1492,14 +1571,14 @@ static int nvt_composite_mux_clk_get_phase(struct clk_hw *hw)
 	int is_enabled = 0;
 	struct clk_mux *cmux = container_of(hw, struct clk_mux, hw);
 	struct nvt_composite_mux_clk *mux =
-	    container_of(cmux, struct nvt_composite_mux_clk, mux);
+		container_of(cmux, struct nvt_composite_mux_clk, mux);
 
 	if (mux->autogating_reg_offset != 0) {
 		/* race condition protect. enter critical section */
 		spin_lock_irqsave(mux->lock, flags);
 		is_enabled =
-		    (CG_GETREG(mux->autogating_reg_offset) & \
-			(0x1 << mux->autogating_bit_idx)) ? 1 : 0;
+			(CG_GETREG(mux->autogating_reg_offset) & \
+			 (0x1 << mux->autogating_bit_idx)) ? 1 : 0;
 		/* race condition protect. leave critical section */
 		spin_unlock_irqrestore(mux->lock, flags);
 	}
@@ -1524,8 +1603,8 @@ static const struct clk_ops nvt_composite_mux_clk_ops = {
 };
 
 int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
-				   composite_mux_clks[], int array_size,
-				   spinlock_t *cg_spinlock)
+								   composite_mux_clks[], int array_size,
+								   spinlock_t *cg_spinlock)
 {
 	struct clk *clk;
 	struct clk_init_data init;
@@ -1535,32 +1614,32 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
 	for (i = 0; i < array_size; i++) {
 		p_cmux_clk = NULL;
 		p_cmux_clk =
-		    kzalloc(sizeof(struct nvt_composite_mux_clk), GFP_KERNEL);
+			kzalloc(sizeof(struct nvt_composite_mux_clk), GFP_KERNEL);
 		if (!p_cmux_clk) {
 			pr_err("%s: failed to alloc cmux_clk\n", __func__);
 			return -EPERM;
 		}
 
 		memcpy(p_cmux_clk->name, composite_mux_clks[i].name,
-		       CLK_NAME_STR_SIZE);
+			   CLK_NAME_STR_SIZE);
 		p_cmux_clk->mux_reg_offset =
-		    composite_mux_clks[i].mux_reg_offset;
+			composite_mux_clks[i].mux_reg_offset;
 		p_cmux_clk->mux_bit_idx = composite_mux_clks[i].mux_bit_idx;
 		p_cmux_clk->mux_bit_width = composite_mux_clks[i].mux_bit_width;
 		p_cmux_clk->div_reg_offset =
-		    composite_mux_clks[i].div_reg_offset;
+			composite_mux_clks[i].div_reg_offset;
 		p_cmux_clk->div_bit_idx = composite_mux_clks[i].div_bit_idx;
 		p_cmux_clk->div_bit_width = composite_mux_clks[i].div_bit_width;
 		p_cmux_clk->gate_reg_offset =
-		    composite_mux_clks[i].gate_reg_offset;
+			composite_mux_clks[i].gate_reg_offset;
 		p_cmux_clk->gate_bit_idx = composite_mux_clks[i].gate_bit_idx;
 		p_cmux_clk->do_enable = composite_mux_clks[i].do_enable;
 		p_cmux_clk->reset_reg_offset =
-		    composite_mux_clks[i].reset_reg_offset;
+			composite_mux_clks[i].reset_reg_offset;
 		p_cmux_clk->reset_bit_idx = composite_mux_clks[i].reset_bit_idx;
 		p_cmux_clk->do_reset = composite_mux_clks[i].do_reset;
 		p_cmux_clk->autogating_reg_offset =
-		    composite_mux_clks[i].autogating_reg_offset;
+			composite_mux_clks[i].autogating_reg_offset;
 		p_cmux_clk->autogating_bit_idx = composite_mux_clks[i].autogating_bit_idx;
 		p_cmux_clk->do_autogating = composite_mux_clks[i].do_autogating;
 		p_cmux_clk->lock = cg_spinlock;
@@ -1583,13 +1662,13 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
 		clk = clk_register(NULL, &(p_cmux_clk->mux.hw));
 		if (IS_ERR(clk)) {
 			pr_err("%s: failed to register clk %s\n",
-			       __func__, p_cmux_clk->name);
+				   __func__, p_cmux_clk->name);
 			ret = -EPERM;
 			goto err;
 		}
 		if (clk_register_clkdev(clk, p_cmux_clk->name, NULL)) {
 			pr_err("%s: failed to register lookup %s\n",
-			       __func__, p_cmux_clk->name);
+				   __func__, p_cmux_clk->name);
 			ret = -EPERM;
 			goto err;
 		} else {
@@ -1597,19 +1676,19 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
 				ret = clk_prepare_enable(clk);
 				if (ret < 0)
 					pr_err("%s prepare & enable failed!\n",
-					       p_cmux_clk->name);
+						   p_cmux_clk->name);
 			}
 
 			ret = clk_set_phase(clk, composite_mux_clks[i].do_autogating);
 			if (ret < 0)
 				pr_err("%s enable autogating failed!\n",
-				       p_cmux_clk->name);
+					   p_cmux_clk->name);
 
 			if (__clk_is_enabled(clk) && fastboot) {
 				ret = clk_prepare_enable(clk);
 				if (ret < 0)
 					pr_err("%s prepare & enable failed!\n",
-						p_cmux_clk->name);
+						   p_cmux_clk->name);
 			}
 		}
 
@@ -1618,16 +1697,27 @@ int nvt_composite_mux_clk_register(struct nvt_composite_mux_clk
 			p_cmux_clk->current_rate = clk_get_rate(clk);
 		} else {
 			if (fastboot == 0) {
+#if defined (CONFIG_NVT_IVOT_PLAT_NA51089) || defined (CONFIG_NVT_IVOT_PLAT_NA51055)
+				if((strncmp(p_cmux_clk->name, "cpu_clk", 16) == 0)) {
+					pr_info("%s parent 0x%08x\r\n", p_cmux_clk->name, (int)clk_get_rate(clk));
+					if(clk_get_rate(clk) == 480000000) {
+						composite_mux_clks[i].parent_idx= 2;
+					} else if(clk_get_rate(clk) == 80000000) {
+						composite_mux_clks[i].parent_idx= 0;
+					}
+				}
+#endif
 				clk_set_parent(clk,
-					__clk_lookup(composite_mux_clks[i].parent_names
-						[composite_mux_clks
-						[i].parent_idx]));
+							   __clk_lookup(composite_mux_clks[i].parent_names
+											[composite_mux_clks
+											 [i].parent_idx]));
 			}
 
 			p_cmux_clk->parent_rate = clk_get_rate(clk_get_parent(clk));
 
-			if ((composite_mux_clks[i].div_bit_width) && (fastboot == 0) && !composite_mux_clks[i].keep_rate)
+			if ((composite_mux_clks[i].div_bit_width) && (fastboot == 0) && !composite_mux_clks[i].keep_rate) {
 				clk_set_rate(clk, composite_mux_clks[i].current_rate);
+			}
 
 			p_cmux_clk->current_rate = clk_get_rate(clk);
 		}

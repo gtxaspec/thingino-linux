@@ -389,7 +389,8 @@ struct mmc_nvt_host {
 	bool scan_indly_engineering_mode;
 	bool force_power_cycle;
 	int force_power_cycle_period;
-	int power_down_delay_ms;
+	int power_down_delay_ms;  /* delay after card power OFF */
+	int power_up_delay_ms;    /* delay after card power ON */
 
 	/* Defines pad_driving of each mode, as:
 	 * DS_MODE_CLK

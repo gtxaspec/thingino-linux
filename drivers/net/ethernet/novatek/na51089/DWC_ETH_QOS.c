@@ -39,7 +39,7 @@
 #include <linux/of_device.h>
 #endif
 
-#define DRV_VERSION		"1.00.051"
+#define DRV_VERSION		"1.00.052"
 static UCHAR dev_addr[6] = {0, 0x55, 0x7b, 0xb5, 0x7d, 0xf7};
 
 void __iomem *ETH_QOS_REG_BASE;
@@ -276,6 +276,8 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	dev->dev_addr[4] = dev_addr[4];
 	dev->dev_addr[5] = dev_addr[5];
 
+	dev->min_mtu = DWC_ETH_QOS_MIN_SUPPORTED_MTU;
+	dev->max_mtu = DWC_ETH_QOS_MAX_GPSL;
 	SET_NETDEV_DEV(dev, &pdev->dev);
 	pdata = netdev_priv(dev);
 	DWC_ETH_QOS_init_all_fptrs(pdata);
@@ -371,20 +373,21 @@ static int DWC_ETH_QOS_probe(struct platform_device *pdev)
 	}
 
 	dev->ethtool_ops = DWC_ETH_QOS_get_ethtool_ops();
+	dev->hw_features = NETIF_F_SG;
+	printk(KERN_ALERT "Supports SG\n");
+
 	if (pdata->hw_feat.tso_en) {
-		dev->hw_features = NETIF_F_TSO;
+		dev->hw_features |= NETIF_F_TSO;
 #ifdef DWC_ETH_QOS_CONFIG_UFO
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,00)
 		dev->hw_features |= NETIF_F_UFO;
 #endif
 #endif
-		dev->hw_features |= NETIF_F_SG;
-		dev->hw_features |= NETIF_F_IP_CSUM;
-		dev->hw_features |= NETIF_F_IPV6_CSUM;
-		printk(KERN_ALERT "Supports TSO, SG and TX COE\n");
+		printk(KERN_ALERT "Supports TSO\n");
 	}
-	else if (pdata->hw_feat.tx_coe_sel) {
-		dev->hw_features = NETIF_F_IP_CSUM ;
+
+	if (pdata->hw_feat.tx_coe_sel) {
+		dev->hw_features |= NETIF_F_IP_CSUM ;
 		dev->hw_features |= NETIF_F_IPV6_CSUM;
 		printk(KERN_ALERT "Supports TX COE\n");
 	}
@@ -542,6 +545,8 @@ static int DWC_ETH_QOS_remove(struct platform_device *pdev)
 		clk_unprepare(clk);
 	}
 	clk_put(clk);
+	//add shutdown sram
+	nvt_enable_sram_shutdown(ETH_SD);
 #endif
 
 	DBGPR("<-- DWC_ETH_QOS_remove\n");

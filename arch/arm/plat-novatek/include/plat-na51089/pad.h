@@ -202,24 +202,24 @@ typedef enum {
     Pad driving value for pad_set_drivingsink(), pad_get_drivingsink().
 */
 typedef enum {
-	PAD_DRIVINGSINK_4MA     =    0x0011,    ///< Pad driver/sink 4mA
-	PAD_DRIVINGSINK_10MA    =    0x0002,    ///< Pad driver/sink 10mA
-	PAD_DRIVINGSINK_8MA     =    0x0020,    ///< Pad driver/sink 6mA
-	PAD_DRIVINGSINK_12MA    =    0x0840,    ///< Pad driver/sink 16mA
-	PAD_DRIVINGSINK_16MA    =    0x0080,    ///< Pad driver/sink 5mA
-	PAD_DRIVINGSINK_3MA     =    0x0100,    ///< Pad driver/sink 15mA
-	PAD_DRIVINGSINK_6MA     =    0x0200,    ///< Pad driver/sink 20mA
-	PAD_DRIVINGSINK_9MA     =    0x0400,    ///< Pad driver/sink 25mA
-	PAD_DRIVINGSINK_15MA    =    0x1000,    ///< Pad driver/sink 30mA
-	PAD_DRIVINGSINK_18MA    =    0x2000,    ///< Pad driver/sink 35mA
-	PAD_DRIVINGSINK_21MA    =    0x4000,    ///< Pad driver/sink 40mA
-	PAD_DRIVINGSINK_24MA    =    0x8000,    ///< Pad driver/sink 8mA
-	PAD_DRIVINGSINK_5MA     =    0xf001,    ///< not support
-	PAD_DRIVINGSINK_20MA    =    0xf002,    ///< not support
-	PAD_DRIVINGSINK_25MA    =    0xf003,    ///< not support
-	PAD_DRIVINGSINK_30MA    =    0xf004,    ///< not support
-	PAD_DRIVINGSINK_35MA    =    0xf005,    ///< not support
-	PAD_DRIVINGSINK_40MA    =    0xf006,    ///< not support
+	PAD_DRIVINGSINK_4MA     =    0x0001,     ///< Pad driver/sink 4mA
+	PAD_DRIVINGSINK_10MA    =    0x0202,     ///< Pad driver/sink 10mA
+	PAD_DRIVINGSINK_6MA     =    0x0010,     ///< Pad driver/sink 6mA
+	PAD_DRIVINGSINK_16MA    =    0x0020,     ///< Pad driver/sink 16mA
+	PAD_DRIVINGSINK_5MA     =    0x0100,     ///< Pad driver/sink 5mA
+	PAD_DRIVINGSINK_15MA    =    0x0400,     ///< Pad driver/sink 15mA
+	PAD_DRIVINGSINK_20MA    =    0x0800,     ///< Pad driver/sink 20mA
+	PAD_DRIVINGSINK_25MA    =    0x1000,     ///< Pad driver/sink 25mA
+	PAD_DRIVINGSINK_30MA    =    0x2000,     ///< Pad driver/sink 30mA
+	PAD_DRIVINGSINK_35MA    =    0x4000,     ///< Pad driver/sink 35mA
+	PAD_DRIVINGSINK_40MA    =    0x8000,     ///< Pad driver/sink 40mA
+	PAD_DRIVINGSINK_8MA     =    0x10000,    ///< Pad driver/sink 8mA
+	PAD_DRIVINGSINK_12MA    =    0x20000,    ///< Pad driver/sink 12mA
+	PAD_DRIVINGSINK_3MA     =    0x40000,    ///< Pad driver/sink 3mA
+	PAD_DRIVINGSINK_9MA     =    0x80000,    ///< Pad driver/sink 9mA
+	PAD_DRIVINGSINK_18MA    =    0x100000,   ///< Pad driver/sink 18mA
+	PAD_DRIVINGSINK_21MA    =    0x200000,   ///< Pad driver/sink 21mA
+	PAD_DRIVINGSINK_24MA    =    0x400000,   ///< Pad driver/sink 24mA
 
 	ENUM_DUMMY4WORD(PAD_DRIVINGSINK)
 } PAD_DRIVINGSINK;

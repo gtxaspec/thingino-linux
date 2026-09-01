@@ -26,6 +26,13 @@
 
 #include <asm/cputype.h>
 
+#if (defined(CONFIG_ARM_NVT_CPUFREQ) && (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)))
+#include <linux/cpufreq.h>
+#include <plat/top.h>
+static unsigned int cpu_clk_new = 0, cpu_init_clk = 0, prescaler = 0;
+static struct clk *gt_clk;
+#endif
+
 #define GT_COUNTER0	0x00
 #define GT_COUNTER1	0x04
 
@@ -98,6 +105,24 @@ static void gt_compare_set(unsigned long delta, int periodic)
 	u64 counter = gt_counter_read();
 	unsigned long ctrl;
 
+#if (defined(CONFIG_ARM_NVT_CPUFREQ) && (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)))
+	unsigned int scaler;
+
+	/* first time new cpu clk is 0 */
+	if (cpu_clk_new) {
+		scaler = cpu_clk_new / DIV_ROUND_CLOSEST(cpu_init_clk, prescaler);
+	} else {
+		scaler = prescaler;
+	}
+
+	//printk("cpu_init_clk = %d, cpu_clk_new = %d, prescaler = %d\n", cpu_init_clk, cpu_clk_new, prescaler);
+	//printk("delta = %d, cpu = %d, scaler = %d\n", (uint)delta, cpu_clk_new, scaler);
+
+	if ((scaler >= 256) || (scaler < 1)) {
+		printk("scaler data %d out of range\n", scaler);
+		return;
+	}
+#endif
 	counter += delta;
 	ctrl = GT_CONTROL_TIMER_ENABLE;
 	writel_relaxed(ctrl, gt_base + GT_CONTROL);
@@ -109,7 +134,11 @@ static void gt_compare_set(unsigned long delta, int periodic)
 		ctrl |= GT_CONTROL_AUTO_INC;
 	}
 
+#if (defined(CONFIG_ARM_NVT_CPUFREQ) && (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)))
+	ctrl |= GT_CONTROL_COMP_ENABLE | GT_CONTROL_IRQ_ENABLE | ((scaler - 1) << 8);
+#else
 	ctrl |= GT_CONTROL_COMP_ENABLE | GT_CONTROL_IRQ_ENABLE;
+#endif
 	writel_relaxed(ctrl, gt_base + GT_CONTROL);
 }
 
@@ -226,6 +255,59 @@ static u64 notrace gt_sched_clock_read(void)
 }
 #endif
 
+#if (defined(CONFIG_ARM_NVT_CPUFREQ) && (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)))
+/*
+ * Updates clockevent frequency when the cpu frequency changes.
+ * Called on the cpu that is changing frequency with interrupts disabled.
+ */
+static void gt_update_frequency(void *data)
+{
+	struct clock_event_device *clk = this_cpu_ptr(gt_evt);
+
+	//printk("clockevents_update_freq %d\n", gt_clk_rate);
+	clk->state_use_accessors = CLOCK_EVT_STATE_PERIODIC;
+	clockevents_update_freq(clk, cpu_clk_new);
+}
+
+static int gt_cpufreq_transition(struct notifier_block *nb,
+	unsigned long state, void *data)
+{
+	struct cpufreq_freqs *freqs = data;
+
+	/*
+	 * The gt clock events must be reprogrammed to account for the new
+	 * frequency.  The timer is local to a cpu, so cross-call to the
+	 * changing cpu.
+	 */
+	if (state == CPUFREQ_POSTCHANGE) {
+	    //printk("cpu %d, old clk %d, new clk %d\n", freqs->cpu, freqs->old, freqs->new);
+	    cpu_clk_new = freqs->new;
+	    if (!cpu_init_clk)
+	        cpu_init_clk = freqs->old;
+
+	    if(!freqs->cpu)
+		    smp_call_function_single(freqs->cpu, gt_update_frequency, NULL, 1);
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block gt_cpufreq_nb = {
+	.notifier_call = gt_cpufreq_transition,
+};
+
+static int gt_cpufreq_init(void)
+{
+	if (gt_evt && raw_cpu_ptr(gt_evt) && !IS_ERR(gt_clk))
+		return cpufreq_register_notifier(&gt_cpufreq_nb,
+			CPUFREQ_TRANSITION_NOTIFIER);
+
+	return 0;
+}
+core_initcall(gt_cpufreq_init);
+
+#endif
+
 static unsigned long gt_read_long(void)
 {
 	return readl_relaxed(gt_base + GT_COUNTER0);
@@ -237,7 +319,11 @@ static struct delay_timer gt_delay_timer = {
 
 static void __init gt_delay_timer_init(void)
 {
+#if (defined(CONFIG_ARM_NVT_CPUFREQ) && (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)))
+	gt_delay_timer.freq = gt_clk_rate / prescaler;
+#else
 	gt_delay_timer.freq = gt_clk_rate;
+#endif
 	register_current_timer_delay(&gt_delay_timer);
 }
 
@@ -249,10 +335,22 @@ static int __init gt_clocksource_init(void)
 	/* enables timer on all the cores */
 	writel(GT_CONTROL_TIMER_ENABLE, gt_base + GT_CONTROL);
 
+#if (defined(CONFIG_ARM_NVT_CPUFREQ) && (defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)))
+	if ((nvt_get_chip_id() == CHIP_NA51055) || (nvt_get_chip_id() == CHIP_NA51089))
+		prescaler = 80;
+	else
+		prescaler = 50;
+
+#ifdef CONFIG_CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+	sched_clock_register(gt_sched_clock_read, 64, gt_clk_rate / prescaler);
+#endif
+	return clocksource_register_hz(&gt_clocksource, gt_clk_rate / prescaler);
+#else
 #ifdef CONFIG_CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
 	sched_clock_register(gt_sched_clock_read, 64, gt_clk_rate);
 #endif
 	return clocksource_register_hz(&gt_clocksource, gt_clk_rate);
+#endif
 }
 
 static int __init global_timer_of_register(struct device_node *np)

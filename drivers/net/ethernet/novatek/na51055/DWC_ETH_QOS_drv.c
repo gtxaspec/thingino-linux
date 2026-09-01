@@ -5548,6 +5548,7 @@ static INT DWC_ETH_QOS_change_mtu(struct net_device *dev, INT new_mtu)
 {
 	struct DWC_ETH_QOS_prv_data *pdata = netdev_priv(dev);
 	int max_frame = (new_mtu + ETH_HLEN + ETH_FCS_LEN + VLAN_HLEN);
+	int fifo_size;
 
 	DBGPR("-->DWC_ETH_QOS_change_mtu: new_mtu:%d\n", new_mtu);
 
@@ -5589,6 +5590,19 @@ static INT DWC_ETH_QOS_change_mtu(struct net_device *dev, INT new_mtu)
 		    DWC_ETH_QOS_ETH_FRAME_LEN;
 
 	dev->mtu = new_mtu;
+
+	fifo_size = 128 * (1 << pdata->hw_feat.rx_fifo_size);
+
+	if (new_mtu > fifo_size) {
+		dev->features &= ~NETIF_F_IP_CSUM;
+		dev->features &= ~NETIF_F_IPV6_CSUM;
+		printk(KERN_ALERT "Disable TX COE\n");
+	} else {
+		dev->features |= NETIF_F_IP_CSUM;
+		dev->features |= NETIF_F_IPV6_CSUM;
+		printk(KERN_ALERT "Enable TX COE\n");
+	}
+
 
 	if (netif_running(dev))
 		DWC_ETH_QOS_start_dev(pdata);

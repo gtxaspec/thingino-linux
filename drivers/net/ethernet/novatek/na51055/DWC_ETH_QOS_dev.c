@@ -4377,7 +4377,7 @@ static INT configure_dma_channel(UINT qInx,
 	printk(KERN_ALERT "%s Rx Split header mode\n",
 		(pdata->rx_split_hdr ? "Enabled" : "Disabled"));
 
-	DMA_RCR0_RBSZ_UdfWr(DWC_ETH_QOS_ETH_FRAME_LEN);
+//	DMA_RCR0_RBSZ_UdfWr(DWC_ETH_QOS_ETH_FRAME_LEN);
 
 	/*
 	 * For PG don't start TX DMA now.

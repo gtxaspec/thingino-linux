@@ -23,7 +23,8 @@ static struct cpufreq_frequency_table freq_table[] = {
 struct nvt_cpufreq {
 	struct device *dev;
 	struct cpufreq_driver driver;
-	struct clk *cpu_clk;
+	struct clk *cpu_clk;        //PLL8
+	struct clk *cpu_clk_parent; //PLL8
 };
 
 static int nvt_target(struct cpufreq_policy *policy, unsigned int index)
@@ -31,35 +32,57 @@ static int nvt_target(struct cpufreq_policy *policy, unsigned int index)
 	struct nvt_cpufreq *cpufreq = cpufreq_get_driver_data();
 	unsigned long rate = freq_table[index].frequency;
 
-	if (nvt_get_chip_id() == CHIP_NA51084)
+	if (nvt_get_chip_id() == CHIP_NA51084) {
 		return clk_set_rate(cpufreq->cpu_clk, rate * 1000 / 8);
-	else
-		return clk_set_rate(cpufreq->cpu_clk, rate * 1000);
+	} else {
+		if (rate == 480000) {
+			if (clk_set_parent(cpufreq->cpu_clk_parent, clk_get(NULL, "fix480m"))) {
+				printk("set fixed 480MHz error\r\n");
+			} else {
+				if (__clk_is_enabled(cpufreq->cpu_clk)) {
+					clk_disable(cpufreq->cpu_clk);
+				}
+			}
+			return 0;
+		} else {
+			if (!__clk_is_enabled(cpufreq->cpu_clk)) {
+				clk_enable(cpufreq->cpu_clk);
+			}
+			if (clk_set_parent(cpufreq->cpu_clk_parent, clk_get(NULL, "pll8"))) {
+				printk("set pll8 error\r\n");
+			} //else {
+			//  printk("set pll8 success\r\n");
+			//}
+			return clk_set_rate(cpufreq->cpu_clk, rate * 1000);
+		}
+	}
 }
 
 static unsigned int nvt_cpufreq_get(unsigned int cpu)
 {
 	struct cpufreq_policy *policy = cpufreq_cpu_get_raw(cpu);
-
+	struct nvt_cpufreq *cpufreq = cpufreq_get_driver_data();
 	if (!policy || IS_ERR(policy->clk)) {
 		pr_err("%s: No %s associated to cpu: %d\n",
-		       __func__, policy ? "clk" : "policy", cpu);
+			   __func__, policy ? "clk" : "policy", cpu);
 		return 0;
 	}
 
-	if (nvt_get_chip_id() == CHIP_NA51084)
-		return (clk_get_rate(policy->clk)*8) / 1000;
-	else
-		return clk_get_rate(policy->clk) / 1000;
+	if (nvt_get_chip_id() == CHIP_NA51084) {
+		return (clk_get_rate(policy->clk) * 8) / 1000;
+	} else {
+		return clk_get_rate(clk_get_parent(cpufreq->cpu_clk_parent)) / 1000;
+	}
 }
 
 static int nvt_cpu_init(struct cpufreq_policy *policy)
 {
 	struct nvt_cpufreq *cpufreq = cpufreq_get_driver_data();
 	int ret;
-
-	if (!__clk_is_enabled(cpufreq->cpu_clk))
+	if (!__clk_is_enabled(cpufreq->cpu_clk)) {
 		clk_prepare_enable(cpufreq->cpu_clk);
+		clk_disable(cpufreq->cpu_clk);
+	}
 
 	ret = cpufreq_generic_init(policy, freq_table, 300 * 1000);
 	if (ret) {
@@ -89,23 +112,36 @@ static int __init nvt_cpufreq_init(void)
 	u32 cpu_freq_table[4] = {0};
 	int err, i;
 
-	if (!of_match_node(machines, of_root))
+	if (!of_match_node(machines, of_root)) {
 		return -ENODEV;
+	}
 
 	of_property_read_u32_array(cpu_dev->of_node, "clock-frequency", cpu_freq_table, 4);
 
 	if (cpu_freq_table[0]) {
-		for (i = 0; i < 4; i++)
+		for (i = 0; i < 4; i++) {
 			freq_table[i].frequency = cpu_freq_table[i] / 1000;
+			printk("[%d] freq[%d]\r\n", i, freq_table[i].frequency);
+		}
 	}
 
 	cpufreq = devm_kzalloc(cpu_dev, sizeof(*cpufreq), GFP_KERNEL);
-	if (!cpufreq)
+	if (!cpufreq) {
 		return -ENOMEM;
+	}
 
 	cpufreq->cpu_clk = clk_get(NULL, "pll8");
-	if (IS_ERR(cpu_clk))
+	if (IS_ERR(cpufreq->cpu_clk)) {
 		return -ENODEV;
+	}
+
+	if (nvt_get_chip_id() == CHIP_NA51089 || nvt_get_chip_id() == CHIP_NA51055) {
+		cpufreq->cpu_clk_parent = clk_get(NULL, "cpu_clk");
+		if (IS_ERR(cpufreq->cpu_clk_parent)) {
+			printk("cpu clk parent error\r\n");
+			return -ENODEV;
+		}
+	}
 
 	max_freq = clk_get_rate(cpu_clk);
 
@@ -122,8 +158,9 @@ static int __init nvt_cpufreq_init(void)
 	snprintf(cpufreq->driver.name, CPUFREQ_NAME_LEN, "novatek");
 
 	err = cpufreq_register_driver(&cpufreq->driver);
-	if (err)
+	if (err) {
 		goto put_pll;
+	}
 
 	return 0;
 

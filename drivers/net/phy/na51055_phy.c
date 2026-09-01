@@ -201,13 +201,25 @@ static int nvt_suspend(struct phy_device *phydev)
 
 static void nvt_link_change_notify(struct phy_device *phydev)
 {
+	int status, phy_link;
+	status = phy_read(phydev, MII_BMSR);
+	if (status < 0)
+		return status;
+
+	if ((status & BMSR_LSTATUS) == 0)
+		phy_link = 0;
+	else
+		phy_link = 1;
+
 	if (((na510xx_phy_state!=PHY_HALTED) && (phydev->state == PHY_HALTED)) ||
-		((na510xx_phy_state==PHY_CHANGELINK) && (phydev->state == PHY_NOLINK))) {
+		((phydev->state == PHY_CHANGELINK) && (!phy_link))) {
+		printk("remove\r\n");
 		bplug = 0;
 		eq_reset_enable();
 		msleep(50);
 		eq_reset_disable();
 	} else if ((bplug==0) && (phydev->state == PHY_RUNNING)) {
+		printk("plug\r\n");
 		phy_write(phydev, 0x1F, 0xC00);
 		bplug = 1;
 	}
@@ -241,5 +253,5 @@ static struct mdio_device_id __maybe_unused novatek_tbl[] = {
 MODULE_DEVICE_TABLE(mdio, novatek_tbl);
 
 MODULE_DESCRIPTION("Novatek Ethernet PHY Driver");
-MODULE_VERSION("1.00.003");
+MODULE_VERSION("1.00.004");
 MODULE_LICENSE("GPL");

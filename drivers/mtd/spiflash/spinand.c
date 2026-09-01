@@ -37,6 +37,8 @@
 #include <asm/div64.h>
 #include "../mtdcore.h"
 
+#define NAND_VERSION "1.04.232"
+
 static int enable_erase_cnt = 0;
 static u32 erase_count[4096] = {};
 static u32 total_block_cnt = 0;
@@ -351,10 +353,18 @@ static struct nand_flash_dev spinand_flash_ids[] = {
 	{"W25N01GV 1G 3.3V",
 		{ .id = {MFG_ID_WINBOND, 0xAA, 0x21} },
 		SZ_2K, SZ_128, SZ_128K, 0, 3, 64 },
-	// Winbond
+	// Winbond new 1G
+	{"W25N01KV 1G 3.3V",
+		{ .id = {MFG_ID_WINBOND, 0xAE, 0x21} },
+		SZ_2K, SZ_128, SZ_128K, 0, 3, 64 },
+	// Winbond new 2G
 	{"W25N02KV 2G 3.3V",
 		{ .id = {MFG_ID_WINBOND, 0xAA, 0x22} },
 		SZ_2K, SZ_256, SZ_128K, 0, 3, 64 },
+	// Winbond new 4G
+	{"W25N04KV 4G 3.3V",
+		{ .id = {MFG_ID_WINBOND, 0xAA, 0x23} },
+		SZ_2K, SZ_512, SZ_128K, 0, 3, 64 },
 	// ESMT
 	{"F250L512M 512M 3.3V",
 		{ .id = {MFG_ID_ESMT, 0x20} },
@@ -1559,5 +1569,5 @@ module_exit(spinand_exit);
 MODULE_DESCRIPTION("SPI NAND driver");
 MODULE_AUTHOR("Howard Chang");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.04.231");
+MODULE_VERSION("NAND_VERSION");
 

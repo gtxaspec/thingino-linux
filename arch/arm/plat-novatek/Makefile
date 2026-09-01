@@ -14,6 +14,14 @@ nvt-platform-$(CONFIG_NVT_IVOT_PLAT_NA51055)		:= plat-na51055
 
 PLATFORM_DIR   := $(nvt-platform-y)
 
+ifeq ($(CONFIG_NVT_IVOT_PLAT_NA51068), y)
+	nvt_otp_protect := na51068
+else ifeq ($(CONFIG_NVT_IVOT_PLAT_NA51089), y)
+	nvt_otp_protect := na51089
+else
+	nvt_otp_protect := na51055
+endif
+
 define create-platform-symlink
   MYKERNEL_PATH=$(shell cd $(srctree); pwd);											\
   yes | rm -f $$MYKERNEL_PATH/arch/arm/plat-novatek/include/plat;								\
@@ -27,6 +35,14 @@ define create-platform-symlink
   if [ -d $(NVT_HDAL_DIR) ]; then 												\
 	yes | rm -f $$MYKERNEL_PATH/drivers/soc/nvt/nvt_hdal/hdal;								\
 	ln -fsn $(NVT_HDAL_DIR) $$MYKERNEL_PATH/drivers/soc/nvt/nvt_hdal/hdal;							\
+  fi;																\
+  if [ "$(O)" != "" ]; then													\
+       mkdir -p $$MYKERNEL_PATH/$(O)/drivers/soc/nvt/otp/$(nvt_otp_protect);							\
+       cp -arfv $$MYKERNEL_PATH/drivers/soc/nvt/otp/$(nvt_otp_protect) $$MYKERNEL_PATH/$(O)/drivers/soc/nvt/otp/;		\
+  fi; \
+  if [ "$(KBUILD_OUTPUT)" != "" ]; then												\
+       mkdir -p $$MYKERNEL_PATH/$(KBUILD_OUTPUT)/drivers/soc/nvt/otp/$(nvt_otp_protect);					\
+       cp -arfv $$MYKERNEL_PATH/drivers/soc/nvt/otp/$(nvt_otp_protect) $$MYKERNEL_PATH/$(KBUILD_OUTPUT)/drivers/soc/nvt/otp/;	\
   fi;
 endef
 

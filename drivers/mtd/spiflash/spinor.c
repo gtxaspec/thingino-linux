@@ -37,6 +37,8 @@
 #include "../nvt_flash_spi/nvt_flash_spi_int.h"
 #include "ext_flash_table.h"
 
+#define NOR_VERSION "1.07.121"
+
 /* SMI clock rate */
 #define NVT_FLASH_MAX_CLOCK_FREQ	50000000 /* 50 MHz */
 
@@ -955,4 +957,4 @@ module_exit(spinor_exit);
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Howard Chang");
 MODULE_DESCRIPTION("MTD Flash driver for serial nor flash chips");
-MODULE_VERSION("1.07.120");
+MODULE_VERSION("NOR_VERSION");

@@ -209,6 +209,8 @@ typedef enum {
 	SECUREBOOT_4TH_KEY_SET_READ_LOCK,	///< Quary if 4th key read lock already or not
 	SECUREBOOT_5TH_KEY_SET_READ_LOCK,	///< Quary if 5th key read lock already or not
 
+	SECUREBOOT_WT,						///<
+
 	SECUREBOOT_STATUS_NUM,
 
 	SECUREBOOT_NEW_KEY_RULE,			///< NT98560's new key rule
@@ -232,7 +234,7 @@ typedef enum {
 #define OTP_JTAG_DISABLE_EN				(1 << 2)
 
 
-
+#define OTP_SEC_BOOT_WT_BIT				20
 #define OTP_1ST_KEY_PROGRAMMED_BIT		27
 #define OTP_2ND_KEY_PROGRAMMED_BIT		28
 #define OTP_3RD_KEY_PROGRAMMED_BIT		29
@@ -244,6 +246,7 @@ typedef enum {
 #define OTP_3RD_KEY_PROGRAMMED			(1 << OTP_3RD_KEY_PROGRAMMED_BIT)
 #define OTP_4TH_KEY_PROGRAMMED			(1 << OTP_4TH_KEY_PROGRAMMED_BIT)
 #define OTP_5TH_KEY_PROGRAMMED			(1 << OTP_5TH_KEY_PROGRAMMED_BIT)
+#define OTP_SEC_BOOT_WT					(1 << OTP_SEC_BOOT_WT_BIT)
 
 #define OTP_1ST_KEY_READ_LOCK_BIT		22
 #define OTP_2ND_KEY_READ_LOCK_BIT		23

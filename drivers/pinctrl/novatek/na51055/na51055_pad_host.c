@@ -23,10 +23,17 @@ static DEFINE_SPINLOCK(pad_lock);
 #define unl_cpu(lock, flags) spin_unlock_irqrestore(lock, flags)
 
 #define	PAD_DS_GPIO_BASE_MASK      0xFFFFF
-#define	PAD_DS_GROUP_10_MSK        0x0003
-#define	PAD_DS_GROUP_16_MSK        0x0030
-#define	PAD_DS_GROUP_40_MSK        0xFF00
-#define	PAD_DS_GROUP_COMBO_MSK     0xFFFFF
+#define	PAD_DS_GROUP_10_MSK        (PAD_DRIVINGSINK_10MA | PAD_DRIVINGSINK_4MA)
+#define	PAD_DS_GROUP_16_MSK        (PAD_DRIVINGSINK_16MA | PAD_DRIVINGSINK_6MA)
+#define	PAD_DS_GROUP_24_MSK        (PAD_DRIVINGSINK_24MA | PAD_DRIVINGSINK_21MA | \
+                                    PAD_DRIVINGSINK_18MA | PAD_DRIVINGSINK_15MA | \
+                                    PAD_DRIVINGSINK_12MA | PAD_DRIVINGSINK_9MA | \
+                                    PAD_DRIVINGSINK_6MA | PAD_DRIVINGSINK_3MA)
+#define	PAD_DS_GROUP_40_MSK        (PAD_DRIVINGSINK_40MA | PAD_DRIVINGSINK_35MA | \
+                                    PAD_DRIVINGSINK_30MA | PAD_DRIVINGSINK_25MA | \
+                                    PAD_DRIVINGSINK_20MA | PAD_DRIVINGSINK_15MA | \
+                                    PAD_DRIVINGSINK_10MA | PAD_DRIVINGSINK_5MA)
+#define	PAD_DS_GROUP_COMBO_MSK     0x7FFFFF
 
 /**
     Set a pin pull up/down/keeper.
@@ -151,11 +158,12 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 			} else if (driving & PAD_DRIVINGSINK_40MA) {
 				driving = 7;
 			} else {
-				pr_err("No Valid DS value.(0x%X)\r\n", name);
+				pr_err("No Valid DS value [name(0x%08x) driving(0x%x)], PAD_DS_GROUP_40(51055)\r\n", name, driving);
 				return E_PAR;
 			}
-		}
-		else if (name & PAD_DS_GROUP_16) {
+
+			pr_debug("[name(0x%08x) driving(0x%x) dw_ofs(0x%x) bit_ofs(%02d) bit_mask(0x%x)], PAD_DS_GROUP_40(51055)\r\n", name, driving, dw_offset, bit_offset, bit_mask);
+		} else if (name & PAD_DS_GROUP_16) {
 			/* 16MA GROUP */
 			dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
 			bit_offset = name & 0x1F;
@@ -167,9 +175,11 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 			} else if (driving & PAD_DRIVINGSINK_16MA) {
 				driving = 1;
 			} else {
-				pr_err("No Valid DS value.(0x%X)\r\n", name);
+				pr_err("No Valid DS value [name(0x%08x) driving(0x%x)], PAD_DS_GROUP_16(51055)\r\n", name, driving);
 				return E_PAR;
 			}
+
+			pr_debug("[name(0x%08x) driving(0x%x) dw_ofs(0x%x) bit_ofs(%02d) bit_mask(0x%x)], PAD_DS_GROUP_16(51055)\r\n", name, driving, dw_offset, bit_offset, bit_mask);
 		} else {
 			/* 10MA GROUP */
 			if (name >= PAD_DS_HSIGPIO0) {
@@ -186,9 +196,11 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 			} else if (driving & PAD_DRIVINGSINK_10MA) {
 				driving = 1;
 			} else {
-				pr_err("No Valid DS value.(0x%X)\r\n",name);
+				pr_err("No Valid DS value [name(0x%08x) driving(0x%x)], ELSE(51055)\r\n", name, driving);
 				return E_PAR;
 			}
+
+			pr_debug("[name(0x%08x) driving(0x%x) dw_ofs(0x%x) bit_ofs(%02d) bit_mask(0x%x)], ELSE(51055)\r\n", name, driving, dw_offset, bit_offset, bit_mask);
 		}
 
 		loc_cpu(&pad_lock, flags);
@@ -198,34 +210,58 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 		PAD_SETREG(PAD_DS_REG_OFS + dw_offset, reg_data);
 		unl_cpu(&pad_lock, flags);
 	} else {
-		if(name & PAD_DS_GROUP_40) {
-			/* 40MA GROUP */
+		if (name & PAD_DS_GROUP_40) {
+			/* 24MA GROUP or 40MA GROUP */
 			dw_offset  = (PAD_DS10_REG_OFS - PAD_DS_REG_OFS);
 			dw_offset += (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
 			bit_offset = name & 0x1F;
 			bit_mask   = 0x07;
-			driving &= PAD_DS_GROUP_40_MSK;
+			//driving &= PAD_DS_GROUP_24_MSK;
 
-			if (driving & PAD_DRIVINGSINK_5MA) {
+			if ((driving & PAD_DRIVINGSINK_3MA) || (driving & PAD_DRIVINGSINK_5MA)) {
 				driving = 0;
-			} else if (driving & PAD_DRIVINGSINK_10MA) {
+			} else if ((driving & PAD_DRIVINGSINK_6MA) || (driving & PAD_DRIVINGSINK_10MA)) {
 				driving = 1;
-			} else if (driving & PAD_DRIVINGSINK_15MA) {
+			} else if ((driving & PAD_DRIVINGSINK_9MA) || (driving & PAD_DRIVINGSINK_15MA)) {
 				driving = 2;
-			} else if (driving & PAD_DRIVINGSINK_20MA) {
+			} else if ((driving & PAD_DRIVINGSINK_12MA) || (driving & PAD_DRIVINGSINK_20MA)) {
 				driving = 3;
-			} else if (driving & PAD_DRIVINGSINK_25MA) {
+			} else if ((driving & PAD_DRIVINGSINK_15MA) || (driving & PAD_DRIVINGSINK_25MA)) {
 				driving = 4;
-			} else if (driving & PAD_DRIVINGSINK_30MA) {
+			} else if ((driving & PAD_DRIVINGSINK_18MA) || (driving & PAD_DRIVINGSINK_30MA)) {
 				driving = 5;
-			} else if (driving & PAD_DRIVINGSINK_35MA) {
+			} else if ((driving & PAD_DRIVINGSINK_21MA) || (driving & PAD_DRIVINGSINK_35MA)) {
 				driving = 6;
-			} else if (driving & PAD_DRIVINGSINK_40MA) {
+			} else if ((driving & PAD_DRIVINGSINK_24MA) || (driving & PAD_DRIVINGSINK_40MA)) {
 				driving = 7;
 			} else {
-				pr_err("No Valid DS value.(0x%X)\r\n", name);
+				pr_err("No Valid DS value [name(0x%08x) driving(0x%x)], PAD_DS_GROUP_40\r\n", name, driving);
 				return E_PAR;
 			}
+
+			pr_debug("[name(0x%08x) driving(0x%x) dw_ofs(0x%x) bit_ofs(%02d) bit_mask(0x%x)], PAD_DS_GROUP_40\r\n", name, driving, dw_offset, bit_offset, bit_mask);
+		} else if (((name >= PAD_DS_CGPIO18) && (name <= PAD_DS_CGPIO22)) ||
+		           ((name >= PAD_DS_CGPIO0) && (name <= PAD_DS_CGPIO7)) ||
+		           (name == PAD_DS_CGPIO8) ||
+		           (name == PAD_DS_CGPIO9)) {
+			dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
+			bit_offset = name & 0x1F;
+			bit_mask   = 0x3;
+
+			if ((driving == PAD_DRIVINGSINK_4MA) || (driving == PAD_DRIVINGSINK_6MA)) {
+				driving = 0;
+			} else if ((driving == PAD_DRIVINGSINK_8MA) || (driving == PAD_DRIVINGSINK_10MA)) {
+				driving = 1;
+			} else if (driving == PAD_DRIVINGSINK_12MA) {
+				driving = 2;
+			} else if (driving == PAD_DRIVINGSINK_16MA) {
+				driving = 3;
+			} else {
+				pr_err("No Valid DS value [name(0x%08x) driving(0x%x)], CGPIO0-9 & CGPIO18-22\r\n", name, driving);
+				return E_PAR;
+			}
+
+			pr_debug("[name(0x%08x) driving(0x%x) dw_ofs(0x%x) bit_ofs(%02d) bit_mask(0x%x)], CGPIO0-9 & CGPIO18-22\r\n", name, driving, dw_offset, bit_offset, bit_mask);
 		} else {
 			if ((name >= PAD_DS_HSIGPIO0) && !(name & PAD_DS_GROUP_16)) {
 				dw_offset  = (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2) + 0x28;
@@ -247,9 +283,11 @@ ER pad_set_drivingsink(PAD_DS name, PAD_DRIVINGSINK driving)
 			} else if (driving == PAD_DRIVINGSINK_16MA) {
 				driving = 3;
 			} else {
-				pr_err("No Valid DS value.(0x%X)\r\n",name);
+				pr_err("No Valid DS value [name(0x%08x) driving(0x%x)], ELSE\r\n", name, driving);
 				return E_PAR;
 			}
+
+			pr_debug("[name(0x%08x) driving(0x%x) dw_ofs(0x%x) bit_ofs(%02d) bit_mask(0x%x)], ELSE\r\n", name, driving, dw_offset, bit_offset, bit_mask);
 		}
 
 		loc_cpu(&pad_lock, flags);
@@ -353,7 +391,7 @@ ER pad_get_drivingsink(PAD_DS name, PAD_DRIVINGSINK *driving)
 		}
 	} else {
 		if (name & PAD_DS_GROUP_40) {
-			/* 40MA GROUP */
+			/* 24MA GROUP */
 			dw_offset  = (PAD_DS10_REG_OFS - PAD_DS_REG_OFS);
 			dw_offset += (((name & PAD_DS_GPIO_BASE_MASK)>>5)<<2);
 			bit_offset = name & 0x1F;
@@ -363,21 +401,21 @@ ER pad_get_drivingsink(PAD_DS name, PAD_DRIVINGSINK *driving)
 			*driving = (reg_data >> bit_offset) & bit_mask;
 
 			if (*driving == 0) {
-				*driving = PAD_DRIVINGSINK_5MA;
+				*driving = PAD_DRIVINGSINK_3MA;
 			} else if (*driving == 1) {
-				*driving = PAD_DRIVINGSINK_10MA;
+				*driving = PAD_DRIVINGSINK_6MA;
 			} else if (*driving == 2) {
-				*driving = PAD_DRIVINGSINK_15MA;
+				*driving = PAD_DRIVINGSINK_9MA;
 			} else if (*driving == 3) {
-				*driving = PAD_DRIVINGSINK_20MA;
+				*driving = PAD_DRIVINGSINK_12MA;
 			} else if (*driving == 4) {
-				*driving = PAD_DRIVINGSINK_25MA;
+				*driving = PAD_DRIVINGSINK_15MA;
 			} else if (*driving == 5) {
-				*driving = PAD_DRIVINGSINK_30MA;
+				*driving = PAD_DRIVINGSINK_18MA;
 			} else if (*driving == 6) {
-				*driving = PAD_DRIVINGSINK_35MA;
+				*driving = PAD_DRIVINGSINK_21MA;
 			} else {
-				*driving = PAD_DRIVINGSINK_40MA;
+				*driving = PAD_DRIVINGSINK_24MA;
 			}
 		} else {
 			/* 10MA GROUP */

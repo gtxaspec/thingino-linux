@@ -10,8 +10,9 @@
 #include "otp_dbg.h"
 #include "otp_main.h"
 //#include "comm/timer.h"
-//#include "kwrap/flag.h"
+#include "otp_platform.h"
 //#include "kwrap/task.h"
+#include <plat/hardware.h>
 #include <plat/efuse_protected.h>
 #include <mach/fmem.h>
 #include <linux/scatterlist.h>
@@ -497,6 +498,148 @@ ERR_OUT:
 	return size;
 }
 
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+static void __iomem *IOADDR_TIMER_REG_BASE;
+#define CALCULATE_CPU_FREQ_UNIT_US      5000
+#define      timer_gettick()            readl(IOADDR_TIMER_REG_BASE + 0x108)
+
+#define read_PMCR() \
+	({ \
+		unsigned long cfg; \
+		__asm__ __volatile__(\
+				"mrc p15, 0, %0, c9, c12, 0\n\t" \
+				: "=r"(cfg) \
+				);\
+		cfg;\
+	})
+
+#define write_PMCR(m)\
+	({\
+		__asm__ __volatile__("mcr p15, 0, %0, c9, c12, 0" : : "r" (m));\
+	})
+
+static BOOL cpu_count_open = FALSE;
+
+static void ca53_cycle_count_start(BOOL do_reset, BOOL enable_divider)
+{
+	/* in general enable all counters (including cycle counter)*/
+	int value = 1;
+
+	if (cpu_count_open == TRUE) {
+		pr_err("cpu count start already\r\n");
+		return;
+	}
+
+	cpu_count_open = TRUE;
+
+	if (do_reset) {
+		value |= 2;     /* reset all counters to zero.*/
+		value |= 4;     /* reset cycle counter to zero.*/
+	}
+
+	if (enable_divider) {
+		value |= 8;    /* enable "by 64" divider for CCNT.*/
+	}
+
+	value |= 16;
+
+	/* program the performance-counter control-register: */
+	asm volatile("MCR p15, 0, %0, c9, c12, 0\t\n" :: "r"(value));
+
+	/* enable all counters: */
+	asm volatile("MCR p15, 0, %0, c9, c12, 1\t\n" :: "r"(0x8000000f));
+
+	/* clear overflows: */
+	asm volatile("MCR p15, 0, %0, c9, c12, 3\t\n" :: "r"(0x8000000f));
+	return;
+}
+
+/**
+	CA53 get CPU clock cycle count
+
+	get CPU clock cycle count
+
+	@param[out] type
+	@return success or not
+		- @b UINT64:   clock cycle of CPU
+*/
+static u32 ca53_get_cycle_count(void)
+{
+	unsigned int value;
+	__asm__ __volatile__("mrc p15, 0, %0, c9, c13, 0\n\t"
+						: "=r"(value)
+						);
+	return value;
+}
+
+static void ca53_cycle_count_stop(void)
+{
+	u32 pmcr_reg;
+
+	if (cpu_count_open == FALSE) {
+		pr_err("cpu count not start yet\r\n");
+		return;
+	}
+
+	cpu_count_open = FALSE;
+	pmcr_reg = read_PMCR();
+	pmcr_reg &= ~(0x1 << 0); /*E*/
+	pmcr_reg &= ~(0x1 << 5); /*DP increase each clock cycle*/
+
+	write_PMCR(pmcr_reg);
+	return;
+}
+
+//static BOOL cpu_count_open = FALSE;
+void timer2_delay(u32 us)
+{
+	u32 start, end;
+	start = timer_gettick();
+	/*check timer count to target level*/
+	while (1) {
+		end = timer_gettick();
+		if ((end - start) > us) {
+			break;
+		}
+	}
+}
+
+static int do_nvt_cpu_get_freq(void)
+{
+	u32 time_1, time_2, temp, time_interval;
+	u32 freq;
+	unsigned long spin_flags;
+	if (!IOADDR_TIMER_REG_BASE) {
+		IOADDR_TIMER_REG_BASE = ioremap_nocache(NVT_TIMER_BASE_PHYS, 0x200);
+	}
+	spin_flags = otp_platform_spin_lock();
+	ca53_cycle_count_start(TRUE, FALSE);
+
+	time_1 = ca53_get_cycle_count();
+	timer2_delay(CALCULATE_CPU_FREQ_UNIT_US);
+	time_2 = ca53_get_cycle_count();
+	if (time_2 > time_1) {
+		time_interval = (time_2 - time_1);
+	} else {
+		temp = 0xFFFFFFFF - time_1;
+		time_interval = temp + time_2;
+	}
+	freq = (time_interval) / (CALCULATE_CPU_FREQ_UNIT_US);
+	ca53_cycle_count_stop();
+
+
+	otp_platform_spin_unlock(spin_flags);
+	iounmap((volatile void __iomem *)IOADDR_TIMER_REG_BASE);
+	IOADDR_TIMER_REG_BASE = NULL;
+#if defined (CONFIG_NVT_IVOT_PLAT_NA51055)
+	pr_info("CHIP[NA51055] => CPU Freq %d MHz\n", freq);
+#elif defined (CONFIG_NVT_IVOT_PLAT_NA51089)
+	pr_info("CHIP[NA51089] => CPU Freq %d MHz\n", freq);
+#endif
+	return 0;
+}
+#endif
+
 static struct file_operations proc_otp_fops = {
 	.owner  = THIS_MODULE,
 	.open   = nvt_otp_proc_help_open,
@@ -514,6 +657,9 @@ static int nvt_avl_proc_show(struct seq_file *sfile, void *v)
 	seq_printf(sfile, "[command]    =>\n");
 	seq_printf(sfile, "             => showavl (show available list)\n");
 	seq_printf(sfile, "             => version (knlPkg.a version)\n");
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+	seq_printf(sfile, "             => cpufreq\n");
+#endif
 	return 0;
 }
 
@@ -565,7 +711,12 @@ static ssize_t nvt_avl_proc_cmd_write(struct file *file, const char __user *buf,
 		return size;
 	} else if(!strcmp(argv[0], "version")) {
 		pr_info("knlpkg.a 1.00.007\r\n");
+	} else if (!strcmp(argv[0], "cpufreq")) {
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055) || defined(CONFIG_NVT_IVOT_PLAT_NA51089)
+		do_nvt_cpu_get_freq();
+#endif
 	}
+
 ERR_OUT:
 
 	return size;

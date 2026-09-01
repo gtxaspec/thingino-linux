@@ -1087,7 +1087,18 @@ static void qh_link_async (struct ehci_hcd *ehci, struct ehci_qh *qh)
 	qh->xacterrs = 0;
 	qh->unlink_reason = 0;
 	/* qtd completions reported later by interrupt */
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	if (test_bit(1, &(ehci_to_hcd(ehci)->adjust_async_ladr)) && (qh->ps.udev->parent->devpath[0] == '0')) {
+		//printk("reg is 0x%x, 0x%x, 0x%x", ehci_readl(ehci, &ehci->regs->async_next), ehci_readl(ehci, &ehci->regs->command), ehci_readl(ehci, &ehci->regs->port_status[0]));
+		if ((ehci_readl(ehci, &ehci->regs->async_next) & 0xFFF) != 0) {
+			printk("re-assign QH after connect\n");
 
+			ehci_writel(ehci, (ehci_readl(ehci, &ehci->regs->async_next) & ~(0xFFF)), &ehci->regs->async_next);
+			//printk("reg is 0x%x, 0x%x, 0x%x", ehci_readl(ehci, &ehci->regs->async_next), ehci_readl(ehci, &ehci->regs->command), ehci_readl(ehci, &ehci->regs->port_status[0]));
+		}
+		clear_bit(1, &(ehci_to_hcd(ehci)->adjust_async_ladr));
+	}
+#endif
 	enable_async(ehci);
 }
 

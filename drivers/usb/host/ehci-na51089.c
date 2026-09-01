@@ -10,6 +10,7 @@
 //#include <mach/hardware.h>
 #include <linux/of_address.h>
 #include <plat/efuse_protected.h>
+#include <plat/nvt-sramctl.h>
 #include <scsi/scsi_host.h>
 #include <linux/proc_fs.h>
 
@@ -68,8 +69,8 @@ static void nvtim_init_usbhc(struct platform_device *dev)
 
 	usbbase = (u32)ehci->caps;
 
-#if 1
 	printk("nvtim_init_usbhc\n");
+#if 0
 	{
 		struct clk *source_clk;
 
@@ -282,6 +283,23 @@ static int nvtim_usb_ehci_probe(const struct hc_driver *driver,
 		retval = -ENOMEM;
 		goto err_register;
 	}
+
+#if 1
+	printk("init usb20 clk\n");
+	{
+		struct clk *source_clk;
+
+		printk("usb20 assert reset\n");
+		source_clk = clk_get(&dev->dev, "f0600000.usb20");
+		if (IS_ERR(source_clk)) {
+			printk("faile to get clock f0600000.usb20\n");
+		} else {
+			/* toggle reset */
+			clk_prepare(source_clk);
+			clk_put(source_clk);
+		}
+	}
+#endif
 
 	/* This part is used in debug usage for using real usb addr. */
 	/* hcd->regs =(void __iomem*) hcd->rsrc_start;
@@ -626,6 +644,8 @@ static int nvtim_ehci_hcd_drv_probe(struct platform_device *pdev)
 	if (usb_disabled())
 		return -ENODEV;
 
+	nvt_disable_sram_shutdown(USB_SD);
+
 	nvt_ehci_proc_init();
 
 	ret = nvtim_usb_ehci_probe(&nvtivot_ehci_hc_driver, &hcd, pdev);
@@ -640,6 +660,8 @@ static int nvtim_ehci_hcd_drv_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 
 	nvt_ehci_proc_exit();
+
+	nvt_enable_sram_shutdown(USB_SD);
 
 	return 0;
 }
@@ -775,4 +797,4 @@ static struct platform_driver ehci_hcd_na51089_driver = {
 	}
 };
 
-MODULE_VERSION("1.00.004");
+MODULE_VERSION("1.00.007");
