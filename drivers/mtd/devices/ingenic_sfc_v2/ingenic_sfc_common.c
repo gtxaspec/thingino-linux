@@ -672,7 +672,7 @@ static int32_t sfc_start_transfer(struct sfc *sfc)
 		wdt_en = inl(WDT_IOBASE + 0x04) & 0x1;
 		if(wdt_en)
 		{
-			printk("line:%d  wait flash busy(Avoid flash data damage)\n",__LINE__);
+			// printk("line:%d  wait flash busy(Avoid flash data damage)\n",__LINE__);
 			outl(0, (WDT_IOBASE + 0x08));
 		}
 		err = wait_for_completion_timeout(&sfc->done, msecs_to_jiffies(SFC_TRANSFER_TIMEOUT_WDT));
