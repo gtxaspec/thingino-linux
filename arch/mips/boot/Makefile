@@ -117,6 +117,10 @@ $(obj)/uImage.jzlzma: $(obj)/vmlinux.bin.jzlzma FORCE
 
 targets += uImage
 #$(obj)/uImage: $(obj)/uImage.lzma  $(obj)/uImage.lzo FORCE
-$(obj)/uImage: $(obj)/uImage.lzma  $(obj)/uImage.lzo $(obj)/uImage.jzlzma FORCE $(obj)/uImage.zrt
+# uImage is a symlink to the first prerequisite, so only uImage.lzma is ever
+# shipped. Building uImage.lzo, uImage.zrt and uImage.jzlzma as well just
+# discards the result, and jzlzma additionally needs the x86-64-only helpers
+# under scripts/ingenic_hardlzma/, which do not run on non-x86 build hosts.
+$(obj)/uImage: $(obj)/uImage.lzma FORCE
 	@ln -sf $(notdir $<) $@
 	@echo '  Image $@ is ready'
