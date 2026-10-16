@@ -321,7 +321,10 @@ static inline void receive_chars(unsigned long data)
 ignore_char:
 		status = serial_in(up, UART_LSR);
 	}
+	/* A low-latency push can get back to start_tx, which takes the lock */
+	spin_unlock(&up->port.lock);
 	tty_flip_buffer_push(tty->port);
+	spin_lock(&up->port.lock);
 }
 /* transmit one char*/
 static void transmit_chars(struct uart_ingenic_port *up)
@@ -387,16 +390,26 @@ static inline irqreturn_t serial_ingenic_irq(int irq, void *dev_id)
 {
 	struct uart_ingenic_port *up = dev_id;
 	unsigned int iir, lsr;
+	unsigned long flags;
+
+	/*
+	 * The port lock keeps the IER shadow consistent: without it, stop_tx
+	 * here can undo start_tx on another CPU and TX stops for good.
+	 */
+	spin_lock_irqsave(&up->port.lock, flags);
 	iir = serial_in(up, UART_IIR);
 	lsr = serial_in(up, UART_LSR);
-	if (iir & UART_IIR_NO_INT)
+	if (iir & UART_IIR_NO_INT) {
+		spin_unlock_irqrestore(&up->port.lock, flags);
 		return IRQ_NONE;
+	}
 
 	if (lsr & UART_LSR_DR)
 		receive_chars((unsigned long)up);
 	check_modem_status(up);
 	if (lsr & UART_LSR_THRE)
 		transmit_chars(up);
+	spin_unlock_irqrestore(&up->port.lock, flags);
 	return IRQ_HANDLED;
 }
 
@@ -910,12 +923,24 @@ static void serial_ingenic_console_putchar(struct uart_port *port, int ch)
 static void serial_ingenic_console_write(struct console *co, const char *s, unsigned int count)
 {
 	struct uart_ingenic_port *up = serial_ingenic_ports[co->index];
+	unsigned long flags;
 	unsigned int ier;
+	int locked = 1;
+
+	/*
+	 * A SysRq is handled, and an oops may happen, with the port lock held
+	 * by the interrupt handler
+	 */
+	if (up->port.sysrq)
+		locked = 0;
+	else if (oops_in_progress)
+		locked = spin_trylock_irqsave(&up->port.lock, flags);
+	else
+		spin_lock_irqsave(&up->port.lock, flags);
 
 	/*
 	 *	First save the IER then disable the interrupts
 	 */
-	spin_lock(&up->port.lock);
 	ier = up->ier;
 	up->ier &= ~UART_IER_THRI;
 	serial_out(up, UART_IER, up->ier);
@@ -929,7 +954,8 @@ static void serial_ingenic_console_write(struct console *co, const char *s, unsi
 	wait_for_xmitr(up);
 	up->ier = ier;
 	serial_out(up, UART_IER, ier);
-	spin_unlock(&up->port.lock);
+	if (locked)
+		spin_unlock_irqrestore(&up->port.lock, flags);
 }
 
 static int __init serial_ingenic_console_setup(struct console *co, char *options)
