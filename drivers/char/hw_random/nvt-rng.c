@@ -122,6 +122,8 @@ static int nvt_rng_probe(struct platform_device *pdev)
 	rng->rng.init = nvt_rng_init;
 	rng->rng.cleanup = nvt_rng_cleanup;
 	rng->rng.read = nvt_rng_read;
+	/* without a quality the core never feeds the input pool, and getrandom() blocks for minutes at boot */
+	rng->rng.quality = 700;
 
 	ret = devm_hwrng_register(&pdev->dev, &rng->rng);
 	if (ret) {
