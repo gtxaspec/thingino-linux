@@ -85,9 +85,13 @@ static struct notifier_block nvt_reboot_notifier = {
 };
 */
 
+/* With no RTOS on core 0 to cut power, have the RTC drop PWR_EN */
 static void nvt_power_off_done(void)
 {
 	pr_info(" Power off \n");
+#ifdef CONFIG_RTC_DRV_NA51055
+	nvt_rtc_power_control(0);
+#endif
 }
 
 static int __init nvt_poweroff_setup(void)
