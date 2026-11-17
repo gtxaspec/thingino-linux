@@ -1056,11 +1056,8 @@ define filechk_kernel.release
 endef
 
 define filechk_nvtversion.h
-	if [ "$(SHELL)" == "/bin/dash" ]; then \
-		echo "#define NVT_UTS_RELEASE \t\""$(KERNELVERSION)_$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion --show-nvtver)"\""; \
-	else \
-		echo -e "#define NVT_UTS_RELEASE \t\""$(KERNELVERSION)_$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion --show-nvtver)"\""; \
-	fi
+	printf '#define NVT_UTS_RELEASE \t"%s_%s"\n' "$(KERNELVERSION)" \
+		"$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion --show-nvtver)"
 endef
 
 # Store (new) KERNELRELEASE string in include/config/kernel.release
