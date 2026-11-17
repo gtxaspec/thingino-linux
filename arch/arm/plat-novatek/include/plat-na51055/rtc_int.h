@@ -40,4 +40,5 @@
 #define RTC_INT_OSC_ANALOG_CFG      RTC_INT_OSD_ANALOG_ENHANCE
 
 void nvt_rtc_power_control(int reboot_sec);
+void nvt_rtc_power_off_atomic(void);
 #endif

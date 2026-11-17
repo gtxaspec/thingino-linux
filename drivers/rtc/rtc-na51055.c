@@ -260,6 +260,38 @@ void rtc_trigger_cset(void)
 	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
 }
 
+/*
+ * Power off from pm_power_off: interrupts are off and jiffies stand still, so
+ * nvt_rtc_power_control() would wait forever for the cset interrupt. Poll the
+ * RTC idle instead, then drop PWR_EN the same way.
+ */
+void nvt_rtc_power_off_atomic(void)
+{
+	union RTC_PWBC_REG pwbc_reg;
+	union RTC_CTRL_REG ctrl_reg;
+	int i;
+
+	for (i = 0; i < 1000; i++) {
+		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+		if (!ctrl_reg.bit.cset && !pwbc_reg.bit.pwralarm_en &&
+		    !pwbc_reg.bit.pwralarm_dis)
+			break;
+		udelay(1000);
+	}
+
+	pwbc_reg.reg = 0x0;
+	pwbc_reg.bit.reset_sdt_timer = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+
+	pwbc_reg.reg = 0x0;
+	pwbc_reg.bit.pwr_off = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+
+	mdelay(1000);
+	pr_emerg("RTC power off did not take: check the 32K crystal or pad PWR_EN\n");
+}
+
 void rtc_wait_pwr_alarm_done(void)
 {
 	ulong timeout;

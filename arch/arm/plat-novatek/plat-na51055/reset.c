@@ -90,7 +90,7 @@ static void nvt_power_off_done(void)
 {
 	pr_info(" Power off \n");
 #ifdef CONFIG_RTC_DRV_NA51055
-	nvt_rtc_power_control(0);
+	nvt_rtc_power_off_atomic();
 #endif
 }
 
