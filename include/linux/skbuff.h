@@ -779,7 +779,7 @@ struct sk_buff {
 	__u8			csum_level:2;
 	__u8			csum_not_inet:1;
 	__u8			dst_pending_confirm:1;
-#ifdef CONFIG_IPV6_NDISC_NODETYPE
+#if defined(CONFIG_IPV6_NDISC_NODETYPE) && !defined(__GENKSYMS__)
 	__u8			ndisc_nodetype:2;
 #endif
 	__u8			ipvs_property:1;

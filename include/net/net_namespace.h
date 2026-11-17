@@ -107,7 +107,8 @@ struct net {
 	struct netns_packet	packet;
 	struct netns_unix	unx;
 	struct netns_ipv4	ipv4;
-#if IS_ENABLED(CONFIG_IPV6)
+/* hidden from genksyms: keeps the CRCs the vendor HDAL modules were built against */
+#if IS_ENABLED(CONFIG_IPV6) && !defined(__GENKSYMS__)
 	struct netns_ipv6	ipv6;
 #endif
 #if IS_ENABLED(CONFIG_IEEE802154_6LOWPAN)
@@ -147,7 +148,7 @@ struct net {
 	struct net_generic __rcu	*gen;
 
 	/* Note : following structs are cache line aligned */
-#ifdef CONFIG_XFRM
+#if defined(CONFIG_XFRM) && !defined(__GENKSYMS__)
 	struct netns_xfrm	xfrm;
 #endif
 #if IS_ENABLED(CONFIG_IP_VS)
