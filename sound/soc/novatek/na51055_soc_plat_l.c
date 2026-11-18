@@ -147,6 +147,17 @@ void nvt_set_sample_rate (UINT32 samplerate)
 
 
 
+#include <linux/of_irq.h>
+/* The DAI irq is a GIC SPI mapped at boot; take it from the dt node. */
+static unsigned int nvt_dai_irq(void)
+{
+	struct device_node *np = of_find_compatible_node(NULL, NULL, "nvt,nvt_dai");
+	unsigned int irq = np ? irq_of_parse_and_map(np, 0) : 0;
+
+	of_node_put(np);
+	return irq ? irq : IOIRQ_DAI;
+}
+
 static irqreturn_t dma_irq_handler(int irq, void *arg)
 {
 	T_DAI_INTSTATUS_REG     reg_status;
@@ -784,7 +795,7 @@ static int nvt_audio_probe(struct platform_device *pdev)
 	//}
 	//dev_err(&pdev->dev, "IORESOURCE_IRQ FAILED %d\n",res->start);
 
-	status = devm_request_irq(&pdev->dev, IOIRQ_DAI, dma_irq_handler,
+	status = devm_request_irq(&pdev->dev, nvt_dai_irq(), dma_irq_handler,
 					IRQF_SHARED | IRQF_TRIGGER_HIGH, "DAI_IRQ", &pdev->dev);
 	if (status) {
 		dev_err(&pdev->dev, "DAI IRQ request failed\n");
