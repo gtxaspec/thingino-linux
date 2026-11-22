@@ -72,6 +72,10 @@ static uint nvt_adc_plusdiv = 0;
 module_param(nvt_adc_plusdiv, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(nvt_adc_plusdiv, "adc sample clock fine tune plus div");
 
+static int crit_temp = 115000;
+module_param(crit_temp, int, S_IRUGO);
+MODULE_PARM_DESC(crit_temp, "critical trip, millidegrees C (orderly poweroff); <= 0 disables");
+
 struct nvt_adc_state {
 	u32 sample_rate;
 	struct completion data_complete;
@@ -611,28 +615,53 @@ static int thermal_get_temp(struct thermal_zone_device *thermal, int *temp)
 	union ADC_CTRL_REG ctrl_reg;
 	signed long temp_value;
 
+	signed long v[3];
+	int i, t;
+
+	/* The first conversions after enabling read as garbage (~349 C):
+	 * report nothing yet. -EAGAIN keeps the core's last value, so a
+	 * bad sample can never reach the critical trip. */
 	ctrl_reg.reg = adc_getreg(adc, ADC_CTRL_REG_OFS);
 	if (!ctrl_reg.bit.adc_en) {
 		ctrl_reg.bit.adc_en = 1;
 		adc_setreg(adc, ADC_CTRL_REG_OFS, ctrl_reg.reg);
+		return -EAGAIN;
 	}
 
-	thermal_reg.reg = adc_getreg(adc, THERMAL_SENSOR_CONFIGURE_REG_OFS);
-	temp_value = thermal_reg.bit.ain_avg_out;
-
-	if (nvt_get_chip_id() == CHIP_NA51055) {
-		*temp = (temp_value - adc->trim_value)*13;
-		*temp = *temp/10 + 30;
-	} else {
-		*temp = (temp_value - adc->trim_value)*1319;
-		*temp = *temp/1000 + 30;
+	for (i = 0; i < 3; i++) {
+		thermal_reg.reg = adc_getreg(adc, THERMAL_SENSOR_CONFIGURE_REG_OFS);
+		v[i] = thermal_reg.bit.ain_avg_out;
 	}
+	temp_value = max(min(v[0], v[1]), min(max(v[0], v[1]), v[2])); /* median */
 
+	/* millidegrees, as the thermal core and its sysfs expect */
+	if (nvt_get_chip_id() == CHIP_NA51055)
+		t = (temp_value - adc->trim_value) * 1300 + 30000;
+	else
+		t = (temp_value - adc->trim_value) * 1319 + 30000;
+	if (t < -40000 || t > 150000)
+		return -EAGAIN;
+	*temp = t;
+	return 0;
+}
+
+static int thermal_get_trip_type(struct thermal_zone_device *thermal, int trip,
+				 enum thermal_trip_type *type)
+{
+	*type = THERMAL_TRIP_CRITICAL;
+	return 0;
+}
+
+static int thermal_get_trip_temp(struct thermal_zone_device *thermal, int trip, int *temp)
+{
+	*temp = crit_temp;
 	return 0;
 }
 
 static struct thermal_zone_device_ops ops = {
 	.get_temp = thermal_get_temp,
+	.get_trip_type = thermal_get_trip_type,
+	.get_trip_temp = thermal_get_trip_temp,
 };
 
 #ifdef CONFIG_OF
@@ -846,8 +875,9 @@ static int nvt_adc_probe(struct platform_device *pdev)
 	adc->pproc_adc = pentry;
 #endif
 
-	thermal_zone = thermal_zone_device_register("nvt_thermal", 0, 0,
-				   adc, &ops, NULL, 0, 0);
+	/* polled so the core sees the critical trip and powers off */
+	thermal_zone = thermal_zone_device_register("nvt_thermal", crit_temp > 0 ? 1 : 0, 0,
+				   adc, &ops, NULL, 0, crit_temp > 0 ? 2000 : 0);
 	if (IS_ERR(thermal_zone)) {
 		dev_err(&pdev->dev, "thermal zone device is NULL\n");
 		err = PTR_ERR(thermal_zone);
