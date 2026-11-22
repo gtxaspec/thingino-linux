@@ -289,7 +289,7 @@ static int jz_adc_aux_probe(struct platform_device *pdev)
 	ret = request_irq(jz_adc_aux->irq, jz_jz_adc_aux_irq_handler, 0, pdev->name, jz_adc_aux);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to request irq %d\n", ret);
-		goto err_free;
+		goto err_deregister;
 	}
 
 	disable_irq(jz_adc_aux->irq);
@@ -298,6 +298,8 @@ static int jz_adc_aux_probe(struct platform_device *pdev)
 
 	return 0;
 
+err_deregister :
+	misc_deregister(&jz_adc_aux->mdev);
 err_free :
 	kfree(jz_adc_aux);
 	return ret;
