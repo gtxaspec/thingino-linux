@@ -124,7 +124,17 @@ retry:
 			goto retry;
 
 		f2fs_stop_checkpoint(sbi, false);
-		f2fs_bug_on(sbi, 1);
+		set_sbi_flag(sbi, SBI_NEED_FSCK);
+		f2fs_msg(sbi->sb, KERN_ERR,
+			"meta page %lu unreadable (%ld), checkpoint stopped",
+			index, PTR_ERR(page));
+
+		/*
+		 * Callers here never check for errors. cp_error now keeps
+		 * every meta page off the disk, so a zeroed page is safe.
+		 */
+		page = f2fs_grab_meta_page(sbi, index);
+		zero_user_segment(page, 0, PAGE_SIZE);
 	}
 
 	return page;
