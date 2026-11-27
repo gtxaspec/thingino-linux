@@ -105,17 +105,18 @@ static void sdhci_ingenic_set_clock(struct sdhci_host *host, unsigned int clock)
 #ifndef CONFIG_FPGA_TEST
 	struct sdhci_ingenic *sdhci_ing = sdhci_priv(host);
 	unsigned int cpm_msc = sdhci_ingenic_get_cpm_msc(host);
-	char clkname[16];
-
 
 	if (clock == 0)
 		return;
 
 	sdhci_set_clock(host, clock);
 
+	/*
+	 * clk_mux is looked up once in probe. A clk_get() here allocated a new
+	 * struct clk on every call and never released it: with a polled slot
+	 * (broken-cd) and no card that is ~16 calls/s = ~2 KB/s of slab.
+	 */
 	spin_unlock_irq(&host->lock);
-	sprintf(clkname, "mux_msc%d", sdhci_ing->pdev->id);
-	sdhci_ing->clk_mux = clk_get(NULL, clkname);
 
 	if (clock > 400000) {
 		clk_set_parent(sdhci_ing->clk_mux, sdhci_ing->clk_mpll);
@@ -667,6 +668,12 @@ static int sdhci_ingenic_probe(struct platform_device *pdev)
 	}
 	sdhci_ing->clk_ext = clk_get(NULL, "ext");
 	sdhci_ing->clk_mpll = clk_get(NULL, "mpll");
+	sprintf(clkname, "mux_msc%d", pdev->id);
+	sdhci_ing->clk_mux = clk_get(NULL, clkname);
+	if (IS_ERR(sdhci_ing->clk_mux)) {
+		dev_err(&pdev->dev, "Failed to Get MSC mux clk!\n");
+		return PTR_ERR(sdhci_ing->clk_mux);
+	}
 
 	ingenic_mmc_clk_onoff(sdhci_ing, 1);
 
@@ -819,6 +826,9 @@ static int sdhci_ingenic_remove(struct platform_device *pdev)
 	clk_disable_unprepare(sdhci_ing->clk_cgu);
 	/* clk_disable_unprepare(sdhci_ing->clk_gate); */
 
+	clk_put(sdhci_ing->clk_mux);
+	clk_put(sdhci_ing->clk_mpll);
+	clk_put(sdhci_ing->clk_ext);
 	sdhci_free_host(host);
 	sysfs_remove_group(&pdev->dev.kobj, &jzmmc_attr_group);
 	platform_set_drvdata(pdev, NULL);
